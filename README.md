@@ -10,7 +10,7 @@ Two things:
 | [`optel-client.js`](optel-client.js) | One dependency-free ES module. Loads bundles from `bundles.aem.page` with a domain key, and turns them into reports (traffic sources, clicks and dead clicks, Core Web Vitals, errors and 404s, forms, scroll reach, journeys, experiments). Runs in the browser, in Node 18+, and as a CLI. Annotated for the coding model that builds on it: the header and section comments explain the data model, the checkpoints, and the rules that keep numbers right. |
 | [`skills/aem-optel/SKILL.md`](skills/aem-optel/SKILL.md) | An agent skill: how to get the key, which command answers which question, what the data means, and how not to misread a sample. |
 
-It grew out of two Experience Workspace panels built on the Coca-Cola demo site
+It grew out of two Experience Workspace panels built on a demo site
 (page insights and content-owner insights), which read the same bundles.
 
 ## Quick start
