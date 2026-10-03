@@ -132,7 +132,7 @@ test('loadBundles: filter while loading, 404 slots are empty, 403 fails fast, ke
     return { ok: true, status: 200, json: async () => ({ rumBundles: BUNDLES }) };
   };
   const res = await optel.loadBundles({
-    domain: 'www.example.com', domainKey: 'good', last: '24h', fetch: fakeFetch, filter: optel.byPath('/products/shoes'), checkpoints: ['enter', 'click'],
+    domain: 'www.example.com', domainKey: 'good', last: '24h', fetch: fakeFetch, filter: optel.byPath('/products/shoes'), checkpoints: ['enter', 'click'], trim: false, // fixtures are not tied to slots
   });
   assert.equal(res.files, 24);
   assert.equal(res.failed.length, 0);
@@ -164,4 +164,117 @@ test('OneTrust buttons without an onetrust token are consent clicks', () => {
   assert.equal(optel.classifyConsent('dialog button#close-pc-btn-handler'), 'dismiss');
   assert.equal(optel.classifyConsent('dialog button#accept-recommended-btn-handler'), 'accept');
   assert.equal(optel.classifyConsent('dialog a.privacy-notice-link'), 'other');
+});
+
+test('ranges: a bare end date is inclusive, and loads are trimmed to the window', async () => {
+  const p = optel.planRange({ start: '2026-09-05', end: '2026-09-06', granularity: 'hour' });
+  assert.equal(p.slots.length, 48, 'two whole days of hourly files');
+  assert.equal(optel.planRange({ start: '2026-09-05', end: '2026-09-06', granularity: 'day' }).slots.length, 2);
+  assert.equal(optel.planRange({ start: '2026-09-05T00:00:00Z', end: '2026-09-05T03:00:00Z', granularity: 'hour' }).slots.length, 3, 'ISO end is exclusive');
+  const inside = bundle([], { time: '2026-09-05T10:00:00.000Z' });
+  const before = bundle([], { time: '2026-09-04T23:59:00.000Z' });
+  const after = bundle([], { time: '2026-09-07T00:00:01.000Z' });
+  const fakeFetch = async () => ({ ok: true, status: 200, json: async () => ({ rumBundles: [inside, before, after] }) });
+  const res = await optel.loadBundles({
+    domain: 'www.example.com', domainKey: 'k', start: '2026-09-05', end: '2026-09-06', granularity: 'month', fetch: fakeFetch,
+  });
+  assert.equal(res.files, 1);
+  assert.deepEqual(res.bundles.map((b) => b.id), [inside.id], 'a monthly file is cut to the days asked for');
+});
+
+test('acquisition: real-world tagging seen on production domains', () => {
+  const visit = (events, url = 'https://www.brand.com/') => bundle(events, { url });
+  // ChatGPT ad (OpenAI click ids), with and without utm tags: paid AI, not a generic campaign
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'paid', source: 'openai', target: 'oppref' }, { checkpoint: 'paid', source: 'openai', target: 'olref' }])).label, 'paid:ai:chatgpt');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'paid', source: 'openai', target: 'oppref' },
+    { checkpoint: 'utm', source: 'utm_source', target: 'openai' }, { checkpoint: 'utm', source: 'utm_medium', target: 'paid_openai' }])).label, 'paid:ai:chatgpt');
+  // ChatGPT citation: earned AI
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'chatgpt.com' }])).label, 'earned:ai:chatgpt');
+  // Facebook ad that also carries a DV360 dclid: Facebook, not Google
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'http://m.facebook.com/' }, { checkpoint: 'paid', source: 'doubleclick', target: 'dclid' }, { checkpoint: 'paid', source: 'facebook', target: 'fbclid' },
+    { checkpoint: 'utm', source: 'utm_source', target: 'Facebook' }, { checkpoint: 'utm', source: 'utm_medium', target: 'Paid_Social' }])).label, 'paid:social:facebook');
+  // YouTube ad with Google click ids: video on YouTube
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'paid', source: 'google', target: 'gbraid' },
+    { checkpoint: 'utm', source: 'utm_source', target: 'YouTube' }, { checkpoint: 'utm', source: 'utm_medium', target: 'Video' }])).label, 'paid:video:youtube');
+  // brand suffix convention: _p paid, _o owned
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'social_p' }, { checkpoint: 'utm', source: 'utm_medium', target: 'social' }])).label, 'paid:social');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'packaging_o' }, { checkpoint: 'utm', source: 'utm_medium', target: 'ooh' }, { checkpoint: 'utm', source: 'utm_content', target: 'qr' }])).label, 'owned:ooh:packaging');
+  // the brand's own SSO subdomain is not a referral
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://login.emea.brand.com/' }], 'https://www.brand.com/us/en')).label, 'owned:internal:login.emea.brand.com');
+  assert.equal(optel.registrableDomain('shop.brand.co.uk'), 'brand.co.uk');
+});
+
+test('activity ladder, scroll evidence, dead taps, selectors', () => {
+  const t = (cp, timeDelta, extra = {}) => ({ checkpoint: cp, timeDelta, ...extra });
+  const nothing = bundle([t('enter', 10, { source: '' }), t('viewmedia', 20, { source: '.hero img' }), t('viewmedia', 25, { source: '.logo img' })]);
+  const consentOnly = bundle([t('enter', 10, { source: '' }), t('click', 900, { source: 'dialog button#onetrust-accept-btn-handler' })]);
+  const scrolledView = bundle([t('enter', 10, { source: '' }), t('viewmedia', 20, { source: '.hero img' }), t('viewblock', 4000, { source: '.cards' })]);
+  const interacted = bundle([t('enter', 10, { source: '' }), t('click', 3000, { source: '#teaser-f822f861a9 .cmp-teaser__content' }), t('click', 3300, { source: '#teaser-f822f861a9 .cmp-teaser__content' })]);
+  const navigated = bundle([t('enter', 10, { source: '' }), t('click', 5000, { source: '.hero a', target: 'https://www.example.com/cart' })]);
+  assert.deepEqual([nothing, consentOnly, scrolledView, interacted, navigated].map((b) => optel.activityOf(b)), optel.ACTIVITY_LEVELS);
+  assert.equal(optel.scrolled(nothing), false);
+  assert.equal(optel.timeTo(navigated, 'click'), 4990, 'no timed top beacon in the fixture: measured from the first timed event');
+  assert.equal(optel.normalizeSelector('#promoPlusInstantWin-id-5dd86ae84b button.button-primary'), '#promoPlusInstantWin-id-* button.button-primary');
+  assert.equal(optel.normalizeSelector('#teaser-cb94bd580f a#teaser-cb94bd580f-cta-0c20b31195'), '#teaser-* a#teaser-*-cta-*');
+  assert.equal(optel.normalizeSelector('.cards .default-content'), '.cards .default-content');
+  const a = optel.activityReport([nothing, consentOnly, scrolledView, interacted, navigated]);
+  assert.equal(a.overall.navigated, 0.2);
+  const d = optel.deadClickReport([interacted, navigated]);
+  assert.equal(d.elements[0].key, '#teaser-* .cmp-teaser__content');
+  assert.equal(d.repeatShare, 1, 'two taps on the same dead element');
+});
+
+test('AI referrals split organic and ads; redirects grouped by network', () => {
+  const v = (events, extra) => bundle([{ checkpoint: 'enter', source: '' }, ...events], extra);
+  const B = [
+    v([{ checkpoint: 'utm', source: 'utm_source', target: 'chatgpt.com' }, { checkpoint: 'click', source: '.hero a', target: 'https://www.example.com/x' }], { url: 'https://www.example.com/a' }),
+    v([{ checkpoint: 'paid', source: 'openai', target: 'oppref' }], { url: 'https://www.example.com/a' }),
+    bundle([{ checkpoint: 'enter', source: 'https://www.google.com/' }, { checkpoint: 'redirect', target: '2:900' }], { url: 'https://www.example.com/b' }),
+    bundle([{ checkpoint: 'enter', source: 'https://www.google.com/' }, { checkpoint: 'paid', source: 'google', target: 'gclid' }, { checkpoint: 'redirect', target: '1~400' }], { url: 'https://www.example.com/b' }),
+  ];
+  const r = optel.aiReferralReport(B);
+  assert.deepEqual(r.segments.map((s) => s.segment).sort(), ['chatgpt:ad', 'chatgpt:organic']);
+  assert.equal(r.ai.share, 0.5);
+  assert.deepEqual(r.landing.searchOnly.map((x) => x.key), ['/b']);
+  assert.equal(r.landing.aiAds[0].key, '/a');
+  const red = optel.redirectReport(B);
+  assert.equal(red.overall.redirectedShare, 0.5);
+  assert.ok(red.groups.some((g) => g.key === 'paid:google' && g.redirectedShare === 1));
+  const cmp = optel.comparePeriods(B.slice(0, 2), B.slice(2), { metrics: { redirected: (b) => optel.has(b, 'redirect') } });
+  assert.equal(cmp.metrics.redirected.a, 0);
+  assert.equal(cmp.metrics.redirected.b, 1);
+});
+
+test('loadBundles: a file over the 6 MB limit (413) is loaded as its days instead', async () => {
+  const seen = [];
+  const fakeFetch = async (url) => {
+    seen.push(url.replace(/\?.*/, ''));
+    if (/\/2026\/02\?/.test(url)) return { ok: false, status: 413, headers: new Map([['x-error', '[bundler] Response payload size exceeded maximum allowed payload size (6000000 bytes).']]) };
+    const m = /\/(\d{4})\/(\d{2})(?:\/(\d{2}))?\?/.exec(url);
+    return { ok: true, status: 200, json: async () => ({ rumBundles: [bundle([], { time: `${m[1]}-${m[2]}-${m[3] || '15'}T12:00:00.000Z` })] }) };
+  };
+  const res = await optel.loadBundles({
+    domain: 'www.example.com', domainKey: 'k', start: '2026-01-01', end: '2026-03-31', granularity: 'month', fetch: fakeFetch,
+  });
+  assert.equal(res.failed.length, 0);
+  assert.equal(res.split, 1);
+  assert.equal(res.bundles.length, 2 + 28, 'Jan and Mar from monthly files, February from 28 daily files');
+  assert.ok(seen.includes('https://bundles.aem.page/bundles/www.example.com/2026/02/28'));
+});
+
+test('review fixes: syndicated search ads, utm order, weighted lift, selectors, shared hosts', () => {
+  const visit = (events) => bundle(events, { url: 'https://www.brand.com/' });
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://duckduckgo.com/' }, { checkpoint: 'paid', source: 'microsoft', target: 'msclkid' }])).label, 'paid:search:microsoft');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'newsletter' }, { checkpoint: 'utm', source: 'utm_content', target: 'hero_banner' }])).label, 'owned:email:newsletter');
+  const A = [bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: '.a a', target: 'https://x/' }], { weight: 1000 }), bundle([{ checkpoint: 'enter', source: '' }], { weight: 100 })];
+  const B = [bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: '.a a', target: 'https://x/' }], { weight: 100 }), bundle([{ checkpoint: 'enter', source: '' }], { weight: 1000 })];
+  const c = optel.comparePeriods(A, B, { metrics: { clicked: (b) => optel.has(b, 'click') } }).metrics.clicked;
+  assert.ok(c.a > 0.9 && c.b < 0.1 && c.lift < -0.8, 'lift follows the weighted rates');
+  assert.equal(optel.normalizeSelector('.card-decade1'), '.card-decade1');
+  assert.equal(optel.normalizeSelector('#uuid-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d a'), '#uuid-* a');
+  assert.equal(optel.registrableDomain('main--site--org.aem.live'), 'main--site--org.aem.live');
+  assert.equal(optel.registrableDomain('192.168.0.1'), '192.168.0.1');
+  assert.equal(optel.activityOf(bundle([{ checkpoint: 'click', source: '""' }])), 'nothing');
+  const r = optel.redirectReport([bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'redirect', target: 'odd' }])]);
+  assert.equal(r.byDelay[0].key, 'unknown');
 });

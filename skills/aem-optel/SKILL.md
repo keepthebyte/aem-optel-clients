@@ -1,6 +1,6 @@
 ---
 name: aem-optel
-description: Pull and analyze AEM Operational Telemetry (Optel, formerly RUM) data for a website with its domain key - page views, visits, traffic sources (paid/owned/earned, search, social, AI assistants), clicks and dead clicks, Core Web Vitals, 404s and JS errors, forms, scroll reach, internal journeys, A/B experiments. Use when asked about Optel, RUM, operational telemetry, real-user data, rum bundles, bundles.aem.page, a domain key, or "how is page X doing" on an AEM / Edge Delivery Services site, or when building an app, dashboard or agent step that consumes that data.
+description: Pull and analyze AEM Operational Telemetry (Optel, formerly RUM) data for a website with its domain key - page views, visits, traffic sources (paid/owned/earned, search, social, AI assistants), clicks and dead clicks, Core Web Vitals, 404s and JS errors, forms, scroll reach, internal journeys, A/B experiments, plus ready-made analyses: activity ladder instead of bounce, AI assistant referrals (organic vs ChatGPT ads) versus search, redirect chains and ad-click delay, dead taps, bot / AI-agent behaviour profiles, one-page briefs and period comparisons. Use when asked about Optel, RUM, operational telemetry, real-user data, rum bundles, bundles.aem.page, a domain key, or "how is page X doing" on an AEM / Edge Delivery Services site, or when building an app, dashboard or agent step that consumes that data.
 ---
 
 # AEM Optel data
@@ -63,13 +63,26 @@ Output is JSON on stdout (`{ meta, data }`), progress on stderr. Pipe to `jq` or
 | Previous and next pages for a page | `--path /x --report flows` |
 | A/B tests (AEM Experimentation plugin) | `--report experiments` |
 | Any checkpoint broken down by source / target | `--report checkpoint:utm` |
-| Trend over time | `--report timeseries [--by hour]` |
+| Trend over time | `--report timeseries [--by hour\|week]` |
+| Did visitors do anything? (nothing / consent only / scrolled / interacted / navigated) per channel | `--report activity [--by source\|device\|path]` |
+| AI assistant traffic: organic citations vs ChatGPT ads, vs search, landing pages, weekly | `--report ai` |
+| Redirect chains before the page, per ad network, and engagement by delay | `--report redirects` |
+| Dead taps per component and page, repeat ("rage") taps | `--report dead-clicks` |
+| Bot / AI-agent hunting: behaviour per user agent | `--report segments [--by ua\|os]` |
+| Everything about one page (redesign brief, landing-page review) | `--path / --report page` |
+| This period vs the one before, with significance | `--report compare --vs previous` |
 | See the raw data shape | `--report sample` |
 | Everything raw, for your own analysis | `--report raw --out bundles.jsonl` |
 
-Range: `--last 24h|7d|30d|3m` or `--start YYYY-MM-DD --end YYYY-MM-DD`.
+Range: `--last 24h|7d|30d|3m` or `--start YYYY-MM-DD --end YYYY-MM-DD`. A bare end date is
+inclusive (the whole day) and loads are trimmed to `[start, end)` UTC, so hourly and daily
+loads of the same dates cover the same views.
 Filters apply while loading: `--path`, `--prefix`, `--match <regex>`, `--device mobile|desktop`.
 `--top N` sets rows per table. `--org <org>` instead of `--domain` for an org-level key.
+`--checkpoints utm,paid,click` keeps only those events while loading, plus the ones the
+chosen report reads (acquisition, bot/prerender filters, activity, CWV ... are added
+automatically per report): use it on big domains over weeks. In code, pass the full list
+yourself: `loadBundles({ checkpoints })` keeps exactly what you name. `--normalize` groups component instances in `clicks`.
 
 ### Cost and sample size: choose the range on purpose
 
@@ -81,7 +94,8 @@ Measured on a large brand site (~17M views a week):
 | `--last 24h` | 24 hourly | a few seconds | full (weight ~100) |
 | `--last 7d` | 168 hourly | ~10 s, ~830 MB (~350 MB with `--path`) | full |
 | `--last 30d` | ~31 daily | ~2 s, ~200 MB | **subsampled ~40x** (weight ~4,000) |
-| `--last 3m`+ | monthly | ~2 s, ~160 MB | subsampled further |
+| `--last 3m`+ | monthly | ~2 s, ~160 MB | subsampled further (~700 bundles/month on a 7M-views/month site) |
+| 28 days `--granularity hour --checkpoints ...` | 672 hourly | ~25 s, ~1.8 GB (623k bundles) | full |
 
 Coarser files keep totals right but hold far fewer bundles. That is fine for
 site-wide numbers and too thin for one page or a rare event: one page over 30 days
@@ -99,6 +113,8 @@ last week. Re-use a `--report raw --out` file instead of re-downloading for foll
 import {
   loadBundles, byPath, byPathPrefix, summary, clickReport, trafficSources, cwvReport,
   groupBy, realViews, events, pathOf, device, weightOf, timeSeries, isVisit,
+  activityOf, activityReport, aiReferralReport, redirectReport, deadClickReport,
+  segmentProfile, pageInsights, comparePeriods, classifyAcquisition, timeTo, normalizeSelector,
 } from './optel-client.js';
 
 const { bundles, failed } = await loadBundles({
@@ -135,11 +151,14 @@ front that adds `domainkey` and pass its base URL as `endpoint`.
   id: 'kZ3x9q', url: 'https://www.example.com/path', userAgent: 'mobile:ios',
   weight: 100,                                   // real views this sample stands for
   time: '2026-09-30T14:03:11.000Z', timeSlot: '2026-09-30T14:00:00.000Z',
-  events: [{ checkpoint: 'enter', source: 'https://www.google.com/' },
-           { checkpoint: 'click', source: '.hero a', target: 'https://www.example.com/cart' },
+  events: [{ checkpoint: 'enter', source: 'https://www.google.com/', timeDelta: 412 },
+           { checkpoint: 'click', source: '.hero a', target: 'https://www.example.com/cart', timeDelta: 9120 },
            { checkpoint: 'cwv-lcp', value: 1840, source: '.hero img' }, ...]
 }
 ```
+
+`timeDelta` is ms on the page's clock. `msSinceStart(b, e)` / `timeTo(b, 'click')` turn it
+into "ms after the view started" (time to first click, scroll evidence, robotic 50 ms clicks).
 
 Checkpoints you will meet (full reference with source/target meaning: `CHECKPOINTS`
 in `optel-client.js`):
@@ -152,7 +171,7 @@ in `optel-client.js`):
 | `viewblock` / `viewmedia` | block / media selector | media URL | scrolled into view |
 | `cwv-lcp` `cwv-cls` `cwv-inp` `cwv-ttfb` | LCP element (lcp) | `value` (ms; CLS unitless) | Core Web Vitals, only some views |
 | `utm` | `utm_source`, `utm_medium`, ... | value | campaign tags |
-| `paid` | network (`google`, `facebook`, ...) | click-id param (`gclid`) | ad click |
+| `paid` | network (`google`, `doubleclick`, `facebook`, `tiktok`, `openai`, ...) | click-id param (`gclid`, `dclid`, `fbclid`, `ttclid`, `oppref`/`olref`) | ad click; several can ride on one URL; `openai` = an ad in ChatGPT |
 | `email` | `mailchimp` / `marketo` | param | email tool click |
 | `consent` | `onetrust` / `trustarc` / `usercentrics` | `show`/`hidden`/`suppressed` | cookie banner state |
 | `error` | `fn@file:line:col` or field selector | message or validity type | JS error / form validation |
@@ -186,27 +205,112 @@ Sites differ. Run `--report checkpoints` and only build on what is actually ther
 9. **CWV are sparse**: only views that stayed long enough report them. Quote p75 with
    the sample count.
 10. **Campaign conventions are site-specific.** The default rules (rum-distiller's)
-    call `utm_medium=social` earned. Many brands tag paid campaigns their own way, e.g.
-    a `_p` suffix on `utm_source` (`snap_p`, `meta_p`) and `utm_medium=social` for paid
-    social. Ask, or look at `--report checkpoint:utm`, then extend the rules instead of
-    misreporting paid traffic as earned:
+    call `utm_medium=social` earned. The client already reads a type suffix on
+    `utm_source`/`utm_medium` (`social_p` paid, `packaging_o` owned, `pr_e` earned;
+    `RULES.typeSuffix`, set it to null to turn off). For other conventions look at
+    `--report checkpoint:utm`, ask, and extend the rules instead of misreporting:
     ```js
-    RULES.paidMedium = new RegExp(`${RULES.paidMedium.source}|_p$|^social$`, 'i');
+    RULES.paidMedium = new RegExp(`${RULES.paidMedium.source}|^social$`, 'i');
     ```
+11. **"Bounce" and distiller "engagement" are blunt.** Bounce counts a cookie-banner
+    click as engagement and a long read as a bounce; engagement (">3 blocks or media
+    seen") is ~80% on media-heavy pages that load many images on arrival. Use the
+    activity ladder (`activityOf`, `--report activity`): nothing / consent-only /
+    scrolled / interacted / navigated. "Scrolled" is a heuristic (blocks or media that
+    came into view 1 s+ after the first ones; carousels can fake it). Say so.
+12. **Prerenders.** Speculation-rules sites can have 20%+ of raw bundles as prerenders
+    that were never shown (one retail site: ~1.8M of 8.9M in four weeks). Built-in reports drop
+    them; a hand count of all bundles, or a BigQuery query that does not exclude
+    `checkpoint='prerender'` views, overstates page views by that much (visits are unaffected).
+13. **Same-brand referrers are internal.** A visit from `login.emea.brand.com` or another
+    market's subdomain is `owned:internal`, not a referral (matched on registrable domain).
+14. **Redirect `~` values are estimates** from a late fetchStart; exact (`:`) ones come from
+    the browser and miss cross-origin hops (ad trackers). Compare redirect delay within one
+    channel: QR and packaging traffic has long chains *and* high intent, so a pooled
+    "slow redirects engage more" result is confounded.
+15. **Dead taps need eyes.** Class-only selectors on custom widgets (configurator tiles,
+    React inputs, accordions) look dead but do work. Group with `normalizeSelector`,
+    then open the page before calling anything broken.
+
+## 4b. Recipes: questions first answered in BigQuery, now from bundles
+
+All built on one domain's bundles. Load once with `--report raw --out x.jsonl` (or in code)
+and run every report on that file instead of downloading again.
+
+**AI assistant referrals (ChatGPT benchmark).** `--report ai --start ... --end ... --granularity hour`.
+Gives share of visits, AI visits per 100 earned-search visits, content-click rate and the
+activity ladder for AI vs search vs all, landing pages for organic AI, for ChatGPT ads and
+the search landings organic AI never reaches (missing product lines), a weekly series, and a
+`likelyAutomated` flag (click rate < 0.35x search on >= 100 bundles). Ads (`paid` checkpoint
+`openai`) and organic citations (`utm_source=chatgpt.com` or a chatgpt.com referrer) are split:
+on one retail site ChatGPT ads were 3x the organic visits and clicked 12% vs 65%. A query on
+`utm_source LIKE '%chatgpt%'` alone misses the ads (their source is `openai`). Use 8-12 weeks
+for a small site: organic ChatGPT is often < 0.3% of visits (~70 bundles a month).
+
+**Paid traffic quality (activity instead of bounce).** `--report activity --by source` → per
+ad network, the share of visits that did nothing, only touched the consent banner, scrolled,
+interacted, or clicked through, plus how often the banner was shown and time to first click.
+
+**Ad-click redirect chains and load delay.** `--report redirects` → per ad network: redirected
+share, multi-hop share, ms lost p50/p75, TTFB and LCP p75, plus the activity ladder per delay
+bucket, the `redirect_from` values, and landing pages with the slowest chains. Name the
+vendors from the redirect sources and click ids (`dclid` = Campaign Manager / DV360).
+
+**Dead taps.** `--report dead-clicks` (all pages) or `--path /x --report dead-clicks`.
+
+**Bot / AI browsing agent check (e.g. desktop:linux).** `--report segments` → per user agent:
+direct-entry share, events per view, click / scroll / form rates, share of first clicks under
+500 ms, TTFB p50/p90 (datacenter vs residential), weekend share, peak UTC hour, CWV reporting
+rate, top paths. Compare the suspect agent with windows/mac. Synthetic monitoring looks like:
+~95% direct, few events, < 5% clicks, weekday-heavy, one landing page. Then trend it with
+`timeseries --by week` filtered by user agent in code.
+
+**Homepage / landing page brief.** `--path / --report page` → views, entry share, channels,
+activity overall and by channel, clicks (consent and dead separated), reach (viewblock on EDS,
+viewmedia elsewhere), LCP p75 and element, previous/next pages, errors. Feed it to a design
+step as evidence: what is seen, what is clicked, what is ignored, where people go next.
+
+**Before/after.** `--report compare --vs previous` (same length, immediately before) for
+channel mix, AI share, did-nothing, content clicks, redirects, poor LCP, JS errors, dead taps,
+each with p-value. In code, `comparePeriods(a, b, { base, metrics })` for anything else.
+
+## 4c. What bundles cannot answer (use BigQuery or another source)
+
+- **Anything across domains.** One key reads one hostname (an org key: one org's hosts).
+  Vertical benchmarks, "AEM fleet" trends, peer sets and "is this a broad effect or one
+  site?" need every peer's key, which is the BigQuery tables' job.
+- **Industry / vertical** is not in the data anywhere (neither is it in BigQuery).
+- **Geo, IP, raw user agent, browser version**: not collected. The user agent is the
+  simplified `device:os:engine` string. Scrapers can't be traced to IPs from here; use CDN logs.
+- **Bots are under-represented.** The bundler drops part of the bot traffic (one retail
+  site, 4 weeks: 93k bot views in bundles vs 158k in BigQuery) and few `bot:ai:*` agents remain.
+  Use bundles for "is this human-looking segment really human", not for bot volumes.
+- **Sessions and visitors.** No visitor or session id: a visit is one entry view. Multi-page
+  journeys are stitched only from `navigate` (previous page) and click targets.
+- **Rare events over long ranges** at full sample need hourly files: a year is 8,760
+  requests. Monthly files keep totals right with ~700 bundles a month on a mid-size site.
+- **History**: files went back two years on the sites tested (Sept 2024), roughly
+  BigQuery's 25-month retention, but only monthly/daily files are practical that far back.
 
 ## 5. Presenting results
 
 Lead with what the data says and what to change, then the numbers that back it.
 Always state: domain, path filter, date range (UTC), granularity, sampled bundles,
 and any `failedFiles`. Round (`12.4k views`, `38%`), don't print raw weights.
+For customer-facing reports call the data "AEM Operational Telemetry", as aem.live does.
+State heuristics as heuristics (scrolled, dead taps, likelyAutomated) and give the
+sample size behind every rate.
 
 ## 6. Without Node (raw HTTP)
 
 ```bash
-curl -s "https://bundles.aem.page/bundles/www.example.com/2026/09/30/14?domainkey=$OPTEL_DOMAIN_KEY" \
+curl -s --compressed "https://bundles.aem.page/bundles/www.example.com/2026/09/30/14?domainkey=$OPTEL_DOMAIN_KEY" \
   | jq '[.rumBundles[] | select(.url | endswith("/products/shoes"))] | map(.weight) | add'
 ```
 
 Paths: `/bundles/{domain}/{YYYY}/{MM}/{DD}/{HH}` (hour), `/{YYYY}/{MM}/{DD}` (day),
 `/{YYYY}/{MM}` (month); `/orgs/{org}/bundles/...` for org keys. UTC. 404 = no data for
-that slot. Same rules as section 4 apply.
+that slot. Always ask for gzip (`--compressed`): uncompressed responses over 6 MB are refused
+with 413 (`Response payload size exceeded`), which hits daily and monthly files of busy sites.
+The client compresses (fetch does) and also falls back to smaller files on 413.
+Same rules as section 4 apply.
