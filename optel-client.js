@@ -8,6 +8,8 @@
  *   - an ES module in Node 18+      import * as optel from './optel-client.js';
  *   - a CLI                         node optel-client.js --domain www.example.com --last 7d --report summary
  *
+ * Reference: https://www.aem.live/developer/operational-telemetry
+ *
  * ─────────────────────────────────────────────────────────────────────────────
  * READ THIS FIRST (written for the person, or the coding model, building on it)
  * ─────────────────────────────────────────────────────────────────────────────

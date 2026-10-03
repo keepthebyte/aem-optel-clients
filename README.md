@@ -3,6 +3,9 @@
 Use AEM Operational Telemetry (Optel, formerly RUM) data anywhere: in a web page,
 a Node script, an Experience Workspace extension, or an agent.
 
+Reference: [Operational Telemetry on aem.live](https://www.aem.live/developer/operational-telemetry) (what is collected,
+sampling, privacy, checkpoints).
+
 Two things:
 
 | | |

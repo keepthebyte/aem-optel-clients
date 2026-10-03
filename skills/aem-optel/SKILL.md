@@ -11,6 +11,8 @@ scrolled into view, Core Web Vitals, errors. The collector groups the events of 
 view into a **bundle** and serves bundles as JSON files per hour, day or month from
 `bundles.aem.page`. Reading them needs the domain's **domain key**.
 
+Reference: https://www.aem.live/developer/operational-telemetry (what is collected, sampling, privacy).
+
 This skill pulls that data with `optel-client.js` (one dependency-free file, browser +
 Node 18+ + CLI) and tells you how to read it without fooling yourself.
 
