@@ -278,3 +278,30 @@ test('review fixes: syndicated search ads, utm order, weighted lift, selectors, 
   const r = optel.redirectReport([bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'redirect', target: 'odd' }])]);
   assert.equal(r.byDelay[0].key, 'unknown');
 });
+
+test('consent: Tealium prompt and generic cookie banners; form consent checkboxes are not banners', () => {
+  assert.equal(optel.classifyConsent('dialog button#consent_prompt_submit'), 'accept');
+  assert.equal(optel.classifyConsent('dialog button#consent_prompt_decline'), 'reject');
+  assert.equal(optel.classifyConsent('#__tealiumGDPRecModal'), 'other');
+  assert.equal(optel.classifyConsent('.cookie-banner button.accept-all'), 'accept');
+  assert.equal(optel.classifyConsent("form#newsletter input#consent"), null);
+  assert.equal(optel.classifyConsent('#notifyMe-d8c2e7ec3a #input-generalConsent'), null, 'a signup checkbox outside a <form> token');
+  assert.equal(optel.classifyClick({ source: "form#newsletter input#consent" }), 'form');
+  assert.equal(optel.classifyConsent('.cmp-button'), null, 'cmp- is the AEM core components prefix, not a CMP');
+  assert.equal(optel.classifyConsent('dialog button.cc-btn.cc-allow'), 'accept', 'Osano cookieconsent');
+  assert.equal(optel.classifyConsent('#cookie-notice button#cn-accept-cookie'), 'accept');
+  assert.equal(optel.classifyConsent('#gdpr-banner button.reject'), 'reject');
+  // content that merely mentions cookies or consent is not a banner (food and legal sites)
+  for (const s of ['.cards a#cookie-recipes', '#cookies-and-cream .cmp-teaser__content', '.product-grid a.cookie-dough',
+    'main a.gdpr-guide-download', '.article #consent-decree-faq a', 'footer a.cookie-policy', '.hero button.cookie-flavour']) {
+    assert.equal(optel.classifyConsent(s), null, s);
+  }
+  const v = bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: 'dialog button#consent_prompt_submit' }]);
+  assert.equal(optel.activityOf(v), 'consent-only');
+});
+
+test('flows: a click on an image or file is not a next page', () => {
+  const b = [bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: 'header img', target: 'https://www.example.com/content/dam/logo.svg' },
+    { checkpoint: 'click', source: '.hero a', target: 'https://www.example.com/contact' }], { url: 'https://www.example.com/' })];
+  assert.deepEqual(optel.flows(b, { path: '/' }).next.map((r) => r.key), ['/contact']);
+});

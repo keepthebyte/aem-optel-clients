@@ -816,6 +816,18 @@ const CONSENT = [
   {
     match: /#didomi/, accept: /agree-button/, reject: /disagree-button/, dismiss: /popup-close|continue-without-agreeing/,
   },
+  /* Tealium consent prompt: 'dialog button#consent_prompt_submit', '#__tealiumGDPRecModal' */
+  {
+    match: /consent_prompt|__tealiumGDPR|tealium/i, accept: /submit|accept/i, reject: /decline|reject/i, dismiss: /close/i, settings: /preference|setting|manage/i,
+  },
+  /* Last resort for other banners. A cookie word alone is not enough: '.cards a#cookie-recipes' or
+     'a.cookie-dough' is content on a food site. So it needs either the enhancer's 'dialog' context (a
+     fixed overlay) or a banner word next to it ('cookie-banner', 'consent-notice', 'gdpr-popup'), or
+     the Osano cookieconsent classes (cc-window, cc-btn, cc-allow). Form fields never match (a
+     newsletter's consent checkbox, e.g. '#notifyMe-x #input-generalConsent', is not a banner). */
+  {
+    match: /^(?!.*(?:(?:^|\s)form\b|input|select|textarea))(?:dialog\b.*(?:consent|cookie|gdpr)|.*(?:(?:cookie|consent|gdpr|privacy)[-_]?(?:banner|bar|notice|notification|prompt|popup|modal|dialog|overlay|wall|layer)|(?:^|[\s.#])cc-(?:window|banner|btn|allow|deny|dismiss)|cookieconsent))/i, accept: /accept|agree|allow|submit|ok\b/i, reject: /reject|decline|deny|refuse/i, dismiss: /close|dismiss/i, settings: /setting|preference|manage|customi/i,
+  },
 ];
 
 /** For a click source selector inside a cookie banner: 'accept' | 'reject' | 'dismiss' | 'settings' | 'other'. Otherwise null. */
@@ -1276,7 +1288,8 @@ export function flows(bundles, { path, top = 15 } = {}) {
       if (has(b, 'reload')) return '(reload)';
       return prev(b) || '(unknown)';
     }, { top }),
-    next: groupBy(here, (b) => events(b, 'click').filter((e) => { try { return new URL(e.target).hostname === host; } catch { return false; } }).map((e) => normalizePath(e.target)).filter((t) => t !== p), { top, total: weightOf(here) }),
+    // isNavigation drops clicks on images and files (a logo .svg is not a next page)
+    next: groupBy(here, (b) => events(b, 'click').filter((e) => { try { return isNavigation(e) && new URL(e.target).hostname === host; } catch { return false; } }).map((e) => normalizePath(e.target)).filter((t) => t !== p), { top, total: weightOf(here) }),
     exits: groupBy(here, (b) => events(b, 'click').filter((e) => { try { return isNavigation(e) && new URL(e.target).hostname !== host; } catch { return false; } }).map((e) => new URL(e.target).hostname), { top, total: weightOf(here) }),
   };
 }
