@@ -1,0 +1,13 @@
+{
+  "name": "aem-optel-clients",
+  "version": "0.1.0",
+  "description": "Read AEM Operational Telemetry (Optel / RUM) bundles from any website, app or agent: one dependency-free JS client plus an agent skill.",
+  "type": "module",
+  "main": "optel-client.js",
+  "exports": "./optel-client.js",
+  "bin": { "optel": "optel-client.js" },
+  "files": ["optel-client.js", "skills"],
+  "engines": { "node": ">=18" },
+  "scripts": { "test": "node --test test/" },
+  "license": "Apache-2.0"
+}
