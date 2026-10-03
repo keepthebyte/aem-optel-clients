@@ -151,3 +151,17 @@ test('flows label back/forward and reload instead of unknown', () => {
   const keys = optel.flows(b, { path: '/menu' }).previous.map((r) => r.key).sort();
   assert.deepEqual(keys, ['(back/forward button)', '(reload)']);
 });
+
+test('clickReport: an element\'s targets come only from clicks on that element', () => {
+  const b = [bundle([{ checkpoint: 'click', source: '#box' }, { checkpoint: 'click', source: '.nav a', target: 'https://www.example.com/other' }]),
+    bundle([{ checkpoint: 'click', source: '#box' }])];
+  const el = optel.clickReport(b, { pageUrl: PAGE }).elements.find((e) => e.source === '#box');
+  assert.equal(el.kind, 'dead');
+  assert.equal(el.targets.length, 0);
+});
+
+test('OneTrust buttons without an onetrust token are consent clicks', () => {
+  assert.equal(optel.classifyConsent('dialog button#close-pc-btn-handler'), 'dismiss');
+  assert.equal(optel.classifyConsent('dialog button#accept-recommended-btn-handler'), 'accept');
+  assert.equal(optel.classifyConsent('dialog a.privacy-notice-link'), 'other');
+});

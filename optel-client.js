@@ -63,12 +63,18 @@
  *   5. Selectors in `source` are generated (`.cards a`, `#container-9fae63`), not
  *      human names. Map them to labels in the app if users need to read them.
  *
- * COST OF LOADING
+ * COST OF LOADING, AND WHY GRANULARITY CHANGES THE SAMPLE
  *   There is no per-URL or per-checkpoint query: you download whole files and
- *   filter client-side. A busy domain's week (168 hourly files) can be hundreds of
- *   MB of JSON. Pick the coarsest granularity that answers the question
- *   (planRange() does this), pass `filter` to keep only the bundles you need while
- *   loading, and `checkpoints` to drop events you will not read.
+ *   filter client-side. Measured on a large brand site (~17M views/week, Node 22):
+ *   a week of hourly files = 174k bundles in ~10 s, ~830 MB peak memory unfiltered,
+ *   ~350 MB with a path filter. Pass `filter` to keep only the bundles you need
+ *   while loading, and `checkpoints` to drop events you will not read.
+ *
+ *   Daily and monthly files are SUBSAMPLED: on that site a daily-file bundle had
+ *   weight ~4,000 against 100 in hourly files. Totals stay right (weights
+ *   compensate) but there are ~40x fewer bundles. For one page or a rare event
+ *   over more than a week, force granularity 'hour': on that site, one page over
+ *   30 days gave 395 bundles from daily files and 19,000 from hourly (38 s).
  *
  * MAP OF THIS FILE
  *   §1 Constants and the checkpoint reference (CHECKPOINTS)
@@ -216,8 +222,10 @@ function step(d, granularity) {
  * hours / days / months, so the result can cover a little more than asked.
  *
  * Granularity 'auto' follows the Optel explorer: up to 7 days → hourly files,
- * up to 31 days → daily, longer → monthly. Hourly gives hour-level time series;
- * coarser files are far fewer requests.
+ * up to 31 days → daily, longer → monthly. Hourly gives hour-level time series
+ * and the most samples; coarser files are far fewer requests but subsampled
+ * (fewer bundles with larger weights), which is fine for site-wide totals and
+ * thin for a single page. Pass granularity 'hour' when the sample matters.
  *
  * @returns {{ granularity: string, start: Date, end: Date, slots: Date[] }}
  */
@@ -517,7 +525,7 @@ export const RULES = {
   /* values that mean an owned channel: email, SMS, QR, print, own website */
   ownedMedium: /email|newsletter|hs_email|organic|sms|qr|qrcode|print|website|web|linkin\.bio|push/i,
   /* referrer hosts of ad networks: a visit from one is paid even without tags */
-  adReferrer: /doubleclick|googlesyndication|googleadservices|amazon-adsystem|imasdk\.googleapis|adnxs|criteo|taboola|outbrain|teads/i,
+  adReferrer: /doubleclick|googlesyndication|googleadservices|amazon-adsystem|imasdk\.googleapis|adnxs|criteo|taboola|outbrain|teads|themediatrust/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|ask\.com|aol\.com|search\.brave\.com|qwant\.com|seznam\.cz|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|snapchat\.com|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|youtu\.be|threads\.net|whatsapp\.com|line\.me|bsky\.app)$/i,
   ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|anthropic\.com|copilot\.microsoft\.com|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
@@ -636,10 +644,12 @@ export function classifyAcquisition(b) {
   return make('earned', ref.type === 'other' || ref.type === 'app' ? 'referral' : ref.type, ref.vendor || ref.host);
 }
 
-/* Cookie-banner click selectors, after rum-distiller/consent.js plus common OneTrust preference-centre ids. */
+/* Cookie-banner click selectors, after rum-distiller/consent.js plus OneTrust's own ids and classes.
+   OneTrust buttons often report only as 'dialog button#close-pc-btn-handler' (no 'onetrust' token),
+   so its id conventions (-btn-handler, ot- prefixes, privacy-notice-link) are matched directly. */
 const CONSENT = [
   {
-    match: /onetrust|#ot-|ot-pc|ot-sdk|ot-group|ot-switch|save-preference-btn/, accept: /accept/, reject: /reject|refuse/, dismiss: /close/, settings: /pc-btn-handler|setting|save-preference|ot-group|ot-switch/,
+    match: /onetrust|(^|[\s#.])ot-|ot-pc|ot-sdk|-btn-handler|-all-handler|save-preference-btn|privacy-notice-link/, accept: /accept/, reject: /reject|refuse/, dismiss: /close/, settings: /pc-btn-handler|setting|save-preference|ot-group|ot-switch/,
   },
   { match: /#usercentrics-root/, accept: /accept/, reject: /deny|reject/ },
   { match: /#truste|trustarc/, accept: /consent-button|accept/, dismiss: /close/ },
@@ -948,15 +958,27 @@ export function clickReport(bundles, { pageUrl = '', top = 20 } = {}) {
   const nonConsent = (b) => events(b, 'click').filter((e) => classifyClick(e, pageUrl) !== 'consent');
   const clickedContent = human.filter((b) => nonConsent(b).length);
   const deadViews = human.filter((b) => events(b, 'click').some((e) => classifyClick(e, pageUrl) === 'dead'));
-  const elements = groupBy(human, (b) => nonConsent(b).map((e) => e.source || ''), {
-    top,
-    total: views,
-    metrics: {
-      targets: (g) => groupBy(g, (b) => events(b, 'click').filter((e) => e.target).map((e) => e.target), { top: 3 }).map(({ key, views: v }) => ({ target: key, views: v })),
-    },
-  }).map((r) => {
-    const target = r.targets[0]?.target || '';
-    return { source: r.key, kind: classifyClick({ source: r.key, target }, pageUrl), ...r };
+  // targets per element: only the clicks on that element, each view counted once per target
+  const targetsOf = new Map();
+  human.forEach((b) => {
+    const seen = new Set();
+    nonConsent(b).forEach((e) => {
+      const k = `${e.source || ''}\0${e.target || ''}`;
+      if (seen.has(k)) return;
+      seen.add(k);
+      const m = targetsOf.get(e.source || '') || new Map();
+      m.set(e.target || '', (m.get(e.target || '') || 0) + (b.weight || 0));
+      targetsOf.set(e.source || '', m);
+    });
+  });
+  const elements = groupBy(human, (b) => nonConsent(b).map((e) => e.source || ''), { top, total: views }).map((r) => {
+    const all = [...(targetsOf.get(r.key) || new Map())].sort((a, b) => b[1] - a[1]);
+    const targets = all.filter(([t]) => t).slice(0, 3).map(([target, v]) => ({ target, views: v }));
+    // the element's kind follows its most common click: an element mostly tapped without a target is dead
+    const kind = classifyClick({ source: r.key, target: all[0]?.[0] || '' }, pageUrl);
+    return {
+      source: r.key, kind, ...r, noTargetViews: (targetsOf.get(r.key) || new Map()).get('') || 0, targets,
+    };
   });
   return {
     views,

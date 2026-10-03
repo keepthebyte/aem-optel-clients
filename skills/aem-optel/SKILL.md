@@ -71,16 +71,24 @@ Range: `--last 24h|7d|30d|3m` or `--start YYYY-MM-DD --end YYYY-MM-DD`.
 Filters apply while loading: `--path`, `--prefix`, `--match <regex>`, `--device mobile|desktop`.
 `--top N` sets rows per table. `--org <org>` instead of `--domain` for an org-level key.
 
-### Cost: choose the range on purpose
+### Cost and sample size: choose the range on purpose
 
 There is no server-side filtering: every file is downloaded whole and filtered locally.
+Measured on a large brand site (~17M views a week):
 
-| Range | Files fetched | Notes |
-| --- | --- | --- |
-| `--last 24h` | 24 hourly | seconds |
-| `--last 7d` | 168 hourly | a busy domain: hundreds of MB, 10 to 60 s |
-| `--last 30d` | ~30 daily | fewer requests; no hour-level detail |
-| `--last 3m`+ | monthly | cheapest per day covered |
+| Range | Files fetched | Time / peak memory (whole domain) | Sample |
+| --- | --- | --- | --- |
+| `--last 24h` | 24 hourly | a few seconds | full (weight ~100) |
+| `--last 7d` | 168 hourly | ~10 s, ~830 MB (~350 MB with `--path`) | full |
+| `--last 30d` | ~31 daily | ~2 s, ~200 MB | **subsampled ~40x** (weight ~4,000) |
+| `--last 3m`+ | monthly | ~2 s, ~160 MB | subsampled further |
+
+Coarser files keep totals right but hold far fewer bundles. That is fine for
+site-wide numbers and too thin for one page or a rare event: one page over 30 days
+gave 395 bundles from daily files and 19,000 with `--granularity hour` (~40 s).
+So for a single page, a funnel or an experiment over more than a week, add
+`--granularity hour`. Sites also sample at different rates (weights of 100 and
+1,000 both occur), so never assume a weight.
 
 Start with `24h` or `7d` for one page. Do not load a year to answer a question about
 last week. Re-use a `--report raw --out` file instead of re-downloading for follow-ups.
@@ -177,8 +185,14 @@ Sites differ. Run `--report checkpoints` and only build on what is actually ther
    things that do nothing: a strong UX signal, but check the element before claiming.
 9. **CWV are sparse**: only views that stayed long enough report them. Quote p75 with
    the sample count.
-10. **Campaign conventions are site-specific.** If a site tags paid social as
-    `utm_medium=social`, adjust `RULES.paidMedium` instead of misreporting it as earned.
+10. **Campaign conventions are site-specific.** The default rules (rum-distiller's)
+    call `utm_medium=social` earned. Many brands tag paid campaigns their own way, e.g.
+    a `_p` suffix on `utm_source` (`snap_p`, `meta_p`) and `utm_medium=social` for paid
+    social. Ask, or look at `--report checkpoint:utm`, then extend the rules instead of
+    misreporting paid traffic as earned:
+    ```js
+    RULES.paidMedium = new RegExp(`${RULES.paidMedium.source}|_p$|^social$`, 'i');
+    ```
 
 ## 5. Presenting results
 
