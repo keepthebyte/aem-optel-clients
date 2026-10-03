@@ -97,6 +97,13 @@ Synthetic bundles in the real shape plus a mocked bundler. They cover URL and
 range planning, classification, aggregation, every report, and the loading
 failure modes (404 slots, rejected keys, key redaction).
 
+## Versions
+
+See [CHANGELOG.md](CHANGELOG.md). When you change the client or the skill, add a
+line under **Unreleased**. To release, move those lines under a new version, bump
+`VERSION` in `optel-client.js` and `version` in `package.json` to match, and tag
+the commit `vX.Y.Z`.
+
 ## Notes
 
 - Classification rules (acquisition, consent, CWV thresholds, page views, bounces,

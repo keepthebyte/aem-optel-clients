@@ -9,6 +9,7 @@
     "optel": "optel-client.js"
   },
   "files": [
+    "CHANGELOG.md",
     "optel-client.js",
     "skills"
   ],
