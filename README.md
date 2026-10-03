@@ -10,7 +10,7 @@ Two things:
 
 | | |
 | --- | --- |
-| [`optel-client.js`](optel-client.js) | One dependency-free ES module. Loads bundles from `bundles.aem.page` with a domain key, and turns them into reports (traffic sources, clicks and dead clicks, Core Web Vitals, errors and 404s, forms, scroll reach, journeys, experiments). Runs in the browser, in Node 18+, and as a CLI. Annotated for the coding model that builds on it: the header and section comments explain the data model, the checkpoints, and the rules that keep numbers right. |
+| [`optel-client.js`](optel-client.js) | One dependency-free ES module. Loads bundles from `bundles.aem.page` with a domain key, and turns them into reports (traffic sources, clicks and dead clicks, Core Web Vitals, errors and 404s, forms, scroll reach, journeys, experiments), plus use-case reports: an activity ladder instead of bounce, AI assistant referrals (organic vs ChatGPT ads) vs search, redirect chains per ad network, dead taps per component, behaviour profiles for bot / AI-agent hunting, one-page briefs and period comparisons. Runs in the browser, in Node 18+, and as a CLI. Annotated for the coding model that builds on it: the header and section comments explain the data model, the checkpoints, and the rules that keep numbers right. |
 | [`skills/aem-optel/SKILL.md`](skills/aem-optel/SKILL.md) | An agent skill: how to get the key, which command answers which question, what the data means, and how not to misread a sample. |
 
 It grew out of two Experience Workspace panels built on a demo site
@@ -78,6 +78,13 @@ One bundle is one sampled page view: `url`, `userAgent` (`mobile:ios`), `weight`
 `{ checkpoint, source, target, value }`. `CHECKPOINTS` in the client lists what
 every checkpoint's source and target mean. It was checked against
 `@adobe/helix-rum-js` 2.17 and `@adobe/helix-rum-enhancer` 2.50.
+
+## Checked against BigQuery
+
+Same domain, same 28 days (UTC), bundles vs the `helix_rum` tables: visits within 0.2%,
+raw page views within 0.5%, ChatGPT-tagged entries identical. Two known gaps, both
+documented in the skill: the bundles hold fewer bot views, and the client drops
+speculative prerenders that were never shown (~20% of raw page views on one site).
 
 ## Tests
 

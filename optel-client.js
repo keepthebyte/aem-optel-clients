@@ -79,11 +79,14 @@
  * MAP OF THIS FILE
  *   §1 Constants and the checkpoint reference (CHECKPOINTS)
  *   §2 URLs, ranges and loading               bundleUrl, planRange, loadBundles, createOptelClient
- *   §3 Bundle helpers                         events, isBot, isPageView, isVisit, pathOf, device, cwvOf, ...
+ *   §3 Bundle helpers                         events, isBot, isPageView, isVisit, pathOf, device, cwvOf,
+ *                                             msSinceStart, timeTo, scrolled, activityOf, normalizeSelector, ...
  *   §4 Classification                         classifyReferrer, classifyAcquisition, classifyClick, classifyConsent, parseRedirect
  *   §5 Aggregation primitives                 weightOf, viewsOf, groupBy, percentile, timeSeries, marginOfError, compareProportions
  *   §6 Reports (ready-made, JSON-friendly)    summary, topPages, trafficSources, clickReport, cwvReport, errorReport,
  *                                             formReport, mediaReach, flows, experimentReport, checkpointReport
+ *   §6b Use-case reports                      activityReport, aiReferralReport, redirectReport, deadClickReport,
+ *                                             segmentProfile, pageInsights, comparePeriods
  *   §7 CLI
  *
  * Classification rules follow @adobe/rum-distiller (the library behind the Optel
@@ -95,7 +98,7 @@
    §1 CONSTANTS AND THE CHECKPOINT REFERENCE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 export const BUNDLER = 'https://bundles.aem.page';
 
 /**
@@ -133,7 +136,7 @@ export const CHECKPOINTS = {
   login: { source: 'form selector', target: 'form action URL', use: 'A form with one password field was submitted.' },
   signup: { source: 'form selector', target: 'form action URL', use: 'A form with two or more password fields was submitted.' },
   utm: { source: 'parameter name: utm_source, utm_medium, utm_campaign, utm_content, ...', target: 'parameter value', use: 'Campaign tags on the landing URL. utm_id and utm_term are not recorded. classifyAcquisition().' },
-  paid: { source: 'ad network: google | doubleclick | microsoft | facebook | twitter | linkedin | pinterest | tiktok | openai', target: 'click-id parameter name (gclid, fbclid, msclkid, ...)', use: 'The URL carried an ad click id: a paid click. classifyAcquisition().' },
+  paid: { source: 'ad network: google | doubleclick | microsoft | facebook | twitter | linkedin | pinterest | tiktok | openai', target: 'click-id parameter name (gclid, gbraid, wbraid, dclid, fbclid, msclkid, ttclid, epik, oppref/olref for openai, ...)', use: 'The URL carried an ad click id: a paid click. One URL can carry several (a Facebook ad with a DV360 dclid). `openai` = an ad in ChatGPT. classifyAcquisition().' },
   email: { source: 'mailchimp | marketo', target: 'parameter name (mc_cid, mkt_tok, ...)', use: 'The URL carried an email-tool tracking id: an owned email visit.' },
   consent: { source: 'onetrust | trustarc | usercentrics', target: '"show" | "hidden" | "suppressed"', use: 'Whether the cookie banner was shown on this view. Clicks inside it are click events with CMP selectors (classifyConsent()).' },
   redirect: { source: 'value of ?redirect_from= if any', target: '"<count>:<ms>" exact, or "<estimated count>~<ms>" estimated', use: 'The navigation went through redirects before the page; ms is time lost before the first byte. parseRedirect().' },
@@ -230,17 +233,30 @@ function step(d, granularity) {
  * @returns {{ granularity: string, start: Date, end: Date, slots: Date[] }}
  */
 export function planRange({ start, end = new Date(), granularity = 'auto' } = {}) {
-  let s = toDate(start);
-  let e = toDate(end);
+  const s0 = toDate(start);
+  let e = toEnd(end);
   const now = new Date();
   if (e > now) e = now;
-  if (e < s) throw new Error('start must be before end');
-  const days = (e - s) / 864e5;
+  if (e < s0) throw new Error('start must be before end');
+  const days = (e - s0) / 864e5;
   const g = granularity !== 'auto' ? granularity : (days <= 7 ? 'hour' : days <= 31 ? 'day' : 'month');
-  s = floorTo(s, g);
+  const s = floorTo(s0, g);
   const slots = [];
-  for (let d = s; d <= e; d = step(d, g)) slots.push(d);
-  return { granularity: g, start: s, end: e, slots };
+  // `end` is exclusive: a slot starting exactly at `end` is not fetched
+  for (let d = s; d < e; d = step(d, g)) slots.push(d);
+  return {
+    granularity: g, start: s, end: e, slots, requested: { start: s0, end: e },
+  };
+}
+
+/**
+ * End of a range, exclusive. A bare date ('2026-10-02') means "through the end
+ * of that day", so --start 2026-09-05 --end 2026-10-02 is 28 whole days whatever
+ * the granularity. Anything else (ISO time, Date, epoch) is taken as given.
+ */
+export function toEnd(x) {
+  if (typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x)) return new Date(toDate(x).getTime() + 864e5);
+  return toDate(x);
 }
 
 /** '24h' | '7d' | '3m' → { start, end } ending now. */
@@ -311,6 +327,8 @@ export const redact = (url) => String(url).replace(/(domainkey=)[^&]+/i, '$1***'
  * @param {(b: object) => boolean} [o.filter]  keep only matching bundles WHILE loading (saves memory).
  *                                       Combine with the predicates in §3, e.g. byPath('/blog').
  * @param {string[]} [o.checkpoints]     keep only these events in each bundle (saves memory)
+ * @param {boolean}  [o.trim=true]       drop bundles outside [start, end): files cover whole hours/days/months.
+ *                                       A bare-date `end` ('2026-10-02') includes that whole day.
  * @param {boolean}  [o.keep=true]       false: do not accumulate; use onChunk to reduce as you go
  * @param {number}   [o.concurrency=6]   parallel requests (browsers allow ~6 per host)
  * @param {number}   [o.retries=2]       retries on network errors, 429 and 5xx
@@ -320,18 +338,20 @@ export const redact = (url) => String(url).replace(/(domainkey=)[^&]+/i, '$1***'
  * @param {(done: number, total: number) => void} [o.onProgress]
  * @param {typeof fetch} [o.fetch]       custom fetch (tests, proxies)
  * @param {string}   [o.endpoint]        bundler base URL, e.g. your own proxy that adds the key server-side
- * @returns {Promise<{ bundles: object[], granularity: string, start: Date, end: Date, files: number, failed: {slot: Date, error: string}[] }>}
+ * @returns {Promise<{ bundles: object[], granularity: string, start: Date, end: Date, files: number, split: number, failed: {slot: Date, granularity: string, error: string}[] }>}
  *
  * Failure model: a rejected key throws OptelError at once (it would fail for
- * every file). Any other failed file is listed in `failed` and loading goes on,
- * so check `failed.length` before trusting totals.
+ * every file). A file over the bundler's 6 MB response limit (413, common for
+ * monthly and daily files of busy sites) is replaced by its days or hours;
+ * `split` counts those. Any other failed file is listed in `failed` and loading
+ * goes on, so check `failed.length` before trusting totals.
  *
  * @example
  *   const { bundles } = await loadBundles({ domain: 'www.example.com', domainKey, last: '7d', filter: byPath('/products') });
  *   const report = summary(bundles);
  */
 export async function loadBundles({
-  domain, org, domainKey, start, end, last, granularity = 'auto', filter, checkpoints, keep = true,
+  domain, org, domainKey, start, end, last, granularity = 'auto', filter, checkpoints, keep = true, trim = true,
   concurrency = 6, retries = 2, signal, onChunk, onProgress, fetch: fetchImpl = globalThis.fetch, endpoint = BUNDLER,
 } = {}) {
   if (!domain && !org) throw new Error('loadBundles needs `domain` (or `org`)');
@@ -341,17 +361,36 @@ export async function loadBundles({
   if (!range.start) throw new Error('loadBundles needs `start` or `last`');
   const plan = planRange({ ...range, granularity });
   const cps = checkpoints ? new Set(checkpoints) : null;
+  // Files snap outward to whole hours/days/months. Trim to the window asked for, so an
+  // hourly and a daily load of the same dates cover the same views (`last` keeps whole hours).
+  const winStart = last ? floorTo(plan.requested.start, 'hour') : plan.requested.start;
+  const inWindow = trim ? byTime(winStart, plan.end) : null;
+  if (inWindow) filter = and(inWindow, filter);
   const bundles = [];
   const failed = [];
-  const queue = plan.slots.slice();
+  // queue items carry their own granularity: a file the bundler refuses as too large (413) is
+  // replaced by its days (or hours), so busy months still load instead of silently going missing
+  const queue = plan.slots.map((slot) => ({ slot, g: plan.granularity }));
+  let total = queue.length;
   let done = 0;
+  let inFlight = 0;
+  let split = 0;
   let fatal = null;
+  const finer = { month: 'day', day: 'hour' };
 
   const worker = async () => {
-    while (queue.length && !fatal && !signal?.aborted) {
-      const slot = queue.shift();
+    while ((queue.length || inFlight) && !fatal && !signal?.aborted) {
+      if (!queue.length) {
+        // another lane may still split a file into more work
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(20);
+        // eslint-disable-next-line no-continue
+        continue;
+      }
+      const { slot, g } = queue.shift();
+      inFlight += 1;
       const url = bundleUrl({
-        domain, org, domainKey, date: slot, granularity: plan.granularity, endpoint,
+        domain, org, domainKey, date: slot, granularity: g, endpoint,
       });
       let kept = [];
       try {
@@ -362,20 +401,32 @@ export async function loadBundles({
         if (cps) kept = kept.map((b) => ({ ...b, events: (b.events || []).filter((e) => cps.has(e.checkpoint)) }));
         if (keep) for (const b of kept) bundles.push(b);
       } catch (err) {
-        if (err instanceof OptelError && (err.status === 401 || err.status === 403)) { fatal = err; return; }
-        if (signal?.aborted) return;
-        failed.push({ slot, error: redact(err.message || err) });
+        if (err instanceof OptelError && (err.status === 401 || err.status === 403)) { fatal = err; inFlight -= 1; return; }
+        if (signal?.aborted) { inFlight -= 1; return; }
+        if (err instanceof OptelError && err.status === 413 && finer[g]) {
+          const parts = [];
+          const stop = step(slot, g);
+          for (let d = slot; d < stop && d < plan.end; d = step(d, finer[g])) {
+            if (!inWindow || step(d, finer[g]) > winStart) parts.push({ slot: d, g: finer[g] });
+          }
+          queue.push(...parts);
+          total += parts.length;
+          split += 1;
+        } else {
+          failed.push({ slot, granularity: g, error: redact(err.message || err) });
+        }
       }
+      inFlight -= 1;
       done += 1;
-      onChunk?.(kept, { slot, done, total: plan.slots.length });
-      onProgress?.(done, plan.slots.length);
+      onChunk?.(kept, { slot, done, total });
+      onProgress?.(done, total);
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, concurrency) }, worker));
   if (fatal) throw fatal;
   if (signal?.aborted) throw signal.reason || new Error('aborted');
   return {
-    bundles, granularity: plan.granularity, start: plan.start, end: plan.end, files: plan.slots.length, failed,
+    bundles, granularity: plan.granularity, start: inWindow ? winStart : plan.start, end: plan.end, files: total - split, split, failed,
   };
 }
 
@@ -461,6 +512,87 @@ export const os = (b) => (b.userAgent || '').split(':')[1] || '';
 /** UTC day 'YYYY-MM-DD' and hour 'YYYY-MM-DDTHH' of the view. */
 export const dayOf = (b) => String(b.time || b.timeSlot || '').slice(0, 10);
 export const hourOf = (b) => String(b.time || b.timeSlot || '').slice(0, 13);
+/** Monday of the view's UTC week, 'YYYY-MM-DD'. For weekly trends. */
+export function weekOf(b) {
+  const d = toDate(dayOf(b));
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Milliseconds from the start of the view to an event. Events carry `timeDelta`
+ * (ms on the page's clock); the `top` beacon marks the start of the view, so
+ * subtracting it gives "how long after the page started did this happen".
+ * Not in BigQuery's per-row shape as directly: this is one of the things bundles do better.
+ */
+export function msSinceStart(b, e) {
+  if (e?.timeDelta == null) return null;
+  const top = firstEvent(b, 'top')?.timeDelta;
+  const t0 = top ?? Math.min(...(b.events || []).map((x) => x.timeDelta ?? Infinity));
+  return Number.isFinite(t0) ? Math.max(0, e.timeDelta - t0) : null;
+}
+
+/** Time to the first event of a checkpoint (ms since the view started), or null. */
+export function timeTo(b, cp, pred = () => true) {
+  const ts = events(b, cp).filter(pred).map((e) => msSinceStart(b, e)).filter((x) => x != null);
+  return ts.length ? Math.min(...ts) : null;
+}
+
+/* Two-label public suffixes, enough to tell 'login.emea.brand.com' and 'shop.brand.co.uk' apart. */
+const SUFFIX2 = /\.(co|com|org|net|gov|edu|ac|ne|or)\.[a-z]{2}$|\.com\.(au|br|cn|mx|tr|ar|sg|hk|tw|my)$|\.(aem\.live|aem\.page|hlx\.page|hlx\.live|github\.io|vercel\.app|netlify\.app|herokuapp\.com|pages\.dev|web\.app|azurewebsites\.net|cloudfront\.net)$/i;
+/** 'login.emea.brand.com' → 'brand.com'. Approximate (no full public suffix list). */
+export function registrableDomain(host) {
+  const h = String(host || '').toLowerCase().replace(/\.$/, '');
+  if (/^[\d.]+$|:/.test(h)) return h; // IP addresses stay whole
+  const parts = h.split('.');
+  return parts.slice(SUFFIX2.test(h) ? -3 : -2).join('.');
+}
+
+/**
+ * Collapse generated ids so the same component groups together:
+ * '#promoPlusInstantWin-id-5dd86ae84b button.button-primary' → '#promoPlusInstantWin-id-* button.button-primary',
+ * '#teaser-f822f861a9 .cmp-teaser__content' → '#teaser-* .cmp-teaser__content'.
+ * Use as a groupBy key when one component has many instances (AEM core components, promo widgets).
+ */
+export const normalizeSelector = (sel) => String(sel || '')
+  .replace(/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}/gi, '*')
+  .replace(/([-_])(?=(?:[a-f]*\d){2})[0-9a-f]{6,}(?![\w])/gi, '$1*');
+
+/**
+ * Did the visitor scroll? Blocks or media that came into view at least `afterMs`
+ * after the first ones did. Content visible on load reports within a few ms of
+ * each other; items reported later were (usually) scrolled to. Caveat: carousels
+ * and lazy widgets that animate in also report late. A heuristic, so say so.
+ */
+export function scrolled(b, { afterMs = 1000 } = {}) {
+  const ts = events(b, ['viewblock', 'viewmedia']).map((e) => e.timeDelta).filter((t) => t != null);
+  if (ts.length < 2) return false;
+  const first = Math.min(...ts);
+  return ts.some((t) => t - first >= afterMs);
+}
+
+/** The ladder levels activityOf() returns, from least to most engaged. */
+export const ACTIVITY_LEVELS = ['nothing', 'consent-only', 'scrolled', 'interacted', 'navigated'];
+
+/**
+ * The most engaged thing a view did, one of ACTIVITY_LEVELS:
+ *   nothing       no click, no form input, no evidence of scrolling
+ *   consent-only  only clicks in the cookie banner
+ *   scrolled      scrolled (scrolled()), no content click
+ *   interacted    clicked or typed something on the page that did not navigate (tabs, carousels, forms, dead taps)
+ *   navigated     clicked a link to another page (on the site or off it)
+ * A sharper alternative to "bounce" (a visit with no click at all, which counts a
+ * consent click as engagement and a long read as a bounce).
+ */
+export function activityOf(b, pageUrl = b?.url || '') {
+  const clicks = events(b, 'click').filter((e) => !/^"/.test(e.source || '')); // '""' = enhancer placeholder, not a tap
+  const content = clicks.filter((e) => classifyClick(e, pageUrl) !== 'consent');
+  if (content.some((e) => isNavigation(e, pageUrl))) return 'navigated';
+  if (content.length || has(b, 'fill') || events(b, ['formsubmit', 'search', 'login', 'signup']).length) return 'interacted';
+  if (scrolled(b)) return 'scrolled';
+  if (clicks.length) return 'consent-only';
+  return 'nothing';
+}
 
 /** The referrer that started the visit ('' for direct). Only visits have one. */
 export function referrerOf(b) {
@@ -530,6 +662,11 @@ export const RULES = {
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|snapchat\.com|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|youtu\.be|threads\.net|whatsapp\.com|line\.me|bsky\.app)$/i,
   ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|anthropic\.com|copilot\.microsoft\.com|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
   aiUtm: /chatgpt|openai|perplexity|copilot|gemini|claude|deepseek|mistral|grok/i,
+  /* ad networks whose click ids mean "an ad inside an AI assistant" (ChatGPT ads: oppref / olref) */
+  aiAdNetworks: /^openai$/i,
+  /* Brand naming conventions that state the type in the tag itself: utm_source=social_p (paid),
+     packaging_o (owned), pr_e (earned). One large brand tags all campaigns this way. Set to null to turn off. */
+  typeSuffix: /_(p|o|e)$/i,
   email: /(^|\.)(mail\.google\.com|outlook\.live\.com|outlook\.office\.com|mail\.yahoo\.com|mail\.aol\.com)$/i,
   /* in-app referrers ('android-app://com.facebook.katana/') → a host the rules understand */
   androidApps: {
@@ -576,8 +713,8 @@ export function classifyReferrer(url, siteHost = '') {
   if (!url || url === '(direct)') return { type: 'direct', vendor: '', host: '' };
   const host = hostFrom(url);
   if (!host) return { type: /^android-app:/i.test(url) ? 'app' : 'other', vendor: '', host: url };
-  const bare = (h) => h.replace(/^www\./, '');
-  if (siteHost && bare(host) === bare(siteHost)) return { type: 'internal', vendor: '', host };
+  // same registrable domain = the brand's own property (SSO login, shop subdomain, another market site)
+  if (siteHost && registrableDomain(host) === registrableDomain(siteHost)) return { type: 'internal', vendor: '', host };
   const vendor = vendorOf(host);
   if (RULES.ai.test(host)) return { type: 'ai', vendor, host };
   if (RULES.adReferrer.test(host)) return { type: 'ad', vendor, host };
@@ -599,16 +736,25 @@ export function classifyReferrer(url, siteHost = '') {
  * Order of evidence: ad click ids (`paid`) → utm tags → email tool ids (`email`) → referrer.
  * @returns {{ type: string, channel: string, vendor: string, label: string, referrer: string, utm: object } | null}
  */
-export function classifyAcquisition(b) {
+export function classifyAcquisition(b, { siteHost = hostOf(b) } = {}) {
   if (!isVisit(b)) return null;
   const utm = utmOf(b);
   const referrer = referrerOf(b) || '';
-  const ref = classifyReferrer(referrer);
-  const paidEvent = firstEvent(b, 'paid');
+  const ref = classifyReferrer(referrer, siteHost);
+  // several click ids can ride on one URL (Facebook ad with a DV360 dclid). The tracker
+  // (doubleclick) is the least informative, so prefer any other network.
+  const paidEvents = events(b, 'paid');
+  const paidEvent = paidEvents.find((e) => !/doubleclick/i.test(e.source || '')) || paidEvents[0];
   const emailEvent = firstEvent(b, 'email');
+  const suffixType = (s) => {
+    const m = RULES.typeSuffix && RULES.typeSuffix.exec(s || '');
+    return m ? { p: 'paid', o: 'owned', e: 'earned' }[m[1].toLowerCase()] : null;
+  };
+  const stripSuffix = (s) => (RULES.typeSuffix ? String(s || '').replace(RULES.typeSuffix, '') : String(s || ''));
   const src = utm.utm_source || '';
   const medium = utm.utm_medium || '';
   const tagChannel = (s) => {
+    if (/openai|chatgpt/i.test(s)) return 'ai';
     if (/search|sem|sea$|cpc|ppc/i.test(s)) return 'search';
     if (/display|programmatic|banner|gdn|dbm|native/i.test(s)) return 'display';
     if (/video|dv360|ctv|ott|(^|[^a-z])tv/i.test(s)) return 'video';
@@ -618,26 +764,38 @@ export function classifyAcquisition(b) {
     if (/sms/i.test(s)) return 'sms';
     if (/qr/i.test(s)) return 'qr';
     if (/print/i.test(s)) return 'print';
+    if (/ooh|outdoor|packaging/i.test(s)) return 'ooh';
     return '';
   };
   const make = (type, channel, vendor) => ({
     type, channel: channel || 'campaign', vendor: vendor || '', label: [type, channel || 'campaign', vendor].filter(Boolean).join(':'), referrer, utm,
   });
 
+  // vendor evidence, most specific first: the tag the marketer wrote, then where the visitor came from
+  const refVendor = ['search', 'social', 'ai', 'ad'].includes(ref.type) ? ref.vendor : '';
   if (paidEvent) {
-    const vendor = vendorOf(paidEvent.source) || paidEvent.source || vendorOf(src);
-    const channel = tagChannel(medium) || (['google', 'bing', 'microsoft'].includes(vendor) ? 'search' : ['facebook', 'instagram', 'linkedin', 'x', 'pinterest', 'tiktok'].includes(vendor) ? 'social' : '');
+    const network = paidEvent.source || '';
+    if (RULES.aiAdNetworks.test(network)) return make('paid', 'ai', vendorOf(network) || network);
+    // a search or AI referrer only says where the ad was shown (Bing ads on DuckDuckGo / Yahoo): the network wins
+    const vendor = vendorOf(stripSuffix(src)) || (['search', 'ai'].includes(ref.type) ? '' : refVendor) || vendorOf(network) || network;
+    const channel = tagChannel(medium) || (ref.type === 'search' ? 'search' : ref.type === 'social' ? 'social' : '') || (['google', 'bing', 'microsoft'].includes(vendor) ? 'search' : ['facebook', 'instagram', 'linkedin', 'x', 'pinterest', 'tiktok', 'snapchat', 'reddit'].includes(vendor) ? 'social' : ['youtube'].includes(vendor) ? 'video' : '');
     return make('paid', channel, vendor);
   }
   if (src || medium) {
-    const vendor = vendorOf(src) || vendorOf(utm.utm_source_platform) || src.toLowerCase();
+    const generic = /^(social|paid|display|search|video|email|organic|cpc|web)$/i; // 'social_p' names a channel, not a vendor
+    const vendor = vendorOf(stripSuffix(src)) || vendorOf(utm.utm_source_platform) || refVendor || (generic.test(stripSuffix(src)) ? '' : stripSuffix(src).toLowerCase());
+    const stated = suffixType(src) || suffixType(medium);
+    const ch = tagChannel(medium) || tagChannel(stripSuffix(src)) || tagChannel(utm.utm_content);
+    if (stated) return make(stated, ch || (stated === 'owned' ? 'web' : 'campaign'), vendor);
     if (RULES.aiUtm.test(src)) return make('earned', 'ai', vendorOf(src) || src.toLowerCase());
-    if (RULES.paidMedium.test(medium) || RULES.paidMedium.test(src)) return make('paid', tagChannel(medium) || tagChannel(src), vendor);
-    if (RULES.ownedMedium.test(medium) || RULES.ownedMedium.test(src)) return make('owned', tagChannel(medium) || tagChannel(src) || 'web', vendor);
+    if (RULES.paidMedium.test(medium) || RULES.paidMedium.test(src)) return make('paid', ch, vendor);
+    if (RULES.ownedMedium.test(medium) || RULES.ownedMedium.test(src)) return make('owned', ch || 'web', vendor);
+    if (ref.type === 'internal') return make('owned', 'internal', ref.host);
     const fallback = { direct: 'campaign', other: 'referral', app: 'referral' }[ref.type] || ref.type;
     return make('earned', tagChannel(medium) || fallback, vendor);
   }
   if (emailEvent) return make('owned', 'email', emailEvent.source);
+  if (ref.type === 'internal') return make('owned', 'internal', ref.host);
   if (ref.type === 'ad') return make('paid', 'display', ref.vendor || ref.host);
   if (ref.type === 'direct') return make('earned', 'direct', '');
   if (ref.type === 'email') return make('owned', 'email', ref.vendor);
@@ -814,16 +972,16 @@ export function cwvP75(bundles, metric, p = 0.75) {
  * Views per hour or day, with optional extra series.
  * @param {object[]} bundles
  * @param {object} [o]
- * @param {'hour'|'day'} [o.by='day']
+ * @param {'hour'|'day'|'week'} [o.by='day']   week = ISO week starting Monday (UTC)
  * @param {Record<string, (b: object) => number>} [o.series]  per-bundle values to sum, e.g. { visits: (b) => isVisit(b) ? b.weight : 0 }
  * @param {Date[]} [o.slots]  pre-fill empty buckets (pass planRange(...).slots for gap-free charts)
  * @returns {Array<{ t: string, views: number, [series: string]: number }>} sorted by time
  */
 export function timeSeries(bundles, { by = 'day', series = {}, slots } = {}) {
-  const keyOf = by === 'hour' ? hourOf : dayOf;
+  const keyOf = by === 'hour' ? hourOf : by === 'week' ? weekOf : dayOf;
   const out = new Map();
   const blank = (t) => ({ t, views: 0, ...Object.fromEntries(Object.keys(series).map((k) => [k, 0])) });
-  (slots || []).forEach((d) => { const t = d.toISOString().slice(0, by === 'hour' ? 13 : 10); if (!out.has(t)) out.set(t, blank(t)); });
+  (slots || []).forEach((d) => { const t = by === 'week' ? weekOf({ time: d.toISOString() }) : d.toISOString().slice(0, by === 'hour' ? 13 : 10); if (!out.has(t)) out.set(t, blank(t)); });
   bundles.forEach((b) => {
     const t = keyOf(b);
     if (!out.has(t)) out.set(t, blank(t));
@@ -896,7 +1054,8 @@ export function summary(bundles, { top = 10 } = {}) {
     visits: visitViews,
     pagesPerVisit: ratio(views, visitViews),
     bounceRate: ratio(weightOf(visits.filter(isBounce)), visitViews),
-    engagementRate: ratio(weightOf(human.filter(isEngaged)), views),
+    engagementRate: ratio(weightOf(human.filter(isEngaged)), views), // distiller definition: generous on media-heavy pages, see activity
+    activity: ladder(visits), // per visit: nothing / consent-only / scrolled / interacted / navigated
     devices: groupBy(human, device),
     os: groupBy(human, (b) => [device(b), os(b)].filter(Boolean).join(':'), { top }),
     pages: groupBy(human, pathOf, { top }),
@@ -952,7 +1111,9 @@ export function trafficSources(bundles, { top = 20 } = {}) {
  * headline rates: share of views that clicked anything, anything but the
  * cookie banner, followed a link; and dead clicks (taps on things that do nothing).
  */
-export function clickReport(bundles, { pageUrl = '', top = 20 } = {}) {
+export function clickReport(bundles, { pageUrl = '', top = 20, normalize = false } = {}) {
+  // normalize: group instances of one component ('#teaser-f822f861a9 a', '#teaser-39e5c5f2cc a') with normalizeSelector()
+  const sel = normalize ? normalizeSelector : (x) => x || '';
   const human = realViews(bundles);
   const views = weightOf(human);
   const nonConsent = (b) => events(b, 'click').filter((e) => classifyClick(e, pageUrl) !== 'consent');
@@ -963,15 +1124,15 @@ export function clickReport(bundles, { pageUrl = '', top = 20 } = {}) {
   human.forEach((b) => {
     const seen = new Set();
     nonConsent(b).forEach((e) => {
-      const k = `${e.source || ''}\0${e.target || ''}`;
+      const k = `${sel(e.source)}\0${e.target || ''}`;
       if (seen.has(k)) return;
       seen.add(k);
-      const m = targetsOf.get(e.source || '') || new Map();
+      const m = targetsOf.get(sel(e.source)) || new Map();
       m.set(e.target || '', (m.get(e.target || '') || 0) + (b.weight || 0));
-      targetsOf.set(e.source || '', m);
+      targetsOf.set(sel(e.source), m);
     });
   });
-  const elements = groupBy(human, (b) => nonConsent(b).map((e) => e.source || ''), { top, total: views }).map((r) => {
+  const elements = groupBy(human, (b) => nonConsent(b).map((e) => sel(e.source)), { top, total: views }).map((r) => {
     const all = [...(targetsOf.get(r.key) || new Map())].sort((a, b) => b[1] - a[1]);
     const targets = all.filter(([t]) => t).slice(0, 3).map(([target, v]) => ({ target, views: v }));
     // the element's kind follows its most common click: an element mostly tapped without a target is dead
@@ -1072,8 +1233,10 @@ export function formReport(bundles) {
  * into view, most-seen first. On a single page this is a scroll-depth curve.
  * `cliff` is the largest relative drop between consecutive items with >= 2% reach.
  */
-export function mediaReach(bundles, { top = 25, checkpoint = 'viewblock' } = {}) {
+export function mediaReach(bundles, { top = 25, checkpoint: cp = 'auto' } = {}) {
   const human = realViews(bundles);
+  // AEM sites outside Edge Delivery (Cloud Service, AMS) send almost no viewblock: fall back to viewmedia
+  const checkpoint = cp !== 'auto' ? cp : (ratio(human.filter((b) => has(b, 'viewblock')).length, human.length) > 0.1 ? 'viewblock' : 'viewmedia');
   const views = weightOf(human);
   const items = groupBy(human, (b) => events(b, checkpoint).map((e) => e.source).filter((s) => s && !s.startsWith('"')), {
     top,
@@ -1174,6 +1337,294 @@ export function checkpointReport(bundles, { checkpoint, top = 20 } = {}) {
   });
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   §6b USE-CASE REPORTS
+   Built from the questions that were first answered in BigQuery over the
+   fleet-wide RUM tables, rewritten for one domain's bundles.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/** Acquisition label keys for grouping, at three depths: 'type', 'channel' (paid:search), 'source' (paid:search:google). */
+export const acquisitionKey = (depth = 'channel') => (b) => {
+  const a = classifyAcquisition(b);
+  if (!a) return null;
+  return depth === 'type' ? a.type : depth === 'source' ? a.label : `${a.type}:${a.channel}`;
+};
+
+/* weighted share of each activity level in a set of bundles */
+function ladder(g) {
+  const w = weightOf(g);
+  const counts = Object.fromEntries(ACTIVITY_LEVELS.map((l) => [l, 0]));
+  g.forEach((b) => { counts[activityOf(b)] += b.weight || 0; });
+  return Object.fromEntries(ACTIVITY_LEVELS.map((l) => [l, ratio(counts[l], w)]));
+}
+
+/**
+ * Activity ladder per group: what share of visits did nothing, only touched the
+ * cookie banner, scrolled, interacted, or clicked through to another page.
+ * Defaults to visits grouped by acquisition channel ("is paid traffic doing anything?").
+ *
+ * @param {object} [o]
+ * @param {(b) => string} [o.by]   group key (default acquisition channel); e.g. acquisitionKey('source'), device, pathOf
+ * @param {boolean} [o.visitsOnly=true]  false: all views (per-page analysis)
+ */
+export function activityReport(bundles, { by = acquisitionKey('channel'), visitsOnly = true, top = 20 } = {}) {
+  const base = realViews(bundles).filter(visitsOnly ? isVisit : () => true);
+  const total = weightOf(base);
+  return {
+    unit: visitsOnly ? 'visits' : 'views',
+    total,
+    levels: ACTIVITY_LEVELS,
+    overall: ladder(base),
+    groups: groupBy(base, by, {
+      top,
+      total,
+      metrics: {
+        ladder,
+        consentShown: (g) => ratio(weightOf(g.filter((b) => firstEvent(b, 'consent')?.target === 'show')), weightOf(g)),
+        firstClickMsP50: (g) => percentile(g.map((b) => [timeTo(b, 'click', (e) => classifyClick(e) !== 'consent'), b.weight]), 0.5),
+      },
+    }),
+  };
+}
+
+/**
+ * AI assistant referrals versus search. Splits every assistant into organic
+ * citations (referrer or utm_source like chatgpt.com) and ads (an `openai` click id:
+ * ChatGPT ads, oppref/olref), which BigQuery queries on utm_source alone miss or mix.
+ *
+ * Returns: share of visits, visits per 100 earned-search visits, the activity ladder
+ * and non-consent click rate for AI vs search vs all visits, landing pages for AI
+ * vs search (and pages search lands on that AI never does), a weekly trend, and
+ * a flag when AI visits behave like automation (click rate < 0.35 x search, >= 100 bundles).
+ */
+export function aiReferralReport(bundles, { top = 15 } = {}) {
+  const visits = realViews(bundles).filter(isVisit);
+  const total = weightOf(visits);
+  const acq = new Map(visits.map((b) => [b, classifyAcquisition(b)]));
+  const isAI = (b) => acq.get(b).channel === 'ai';
+  const isSearch = (b) => acq.get(b).type === 'earned' && acq.get(b).channel === 'search';
+  const contentClick = (b) => events(b, 'click').some((e) => classifyClick(e, b.url) !== 'consent');
+  const profile = (g) => ({
+    visits: weightOf(g),
+    bundles: g.length,
+    share: ratio(weightOf(g), total),
+    clickRate: ratio(weightOf(g.filter(contentClick)), weightOf(g)),
+    consentOnlyRate: ratio(weightOf(g.filter((b) => activityOf(b) === 'consent-only')), weightOf(g)),
+    ladder: ladder(g),
+  });
+  const ai = visits.filter(isAI);
+  const search = visits.filter(isSearch);
+  const searchViews = weightOf(search);
+  const segments = groupBy(ai, (b) => `${acq.get(b).vendor || 'ai'}:${acq.get(b).type === 'paid' ? 'ad' : 'organic'}`, { total })
+    .map((r) => {
+      const g = ai.filter((b) => `${acq.get(b).vendor || 'ai'}:${acq.get(b).type === 'paid' ? 'ad' : 'organic'}` === r.key);
+      const p = profile(g);
+      const s = profile(search);
+      return {
+        segment: r.key,
+        ...p,
+        per100Search: ratio(p.visits * 100, searchViews),
+        vsSearchClick: compareProportions(search.filter(contentClick).length, search.length, g.filter(contentClick).length, g.length),
+        likelyAutomated: g.length >= 100 && p.clickRate < 0.35 * s.clickRate,
+      };
+    });
+  const searchLanding = groupBy(search, pathOf, { top: top * 3, total: searchViews });
+  const organic = ai.filter((b) => acq.get(b).type !== 'paid');
+  const ads = ai.filter((b) => acq.get(b).type === 'paid');
+  const aiPaths = new Set(organic.map(pathOf));
+  return {
+    visits: total,
+    ai: profile(ai),
+    search: profile(search),
+    all: profile(visits),
+    segments,
+    landing: {
+      // ads land where the campaign points; organic citations show what the assistants recommend
+      aiOrganic: groupBy(organic, pathOf, { top, total: weightOf(organic) }),
+      aiAds: groupBy(ads, pathOf, { top, total: weightOf(ads) }),
+      search: searchLanding.slice(0, top),
+      searchOnly: searchLanding.filter((r) => !aiPaths.has(r.key)).slice(0, top), // search lands here, organic AI never did
+    },
+    weekly: timeSeries(visits, {
+      by: 'week',
+      series: { ai: (b) => (isAI(b) ? b.weight : 0), aiOrganic: (b) => (isAI(b) && acq.get(b).type !== 'paid' ? b.weight : 0), search: (b) => (isSearch(b) ? b.weight : 0) },
+    }),
+  };
+}
+
+/**
+ * Redirect chains before the page, and what they cost. For each group (default:
+ * the ad network of paid visits, else the channel): share of visits that were
+ * redirected, multi-hop share, ms lost (p50/p75), TTFB and LCP p75, and the
+ * activity ladder by redirect delay bucket (does a slow chain lose visitors?).
+ *
+ * `exact` redirects come from the browser (Navigation Timing redirectCount);
+ * estimated ones (`~`) are inferred by the enhancer from a late fetchStart, which is
+ * why their hop count can be off. Cross-origin chains (ad trackers) are only
+ * visible as estimates.
+ */
+export function redirectReport(bundles, { by, top = 15, buckets = [500, 1500] } = {}) {
+  const visits = realViews(bundles).filter(isVisit);
+  const total = weightOf(visits);
+  const key = by || ((b) => { const a = classifyAcquisition(b); return a.type === 'paid' ? `paid:${(events(b, 'paid').find((e) => !/doubleclick/i.test(e.source)) || firstEvent(b, 'paid'))?.source || a.vendor || a.channel}` : `${a.type}:${a.channel}`; });
+  const bucketOf = (b) => {
+    const r = parseRedirect(b);
+    if (!r) return 'none';
+    if (r.ms == null) return 'unknown';
+    const i = buckets.findIndex((x) => (r.ms ?? 0) < x);
+    return i === -1 ? `>=${buckets[buckets.length - 1]}ms` : i === 0 ? `<${buckets[0]}ms` : `${buckets[i - 1]}-${buckets[i]}ms`;
+  };
+  const stats = (g) => {
+    const red = g.filter((b) => parseRedirect(b));
+    const ms = red.map((b) => [parseRedirect(b).ms, b.weight]);
+    return {
+      redirectedShare: ratio(weightOf(red), weightOf(g)),
+      multiHopShare: ratio(weightOf(red.filter((b) => parseRedirect(b).hops > 1)), weightOf(g)),
+      exactShare: ratio(weightOf(red.filter((b) => parseRedirect(b).exact)), weightOf(red)),
+      msP50: percentile(ms, 0.5),
+      msP75: percentile(ms, 0.75),
+      ttfbP75: cwvP75(g.filter((b) => cwvOf(b).ttfb != null), 'ttfb'),
+      lcpP75: cwvP75(g.filter((b) => cwvOf(b).lcp != null), 'lcp'),
+    };
+  };
+  return {
+    visits: total,
+    overall: stats(visits),
+    groups: groupBy(visits, key, { top, total, metrics: { stats } }).map(({ stats: s, ...r }) => ({ ...r, ...s })),
+    byDelay: groupBy(visits, bucketOf, { total, metrics: { ladder } }),
+    from: groupBy(visits, (b) => parseRedirect(b)?.from || null, { top, total }),
+    slowestLandings: groupBy(visits.filter((b) => parseRedirect(b)), pathOf, { metrics: { msP75: (g) => percentile(g.map((b) => [parseRedirect(b).ms, b.weight]), 0.75) } })
+      .filter((r) => r.bundles >= 30).sort((a, b) => b.msP75 - a.msP75).slice(0, top),
+  };
+}
+
+/**
+ * Dead taps: clicks on things that are not links, buttons or form fields and go
+ * nowhere. Grouped by component (normalizeSelector) and page, with device split,
+ * repeat taps (2+ taps on the same dead element in one view, "rage") and how long
+ * after the page started the first one happened. Check each element on the live
+ * page before calling it broken: it can be a tooltip, an accordion, or a deliberate no-op.
+ */
+export function deadClickReport(bundles, { top = 20 } = {}) {
+  const human = realViews(bundles);
+  const views = weightOf(human);
+  // sources wrapped in quotes ('""') are enhancer placeholders with no element, not taps on anything
+  const dead = (b) => events(b, 'click').filter((e) => !/^"/.test(e.source || '') && classifyClick(e, b.url) === 'dead');
+  const withDead = human.filter((b) => dead(b).length);
+  const clickers = human.filter((b) => events(b, 'click').some((e) => classifyClick(e, b.url) !== 'consent'));
+  return {
+    views,
+    deadViewShare: ratio(weightOf(withDead), views),
+    deadShareOfClickers: ratio(weightOf(withDead), weightOf(clickers)),
+    repeatShare: ratio(weightOf(withDead.filter((b) => { const c = new Map(); dead(b).forEach((e) => c.set(e.source, (c.get(e.source) || 0) + 1)); return [...c.values()].some((n) => n > 1); })), weightOf(withDead)),
+    firstDeadMsP50: percentile(withDead.map((b) => [timeTo(b, 'click', (e) => classifyClick(e, b.url) === 'dead'), b.weight]), 0.5),
+    elements: groupBy(human, (b) => dead(b).map((e) => normalizeSelector(e.source)), {
+      top,
+      total: views,
+      metrics: {
+        pages: (g) => groupBy(g, pathOf, { top: 3 }).map((r) => r.key),
+        mobileShare: (g) => ratio(weightOf(g.filter((b) => device(b) === 'mobile')), weightOf(g)),
+      },
+    }),
+    pages: groupBy(withDead, pathOf, { top, metrics: { rateOnPage: (g) => ratio(weightOf(g), weightOf(human.filter((b) => pathOf(b) === pathOf(g[0])))) } }),
+    devices: groupBy(withDead, device, { total: weightOf(withDead) }),
+  };
+}
+
+/**
+ * Behavioural profile per segment, for spotting automation and AI browsing agents
+ * (e.g. the desktop:linux question): per userAgent (or any key) the direct-entry
+ * share, TTFB (datacenter vs residential), events per view, click / scroll / form
+ * rates, how fast the first click came, weekend share and peak hour.
+ * Compare a suspect segment with windows/mac as controls.
+ */
+export function segmentProfile(bundles, { by = (b) => b.userAgent || 'undefined', top = 15, includeBots = true } = {}) {
+  const all = bundles.filter(isPageView).filter((b) => includeBots || !isBot(b));
+  const total = weightOf(all);
+  return groupBy(all, by, {
+    top,
+    total,
+    metrics: {
+      directEntryShare: (g) => { const v = g.filter(isVisit); return ratio(weightOf(v.filter((b) => referrerOf(b) === '')), weightOf(v)); },
+      visitShare: (g) => ratio(weightOf(g.filter(isVisit)), weightOf(g)),
+      eventsPerView: (g) => ratio(g.reduce((a, b) => a + (b.events || []).length, 0), g.length),
+      clickRate: (g) => ratio(weightOf(g.filter((b) => events(b, 'click').some((e) => classifyClick(e, b.url) !== 'consent'))), weightOf(g)),
+      scrollRate: (g) => ratio(weightOf(g.filter((b) => scrolled(b))), weightOf(g)),
+      formRate: (g) => ratio(weightOf(g.filter((b) => has(b, 'fill'))), weightOf(g)),
+      fastClickShare: (g) => { const c = g.filter((b) => has(b, 'click')); return ratio(weightOf(c.filter((b) => (timeTo(b, 'click') ?? Infinity) < 500)), weightOf(c)); },
+      firstClickMsP50: (g) => percentile(g.map((b) => [timeTo(b, 'click'), b.weight]), 0.5),
+      ttfbP50: (g) => percentile(g.map((b) => [cwvOf(b).ttfb, b.weight]), 0.5),
+      ttfbP90: (g) => percentile(g.map((b) => [cwvOf(b).ttfb, b.weight]), 0.9),
+      cwvReportedShare: (g) => ratio(weightOf(g.filter((b) => has(b, 'cwv-lcp'))), weightOf(g)),
+      weekendShare: (g) => ratio(weightOf(g.filter((b) => [0, 6].includes(toDate(dayOf(b)).getUTCDay()))), weightOf(g)),
+      peakHourUTC: (g) => groupBy(g, (b) => hourOf(b).slice(11, 13), { top: 1 }).map((r) => ({ hour: r.key, share: r.share }))[0] || null,
+      topPaths: (g) => groupBy(g, pathOf, { top: 3 }).map((r) => `${r.key} ${(r.share * 100).toFixed(0)}%`),
+    },
+  });
+}
+
+/**
+ * Everything about one page in one call: views and visits, how people arrived,
+ * the activity ladder, clicks (consent and dead taps separated), reach (viewblock
+ * on EDS sites, viewmedia otherwise), CWV, previous/next pages, errors.
+ * The brief for a redesign (homepage guidelines) or a landing-page review.
+ */
+export function pageInsights(bundles, path, { top = 15 } = {}) {
+  const p = normalizePath(path);
+  const here = realViews(bundles).filter((b) => pathOf(b) === p);
+  const pageUrl = here[0]?.url || '';
+  const blocky = ratio(here.filter((b) => has(b, 'viewblock')).length, here.length) > 0.1;
+  const s = summary(here, { top });
+  return {
+    path: p,
+    sample: s.sample,
+    views: s.views,
+    visits: s.visits,
+    entryShare: ratio(s.visits, s.views),
+    devices: s.devices,
+    channels: s.channels,
+    activity: ladder(here),
+    activityByChannel: activityReport(here, { top: 8 }).groups.map((g) => ({ channel: g.key, visits: g.views, ladder: g.ladder })),
+    clicks: clickReport(here, { pageUrl, top }),
+    deadClicks: deadClickReport(here, { top: 10 }).elements,
+    reach: mediaReach(here, { top, checkpoint: blocky ? 'viewblock' : 'viewmedia' }),
+    cwv: s.cwv,
+    lcpElements: groupBy(here.filter((b) => has(b, 'cwv-lcp')), (b) => firstEvent(b, 'cwv-lcp').source, { top: 3 }),
+    flows: flows(here, { path: p, top }),
+    errors: { jsErrorViewShare: ratio(weightOf(here.filter((b) => has(b, 'error'))), s.views), consent: s.consent },
+  };
+}
+
+/**
+ * Is a rate different between two sets of bundles (two periods, two segments)?
+ * Each metric is a predicate over a bundle; the rate is over `base` bundles.
+ * Uses sampled counts for the test (compareProportions) and weights for the shares.
+ *
+ * @example
+ *   comparePeriods(before, after, {
+ *     base: isVisit,
+ *     metrics: { chatgptShare: (b) => classifyAcquisition(b).vendor === 'chatgpt', clicked: (b) => has(b, 'click') },
+ *   })
+ */
+export function comparePeriods(a, b, { base = isVisit, metrics = {} } = {}) {
+  const A = realViews(a).filter(base);
+  const B = realViews(b).filter(base);
+  return {
+    base: { a: weightOf(A), b: weightOf(B), change: ratio(weightOf(B) - weightOf(A), weightOf(A)) },
+    metrics: Object.fromEntries(Object.entries(metrics).map(([k, fn]) => {
+      const ha = A.filter(fn);
+      const hb = B.filter(fn);
+      const t = compareProportions(ha.length, A.length, hb.length, B.length);
+      const ra = ratio(weightOf(ha), weightOf(A));
+      const rb = ratio(weightOf(hb), weightOf(B));
+      // shares and lift are weighted; the test runs on sampled bundle counts (it needs independent samples)
+      return [k, {
+        a: ra, b: rb, viewsA: weightOf(ha), viewsB: weightOf(hb), lift: ra ? (rb - ra) / ra : 0, bundlesA: A.length, bundlesB: B.length, p: t.p, significant: t.significant,
+      }];
+    })),
+  };
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    §7 CLI
    node optel-client.js --help
@@ -1199,15 +1650,27 @@ Reports
   summary (default)  pages  sources  clicks  cwv  errors  forms  reach  reach-media
   flows (with --path: previous/next pages)  experiments  checkpoints
   checkpoint:<name>  (breakdown of one checkpoint, e.g. checkpoint:utm)
-  timeseries         (views/visits per day, per hour with --by hour)
+  timeseries         (views/visits per day; --by hour|week)
+  activity           (did nothing / consent only / scrolled / interacted / navigated, per channel; --by)
+  ai                 (AI assistant visits: organic vs ads, vs search, landing pages, weekly)
+  redirects          (redirect chains and delay per ad network / channel, engagement by delay)
+  dead-clicks        (dead taps per component and page, repeat taps)
+  segments           (behaviour per user agent for bot / agent hunting; --by)
+  page               (everything about one page; needs --path)
+  compare            (with --vs previous: key rates against the previous period of equal length)
   sample             (first 3 bundles, raw: check the data shape)
   raw                (all kept bundles as JSON lines)
+
+  --by for activity / segments: channel | source | type | device | ua | os | path | week
 
 Other
   --key <key>          domain key (prefer the OPTEL_DOMAIN_KEY env var: keeps it out of shell history)
   --org <org>          use an org-level key instead of --domain
   --top <n>            rows per table (default 10-25 depending on report)
   --page-url <url>     page URL for click classification (defaults to https://<domain><path>)
+  --normalize          clicks: group component instances (#teaser-f822f861a9 → #teaser-*)
+  --checkpoints a,b    keep only these events per bundle (less memory on big domains)
+  --vs previous        compare: load the period before the range too
   --concurrency <n>    parallel requests (default 8)
   --out <file>         write JSON to a file instead of stdout
   --quiet              no progress on stderr`;
@@ -1239,6 +1702,33 @@ async function cli(argv) {
     args.match && byPathMatch(new RegExp(args.match)),
     args.device && byDevice(args.device),
   );
+  // --checkpoints prunes events while loading; never prune what the bot/prerender filters,
+  // acquisition, or the chosen report reads, or numbers change silently
+  const KEEP_ALWAYS = ['top', 'enter', 'prerender', 'navigate', 'utm', 'paid', 'email'];
+  const ACT = ['click', 'consent', 'viewblock', 'viewmedia', 'fill', 'formsubmit', 'search', 'login', 'signup'];
+  const CWV = ['cwv-lcp', 'cwv-cls', 'cwv-inp', 'cwv-ttfb'];
+  const KEEP_FOR = {
+    summary: [...ACT, ...CWV, 'error', '404'],
+    pages: [...ACT, ...CWV],
+    sources: ACT,
+    clicks: ['click', 'consent'],
+    cwv: CWV,
+    errors: ['error', '404', 'missingresource'],
+    forms: ['fill', 'formsubmit', 'search', 'login', 'signup', 'viewblock', 'error'],
+    reach: ['viewblock', 'viewmedia'],
+    'reach-media': ['viewmedia'],
+    flows: ['click', 'back_forward', 'reload'],
+    experiments: ['experiment', 'click', 'consent'],
+    activity: ACT,
+    ai: ACT,
+    redirects: [...ACT, 'redirect', 'cwv-ttfb', 'cwv-lcp'],
+    'dead-clicks': ['click', 'consent'],
+    segments: [...ACT, 'cwv-ttfb', 'cwv-lcp'],
+    page: [...ACT, ...CWV, 'error', '404', 'back_forward', 'reload'],
+    compare: [...ACT, 'redirect', 'cwv-lcp', 'error'],
+    timeseries: [],
+  };
+  if (args.checkpoints && report === 'checkpoints') throw new Error(`--checkpoints would hide events from --report ${report}`);
   const quiet = !!args.quiet;
   // redraw one progress line on a terminal; in logs and agent transcripts print every 10% instead
   const tty = !!process.stderr.isTTY;
@@ -1249,7 +1739,7 @@ async function cli(argv) {
     if (tenth !== lastTenth) { lastTenth = tenth; process.stderr.write(`loading ${d}/${n} files\n`); }
   };
   const t0 = Date.now();
-  const res = await loadBundles({
+  const loadOpts = {
     domain: args.domain,
     org: args.org,
     domainKey,
@@ -1258,14 +1748,23 @@ async function cli(argv) {
     end: args.end,
     granularity: args.granularity || 'auto',
     filter,
+    checkpoints: args.checkpoints ? [...new Set(String(args.checkpoints).split(',').map((x) => x.trim()).filter(Boolean)
+      .concat(KEEP_ALWAYS, KEEP_FOR[report.split(':')[0]] || []))] : undefined,
     concurrency: Number(args.concurrency || 8),
     onProgress: quiet ? undefined : progress,
-  });
-  if (!quiet) process.stderr.write(`${tty ? '\r' : ''}loaded ${res.files} ${res.granularity} files, kept ${res.bundles.length} bundles in ${((Date.now() - t0) / 1000).toFixed(1)}s${res.failed.length ? `, ${res.failed.length} files failed` : ''}\n`);
+  };
+  const res = await loadBundles(loadOpts);
+  if (!quiet) process.stderr.write(`${tty ? '\r' : ''}loaded ${res.files} ${res.granularity} files${res.split ? ` (${res.split} too large, loaded as smaller files)` : ''}, kept ${res.bundles.length} bundles in ${((Date.now() - t0) / 1000).toFixed(1)}s${res.failed.length ? `, ${res.failed.length} files failed` : ''}\n`);
 
   const { bundles } = res;
   const pageUrl = args['page-url'] || (args.path && args.domain ? `https://${args.domain}${normalizePath(args.path)}` : '');
   const o = top ? { top } : {};
+  const BY = {
+    channel: acquisitionKey('channel'), source: acquisitionKey('source'), type: acquisitionKey('type'), device, ua: (b) => b.userAgent || 'undefined', os: (b) => [device(b), os(b)].filter(Boolean).join(':'), path: pathOf, week: weekOf,
+  };
+  if (args.by && report === 'timeseries' && !['hour', 'day', 'week'].includes(args.by)) throw new Error('--by for timeseries: hour, day or week');
+  if (args.by && ['activity', 'segments'].includes(report) && !BY[args.by]) throw new Error(`--by must be one of ${Object.keys(BY).join(', ')}`);
+  const byKey = BY[args.by];
   let data;
   if (report === 'raw') {
     const text = bundles.map((b) => JSON.stringify(b)).join('\n');
@@ -1278,24 +1777,62 @@ async function cli(argv) {
       summary: () => summary(bundles, o),
       pages: () => topPages(bundles, o),
       sources: () => trafficSources(bundles, o),
-      clicks: () => clickReport(bundles, { ...o, pageUrl }),
+      clicks: () => clickReport(bundles, { ...o, pageUrl, normalize: !!args.normalize }),
       cwv: () => cwvReport(bundles, o),
       errors: () => errorReport(bundles, o),
       forms: () => formReport(bundles),
-      reach: () => mediaReach(bundles, { ...o, checkpoint: 'viewblock' }),
+      reach: () => mediaReach(bundles, o), // viewblock on EDS sites, viewmedia elsewhere
       'reach-media': () => mediaReach(bundles, { ...o, checkpoint: 'viewmedia' }),
       flows: () => flows(bundles, { ...o, path: args.path }),
       experiments: () => experimentReport(bundles),
       checkpoints: () => checkpointReport(bundles, o),
-      timeseries: () => timeSeries(realViews(bundles), { by: args.by === 'hour' ? 'hour' : 'day', series: { visits: (b) => (isVisit(b) ? b.weight : 0) } }),
+      timeseries: () => timeSeries(realViews(bundles), { by: ['hour', 'week'].includes(args.by) ? args.by : 'day', series: { visits: (b) => (isVisit(b) ? b.weight : 0) } }),
+      activity: () => activityReport(bundles, { ...o, ...(byKey ? { by: byKey } : {}) }),
+      ai: () => aiReferralReport(bundles, o),
+      redirects: () => redirectReport(bundles, o),
+      'dead-clicks': () => deadClickReport(bundles, o),
+      segments: () => segmentProfile(bundles, { ...o, ...(byKey ? { by: byKey } : {}) }),
+      page: () => { if (!args.path) throw new Error('--report page needs --path'); return pageInsights(bundles, args.path, o); },
+      compare: async () => {
+        if (args.vs !== 'previous') throw new Error('--report compare needs --vs previous');
+        // compare whole hours only: the current hour is still being written
+        const curEnd = floorTo(res.end, 'hour');
+        const cur = bundles.filter(byTime(res.start, curEnd));
+        const span = curEnd - res.start;
+        const prev = await loadBundles({
+          ...loadOpts, last: undefined, start: new Date(res.start.getTime() - span), end: new Date(res.start.getTime()), granularity: res.granularity,
+        });
+        const aiVisit = (b) => classifyAcquisition(b)?.channel === 'ai';
+        const contentClick = (b) => events(b, 'click').some((e) => classifyClick(e, b.url) !== 'consent');
+        return {
+          current: { start: res.start.toISOString(), end: curEnd.toISOString(), bundles: cur.length },
+          previous: { start: prev.start.toISOString(), end: prev.end.toISOString(), bundles: prev.bundles.length, failedFiles: prev.failed.length },
+          views: { previous: viewsOf(prev.bundles), current: viewsOf(cur) },
+          visitRates: comparePeriods(prev.bundles, cur, {
+            base: isVisit,
+            metrics: {
+              paid: (b) => classifyAcquisition(b)?.type === 'paid',
+              earnedSearch: (b) => { const a = classifyAcquisition(b); return a?.type === 'earned' && a.channel === 'search'; },
+              ai: aiVisit,
+              aiOrganic: (b) => aiVisit(b) && classifyAcquisition(b).type !== 'paid',
+              direct: (b) => classifyAcquisition(b)?.channel === 'direct',
+              didNothing: (b) => activityOf(b) === 'nothing',
+              contentClick,
+              navigated: (b) => activityOf(b) === 'navigated',
+              redirected: (b) => !!parseRedirect(b),
+            },
+          }),
+          viewRates: comparePeriods(prev.bundles, cur, { base: () => true, metrics: { lcpPoor: (b) => rateCWV('lcp', cwvOf(b).lcp) === 'poor', jsError: (b) => has(b, 'error'), deadTap: (b) => events(b, 'click').some((e) => classifyClick(e, b.url) === 'dead') } }),
+        };
+      },
       sample: () => bundles.slice(0, 3),
     };
     if (!reports[report]) throw new Error(`Unknown report "${report}" (see --help)`);
-    data = reports[report]();
+    data = await reports[report]();
   }
   const out = {
     meta: {
-      domain: args.domain || null, org: args.org || null, report, filter: { path: args.path || null, prefix: args.prefix || null, match: args.match || null, device: args.device || null }, granularity: res.granularity, start: res.start.toISOString(), end: res.end.toISOString(), files: res.files, failedFiles: res.failed.length, bundles: bundles.length, note: 'views are estimates: sampled bundles x weight; bots excluded',
+      domain: args.domain || null, org: args.org || null, report, filter: { path: args.path || null, prefix: args.prefix || null, match: args.match || null, device: args.device || null }, granularity: res.granularity, start: res.start.toISOString(), end: res.end.toISOString(), files: res.files, failedFiles: res.failed.length, bundles: bundles.length, note: 'views are estimates: sampled bundles x weight; bots and un-activated prerenders excluded; window is [start, end) UTC',
     },
     data,
   };
