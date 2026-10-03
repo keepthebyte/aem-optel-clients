@@ -10,6 +10,16 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Added
+- Cookie banners from Tealium and Osano (cookieconsent) count as consent clicks, plus a
+  fallback for other banners: a cookie, consent or gdpr name inside a `dialog`, or next to a
+  banner word (`cookie-banner`, `consent-notice`). A cookie word alone is not enough, so
+  `a.cookie-dough` on a food site stays a content click. Before this, a Tealium banner's clicks
+  counted as content interaction on about 20% of one site's homepage views. (#2)
+
+### Fixed
+- `flows()` listed clicks on images and files (a logo `.svg`) as next pages. (#2)
+
 ## [0.2.0] - 2026-10-03
 
 Use-case reports, built from questions first answered with BigQuery over the

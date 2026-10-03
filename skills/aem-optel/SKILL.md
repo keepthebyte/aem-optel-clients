@@ -199,7 +199,12 @@ Sites differ. Run `--report checkpoints` and only build on what is actually ther
    Describe what it likely is (from block names, link targets, the live page) and
    show the raw selector next to it.
 7. **Consent clicks are not engagement.** On sites with a cookie banner it is often
-   the most-clicked element. `clickReport()` separates it.
+   the most-clicked element. `clickReport()` separates it: OneTrust, Usercentrics,
+   TrustArc, Cookiebot, Didomi, Cassie, Tealium, Osano, plus a generic rule for other
+   banners (a cookie/consent/gdpr name inside a `dialog`, or next to a banner word such as
+   `cookie-banner`; a product called "cookie dough" is not a banner). Check `--report clicks` for an unrecognised banner before trusting
+   activity numbers. The `consent` checkpoint (banner shown) only exists for OneTrust,
+   TrustArc and Usercentrics, so "consent shown" reads 0% on Tealium and other CMPs.
 8. **Dead clicks** (selector without `a`/`button`/`img` and no target) are taps on
    things that do nothing: a strong UX signal, but check the element before claiming.
 9. **CWV are sparse**: only views that stayed long enough report them. Quote p75 with
@@ -282,6 +287,8 @@ each with p-value. In code, `comparePeriods(a, b, { base, metrics })` for anythi
 - **Industry / vertical** is not in the data anywhere (neither is it in BigQuery).
 - **Geo, IP, raw user agent, browser version**: not collected. The user agent is the
   simplified `device:os:engine` string. Scrapers can't be traced to IPs from here; use CDN logs.
+- **Bot share varies wildly by site.** A small site can be mostly bots (one banking site:
+  55% of bundles in 8 weeks); reports drop them, but say how much was dropped.
 - **Bots are under-represented.** The bundler drops part of the bot traffic (one retail
   site, 4 weeks: 93k bot views in bundles vs 158k in BigQuery) and few `bot:ai:*` agents remain.
   Use bundles for "is this human-looking segment really human", not for bot volumes.
