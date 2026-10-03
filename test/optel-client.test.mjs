@@ -144,3 +144,10 @@ test('loadBundles: filter while loading, 404 slots are empty, 403 fails fast, ke
     (err) => err.name === 'OptelError' && err.status === 403 && !err.url.includes('bad'),
   );
 });
+
+test('flows label back/forward and reload instead of unknown', () => {
+  const b = [bundle([{ checkpoint: 'back_forward', source: '' }], { url: 'https://www.example.com/menu' }),
+    bundle([{ checkpoint: 'reload', source: '' }], { url: 'https://www.example.com/menu' })];
+  const keys = optel.flows(b, { path: '/menu' }).previous.map((r) => r.key).sort();
+  assert.deepEqual(keys, ['(back/forward button)', '(reload)']);
+});

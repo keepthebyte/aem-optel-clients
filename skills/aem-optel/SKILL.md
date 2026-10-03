@@ -20,13 +20,20 @@ Node 18+ + CLI) and tells you how to read it without fooling yourself.
 
 1. **Domain**: the exact production host, e.g. `www.example.com` (`www.` matters).
 2. **Domain key**: ask the user for it. It is a read credential for all of that
-   domain's telemetry.
+   hostname's telemetry, and keys are **per hostname**: `example.com`,
+   `www.example.com` and `main--site--org.aem.page` each have their own.
+   - If they have none: Adobe customers request it from Adobe (account team or
+     support); there is no self-service. Adobe employees with the right entitlements
+     can generate one with the key tool in the Cloud Service Workspace.
+   - To try things without a key, use the public demo: domain `emigrationbrewing.com`,
+     key `open` (bare domain only; `www.` is rejected).
    - Put it in the environment: `export OPTEL_DOMAIN_KEY=...` (or have the user run
      `! export OPTEL_DOMAIN_KEY=...` so it never enters the transcript).
    - Never write it into a file in a repo, a URL you print, a commit, a report, or
      front-end code that ships publicly. The client redacts it from its own errors.
-   - 403 `[bundler] invalid domainkey param` = wrong key for this domain. Do not retry
-     with variations; ask the user.
+   - 403 `[bundler] invalid domainkey param` or 401 `domainkey not set` = no valid key
+     for this exact hostname. Check `www.` versus bare domain once, then ask the user;
+     do not guess keys.
 3. **The client**: find `optel-client.js`: next to this SKILL.md when the skill was
    installed with it, otherwise at the root of the `aem-optel-clients` repo. If it is
    not on disk: `gh repo clone keepthebyte/aem-optel-clients /tmp/aem-optel-clients`.

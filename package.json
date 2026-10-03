@@ -5,9 +5,19 @@
   "type": "module",
   "main": "optel-client.js",
   "exports": "./optel-client.js",
-  "bin": { "optel": "optel-client.js" },
-  "files": ["optel-client.js", "skills"],
-  "engines": { "node": ">=18" },
-  "scripts": { "test": "node --test test/" },
+  "bin": {
+    "optel": "optel-client.js"
+  },
+  "files": [
+    "optel-client.js",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test test/optel-client.test.mjs",
+    "test:live": "node --test test/live.test.mjs"
+  },
   "license": "Apache-2.0"
 }

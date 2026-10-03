@@ -30,8 +30,11 @@
  *   A wrong key answers 403 with an `x-error` header ("[bundler] invalid domainkey param").
  *
  * THE DOMAIN KEY
- *   Each domain has a key (the `domainkey=` value in an Optel explorer URL). It grants
- *   read access to all of that domain's telemetry. Treat it like a password:
+ *   Each hostname has its own key (the `domainkey=` value in an Optel explorer URL):
+ *   example.com, www.example.com and main--site--org.aem.page are three keys. It grants
+ *   read access to all of that hostname's telemetry. Adobe issues keys: customers ask
+ *   their Adobe contact. To try the client without one, use the public demo:
+ *   domain 'emigrationbrewing.com' with domainKey 'open'. Treat it like a password:
  *   never commit it, never put it in a URL you share, never ship it in public
  *   front-end code. Pass it at runtime (env var, user input, a server-side proxy).
  *
@@ -271,7 +274,7 @@ async function fetchChunk(url, { fetchImpl, signal, retries }) {
     if (res.status === 404) return [];
     const detail = res.headers?.get?.('x-error') || '';
     if (res.status === 401 || res.status === 403) {
-      throw new OptelError(`Domain key rejected (${res.status}${detail ? `: ${detail}` : ''}). Check the key belongs to this exact domain (www. matters).`, { status: res.status, url: redact(url), detail });
+      throw new OptelError(`Domain key rejected (${res.status}${detail ? `: ${detail}` : ''}). Keys are per hostname: example.com, www.example.com and main--site--org.aem.page each have their own.`, { status: res.status, url: redact(url), detail });
     }
     if ((res.status === 429 || res.status >= 500) && attempt < retries) {
       // eslint-disable-next-line no-await-in-loop
@@ -1082,7 +1085,12 @@ export function flows(bundles, { path, top = 15 } = {}) {
     path: p,
     views: weightOf(here),
     entries: weightOf(here.filter(isVisit)),
-    previous: groupBy(here, (b) => (isVisit(b) ? '(entered here)' : prev(b) || '(unknown)'), { top }),
+    previous: groupBy(here, (b) => {
+      if (isVisit(b)) return '(entered here)';
+      if (has(b, 'back_forward')) return '(back/forward button)';
+      if (has(b, 'reload')) return '(reload)';
+      return prev(b) || '(unknown)';
+    }, { top }),
     next: groupBy(here, (b) => events(b, 'click').filter((e) => { try { return new URL(e.target).hostname === host; } catch { return false; } }).map((e) => normalizePath(e.target)).filter((t) => t !== p), { top, total: weightOf(here) }),
     exits: groupBy(here, (b) => events(b, 'click').filter((e) => { try { return isNavigation(e) && new URL(e.target).hostname !== host; } catch { return false; } }).map((e) => new URL(e.target).hostname), { top, total: weightOf(here) }),
   };
@@ -1210,6 +1218,14 @@ async function cli(argv) {
     args.device && byDevice(args.device),
   );
   const quiet = !!args.quiet;
+  // redraw one progress line on a terminal; in logs and agent transcripts print every 10% instead
+  const tty = !!process.stderr.isTTY;
+  let lastTenth = -1;
+  const progress = (d, n) => {
+    if (tty) { process.stderr.write(`\rloading ${d}/${n} files`); return; }
+    const tenth = Math.floor((d / n) * 10);
+    if (tenth !== lastTenth) { lastTenth = tenth; process.stderr.write(`loading ${d}/${n} files\n`); }
+  };
   const t0 = Date.now();
   const res = await loadBundles({
     domain: args.domain,
@@ -1221,9 +1237,9 @@ async function cli(argv) {
     granularity: args.granularity || 'auto',
     filter,
     concurrency: Number(args.concurrency || 8),
-    onProgress: quiet ? undefined : (d, n) => process.stderr.write(`\rloading ${d}/${n} files`),
+    onProgress: quiet ? undefined : progress,
   });
-  if (!quiet) process.stderr.write(`\rloaded ${res.files} ${res.granularity} files, kept ${res.bundles.length} bundles in ${((Date.now() - t0) / 1000).toFixed(1)}s${res.failed.length ? `, ${res.failed.length} files failed` : ''}\n`);
+  if (!quiet) process.stderr.write(`${tty ? '\r' : ''}loaded ${res.files} ${res.granularity} files, kept ${res.bundles.length} bundles in ${((Date.now() - t0) / 1000).toFixed(1)}s${res.failed.length ? `, ${res.failed.length} files failed` : ''}\n`);
 
   const { bundles } = res;
   const pageUrl = args['page-url'] || (args.path && args.domain ? `https://${args.domain}${normalizePath(args.path)}` : '');

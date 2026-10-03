@@ -16,6 +16,27 @@ Two things:
 It grew out of two Experience Workspace panels built on a demo site
 (page insights and content-owner insights), which read the same bundles.
 
+## Getting a domain key
+
+The bundles are read with a key per hostname. `example.com`, `www.example.com`
+and `main--site--org.aem.page` each have their own key, so ask for the exact
+hostname visitors see (usually the `www.` one).
+
+- **Adobe customers**: there is no self-service yet. Contact Adobe (your account
+  team or Adobe support) and ask for the Operational Telemetry domain key for your
+  hostname.
+- **Adobe employees**: the Cloud Service Workspace has a tool that generates the
+  key for a given hostname. You need the right entitlements to use it.
+- **No key yet?** `emigrationbrewing.com` is a public demo site whose key is
+  `open`. Use it to try the client:
+
+  ```bash
+  OPTEL_DOMAIN_KEY=open node optel-client.js --domain emigrationbrewing.com --last 30d --report summary
+  ```
+
+Treat a key like a password. Don't commit it or put it in shared URLs or public
+front-end code.
+
 ## Quick start
 
 ```bash
@@ -61,7 +82,8 @@ every checkpoint's source and target mean. It was checked against
 ## Tests
 
 ```bash
-npm test
+npm test             # offline
+npm run test:live    # against the open demo domain, needs network
 ```
 
 Synthetic bundles in the real shape plus a mocked bundler. They cover URL and
