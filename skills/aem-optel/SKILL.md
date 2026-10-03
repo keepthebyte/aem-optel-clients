@@ -235,7 +235,18 @@ Sites differ. Run `--report checkpoints` and only build on what is actually ther
     "slow redirects engage more" result is confounded.
 15. **Dead taps need eyes.** Class-only selectors on custom widgets (configurator tiles,
     React inputs, accordions) look dead but do work. Group with `normalizeSelector`,
-    then open the page before calling anything broken.
+    then open the page before calling anything broken. Each dead-tap row has a
+    `resolution`: `element` (a specific element inside a block) or `block` (only a
+    block, section or `-wrapper`: the click hit text, padding or an element without
+    id/class). Lead with `elementDeadViewShare`; treat block-level rows as "look here".
+    On a documentation site, block-level "dead taps" were mostly text selection: 11% of
+    views dropped to 2% at element level. Clicks in code blocks (`.hljs`, `pre`, `code`)
+    are classified `text`, not dead.
+16. **Small sites: say how small.** Every grouped row carries `bundles`; reports set
+    `lowSample: true` under 30 (`LOW_SAMPLE`). On a site with ~2k human bundles in 8
+    weeks, AI referrals were 7 bundles and most channels under 30: give counts, not
+    percentages, for those ("7 sampled AI visits in 8 weeks"). Load 8-12 weeks of
+    hourly files, and check `weight`: one host mixed 100, 10 and 1.
 
 ## 4b. Recipes: questions first answered in BigQuery, now from bundles
 
@@ -278,6 +289,20 @@ step as evidence: what is seen, what is clicked, what is ignored, where people g
 **Before/after.** `--report compare --vs previous` (same length, immediately before) for
 channel mix, AI share, did-nothing, content clicks, redirects, poor LCP, JS errors, dead taps,
 each with p-value. In code, `comparePeriods(a, b, { base, metrics })` for anything else.
+
+## 4b-2. Small sites (a few thousand bundles a month or less)
+
+- Load `--start ... --end ... --granularity hour` over 8-12 weeks once with
+  `--report raw --out site.jsonl`; a mid-size apparel retailer gave 17k bundles in 8 weeks
+  (25 s), a developer docs site 3.7k.
+- Run `--report checkpoints` first. Small sites often lack `utm`, `consent` or `viewblock`,
+  and older script versions send a value-less `cwv` marker (ignore it).
+- Expect bots and unactivated prerenders to be a large share of raw bundles (36% bots on
+  one site, 26% prerenders on another). Report how many were dropped.
+- Channels like `earned:messaging` (Teams, Slack) and `owned:dev` (localhost previews)
+  matter on B2B and developer sites; they are split out of `earned:referral`.
+- Prefer site-wide rates and the top pages; per-page or per-channel splits are usually
+  `lowSample`.
 
 ## 4c. What bundles cannot answer (use BigQuery or another source)
 
