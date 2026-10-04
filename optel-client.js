@@ -673,8 +673,11 @@ export const RULES = {
   email: /(^|\.)(mail\.google\.com|outlook\.live\.com|outlook\.office\.com|mail\.yahoo\.com|mail\.aol\.com)$/i,
   /* links shared in chat tools: a real channel for B2B and developer sites */
   messaging: /(^|\.)(slack\.com|app\.slack\.com|teams\.microsoft\.com|teams\.live\.com|teams\.[a-z.]*microsoft|discord\.com|discord\.gg|telegram\.org|t\.me|web\.whatsapp\.com)$/i,
-  /* a developer's machine or a private network: previews and local builds, not an audience */
-  dev: /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|\[::1\])$|\.(local|localhost|test)$/i,
+  /* a developer's own machine: local builds and previews (aem up on :3000), not an audience */
+  dev: /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$|\.(localhost|test)$/i,
+  /* a private network: a company's internal tools (ERP, service portal, intranet) linking to the
+     site. A real audience for B2B sites (shipment tracking from an ERP), so earned, not dev. */
+  intranet: /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$|\.(local|internal|intranet|corp|lan|home\.arpa)$/i,
   /* in-app referrers ('android-app://com.facebook.katana/') → a host the rules understand */
   androidApps: {
     'com.google.android.gm': 'mail.google.com',
@@ -714,7 +717,7 @@ function hostFrom(source) {
  * What kind of place a referrer URL is.
  * @param {string} url       the `enter` event source
  * @param {string} [siteHost] the site's own host, to spot internal referrers
- * @returns {{ type: 'direct'|'internal'|'search'|'social'|'ai'|'email'|'messaging'|'dev'|'ad'|'app'|'other', vendor: string, host: string }}
+ * @returns {{ type: 'direct'|'internal'|'search'|'social'|'ai'|'email'|'messaging'|'dev'|'intranet'|'ad'|'app'|'other', vendor: string, host: string }}
  */
 export function classifyReferrer(url, siteHost = '') {
   if (!url || url === '(direct)') return { type: 'direct', vendor: '', host: '' };
@@ -728,6 +731,7 @@ export function classifyReferrer(url, siteHost = '') {
   if (RULES.email.test(host)) return { type: 'email', vendor, host };
   if (RULES.messaging.test(host)) return { type: 'messaging', vendor, host };
   if (RULES.dev.test(host)) return { type: 'dev', vendor: '', host };
+  if (RULES.intranet.test(host)) return { type: 'intranet', vendor: '', host };
   if (RULES.search.test(host)) return { type: 'search', vendor, host };
   if (RULES.social.test(host)) return { type: 'social', vendor, host };
   return { type: 'other', vendor, host };
@@ -860,7 +864,7 @@ const MEDIA_URL = /\.(png|jpe?g|gif|webp|avif|svg|mp4|webm|mov|m3u8)(\?|#|$)|\/m
  * @param {{source?: string, target?: string}} e   a click event
  * @param {string} [pageUrl]  the page's own URL: a target equal to it is not a navigation
  * @returns {'consent'|'link'|'button'|'form'|'media'|'text'|'dead'|'unknown'}
- *   text = a click in a code block (highlight.js `.hljs`, pre, code): almost always selecting text to copy.
+ *   text = a click in a code block (pre, code, highlight.js `.hljs`, Prism `.language-*`): almost always selecting text to copy.
  *   dead = a tap on something with no link and no button: people expected it to do something.
  *          See clickResolution(): a dead tap reported only as a block or section is imprecise.
  */
@@ -876,7 +880,8 @@ export function classifyClick(e, pageUrl = '') {
   if (/^a\b/.test(name)) return 'link';
   if (/^(img|video)\b/.test(name)) return 'media';
   if (target && !MEDIA_URL.test(target) && normalizeUrl(target) !== normalizeUrl(pageUrl)) return 'link';
-  if (/(^|[\s.])(hljs|code|pre)\b|^(pre|code)\b/.test(name)) return 'text';
+  // whole class or tag only: '.pre-order' or '.code-of-conduct' is not a code block
+  if (/(?:^|[\s.])(?:hljs(?:-[\w-]+)?|pre|code|language-[\w-]+)(?=$|[\s.#[:])/.test(name)) return 'text';
   return 'dead';
 }
 

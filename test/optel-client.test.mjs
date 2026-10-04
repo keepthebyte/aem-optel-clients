@@ -310,6 +310,8 @@ test('small-site fixes: text clicks, click resolution, messaging/dev referrers, 
   assert.equal(optel.classifyClick({ source: '.code-sample .hljs' }), 'text');
   assert.equal(optel.classifyClick({ source: 'pre' }), 'text');
   assert.equal(optel.classifyClick({ source: '.cards .cards-card-body' }), 'dead');
+  assert.equal(optel.classifyClick({ source: '.code-sample .language-js' }), 'text');
+  for (const s of ['.pre-order', '.product .pre-order-tile', '.code-of-conduct', '.promo-code-box']) assert.equal(optel.classifyClick({ source: s }), 'dead', s);
   assert.equal(optel.clickResolution('.default-content-wrapper'), 'block');
   assert.equal(optel.clickResolution('.product-list'), 'block');
   assert.equal(optel.clickResolution('.cards .cards-card-body'), 'element');
@@ -320,6 +322,12 @@ test('small-site fixes: text clicks, click resolution, messaging/dev referrers, 
   assert.equal(optel.classifyReferrer('android-app://com.google.android.googlequicksearchbox/').host, 'google.com', 'same host as the web referrer');
   const v = (src) => bundle([{ checkpoint: 'enter', source: src }]);
   assert.equal(optel.classifyAcquisition(v('http://localhost:3000/')).label, 'owned:dev:localhost');
+  // a company's internal systems linking to the site are an audience, not a developer
+  assert.equal(optel.classifyReferrer('http://serviceportal.example.local/').type, 'intranet');
+  assert.equal(optel.classifyReferrer('http://192.168.112.7/').type, 'intranet');
+  assert.equal(optel.classifyReferrer('http://172.20.1.4/').type, 'intranet');
+  assert.equal(optel.classifyReferrer('http://172.32.1.4/').type, 'other', '172.32 is public');
+  assert.equal(optel.classifyAcquisition(v('http://m3.example.local/')).label, 'earned:intranet:m3.example.local');
   assert.equal(optel.classifyAcquisition(v('https://teams.microsoft.com/')).channel, 'messaging');
   assert.deepEqual(optel.cwvOf(bundle([{ checkpoint: 'cwv-ttfb', value: 134.69999999995343 }, { checkpoint: 'cwv-cls', value: 0.0782205 }])), { lcp: null, cls: 0.0782, inp: null, ttfb: 135 });
   const few = [bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: '.product-list' }])];

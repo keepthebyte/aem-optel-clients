@@ -22,11 +22,15 @@ change report shapes or classification results; read **Changed** before upgradin
 - `clickResolution(selector)`: `element` or `block`. Dead-tap rows carry it, and
   `deadClickReport` adds `elementDeadViewShare`. On a developer docs site, 11% of views had a
   "dead tap", 2% at element level; the rest were clicks on text and section wrappers.
-- `classifyClick` returns `text` for clicks in code blocks (`.hljs`, `pre`, `code`): text
-  selection, not dead taps.
-- Referrer types `messaging` (Teams, Slack, Discord, Telegram, WhatsApp web) and `dev`
-  (localhost, private IPs, `.local`/`.test`), so visits become `earned:messaging` and
-  `owned:dev` instead of `earned:referral`. Teams was 3.6% of visits on a developer site.
+- `classifyClick` returns `text` for clicks in code blocks (`pre`, `code`, `.hljs`, Prism
+  `.language-*`): text selection, not dead taps. Only whole classes match, so `.pre-order`
+  and `.code-of-conduct` stay dead taps.
+- Referrer types `messaging` (Teams, Slack, Discord, Telegram, WhatsApp web), `dev`
+  (localhost, `127.x`, `.test`) and `intranet` (private IP ranges, `.local`, `.internal`,
+  `.corp`, `.lan`). Visits become `earned:messaging`, `owned:dev` and `earned:intranet`
+  instead of `earned:referral`. Teams was 3.6% of visits on a developer site. Intranet
+  referrers are a company's internal systems (ERP, service portals) linking to the site:
+  a real audience on B2B sites, so they count as earned, not as developer traffic.
 - `CHECKPOINTS.cwv`: the value-less marker older script versions send.
 - Skill: small-site guidance (sample sizes, mixed weights, bot and prerender shares).
 
