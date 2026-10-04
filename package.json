@@ -1,6 +1,6 @@
 {
   "name": "aem-optel-clients",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Read AEM Operational Telemetry (Optel / RUM) bundles from any website, app or agent: one dependency-free JS client plus an agent skill.",
   "type": "module",
   "main": "optel-client.js",

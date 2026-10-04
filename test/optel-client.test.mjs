@@ -204,6 +204,52 @@ test('acquisition: real-world tagging seen on production domains', () => {
   assert.equal(optel.registrableDomain('shop.brand.co.uk'), 'brand.co.uk');
 });
 
+test('acquisition: paid buys name their platform and channel in the tags', () => {
+  const visit = (events) => bundle(events, { url: 'https://www.brand.com/' });
+  const utm = (o) => Object.entries(o).map(([source, target]) => ({ checkpoint: 'utm', source, target }));
+  // a Trade Desk display buy that lands through Amazon's ad server: the declared platform wins over the referrer
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://c.amazon-adsystem.com/' },
+    ...utm({ utm_source: 'display_p', utm_medium: 'display', utm_source_platform: 'THETRADE' })])).label, 'paid:display:tradedesk');
+  assert.equal(optel.vendorOf('https://insight.adsrvr.org/'), 'tradedesk');
+  // a Campaign Manager click id with only a source name: display (from 'display_p'), not search
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'paid', source: 'doubleclick', target: 'dclid' },
+    ...utm({ utm_source: 'display_p', utm_content: 'image' })])).label, 'paid:display:google');
+  // and with no tags at all, still display
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'paid', source: 'doubleclick', target: 'dclid' }])).channel, 'display');
+  // a Google Ads click id without tags stays search
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'paid', source: 'google', target: 'gclid' }])).channel, 'search');
+  // short source names: yt_p is YouTube, snap_p is Snapchat, whatever the platform or click id says
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://youtube.com/' }, { checkpoint: 'paid', source: 'google', target: 'gclid' },
+    ...utm({ utm_source: 'yt_p', utm_medium: 'Video', utm_source_platform: 'DV360' })])).label, 'paid:video:youtube');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'paid', source: 'doubleclick', target: 'dclid' },
+    ...utm({ utm_source: 'snap_p', utm_medium: 'social' })])).label, 'paid:social:snapchat');
+  // the social referrer says where a Meta ad ran; utm_content does not override it
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://instagram.com/' }, { checkpoint: 'paid', source: 'facebook', target: 'fbclid' },
+    ...utm({ utm_source: 'msg_p', utm_source_platform: 'Meta', utm_content: 'video' })])).label, 'paid:social:instagram');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://facebook.com/' }, { checkpoint: 'paid', source: 'facebook', target: 'fbclid' },
+    ...utm({ utm_source: 'web_o', utm_content: 'qr' })])).channel, 'social');
+  // an untagged visit from The Trade Desk's ad server is a paid display visit
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://html5.adsrvr.org/' }])).label, 'paid:display:tradedesk');
+  // utm_content names the format when nothing else does
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://www.snapchat.com/' }, ...utm({ utm_source: 'snap_p', utm_content: 'video' })])).label, 'paid:video:snapchat');
+});
+
+test('mediaReach names each item after its own media', () => {
+  const view = (...shown) => bundle(shown.map(([source, target]) => ({ checkpoint: 'viewmedia', source, target })));
+  const logo = ['header img', 'https://www.example.com/logo.png/width750.png'];
+  const hero = ['.hero img', 'https://www.example.com/hero.jpg/width1280.jpg'];
+  const heroMobile = ['.hero img', 'https://www.example.com/hero.jpg/width750.jpg'];
+  const product = ['.cards img', 'https://www.example.com/product.png'];
+  const r = optel.mediaReach([view(logo, hero), view(logo, heroMobile), view(logo, heroMobile, product)], { checkpoint: 'viewmedia' });
+  const media = Object.fromEntries(r.items.map((x) => [x.key, x.media]));
+  assert.deepEqual(media, {
+    'header img': 'https://www.example.com/logo.png',
+    '.hero img': 'https://www.example.com/hero.jpg', // renditions of one image count together
+    '.cards img': 'https://www.example.com/product.png',
+  });
+  assert.deepEqual(r.cliff, { from: '.hero img', to: '.cards img', drop: 1 - 1 / 3 });
+});
+
 test('activity ladder, scroll evidence, dead taps, selectors', () => {
   const t = (cp, timeDelta, extra = {}) => ({ checkpoint: cp, timeDelta, ...extra });
   const nothing = bundle([t('enter', 10, { source: '' }), t('viewmedia', 20, { source: '.hero img' }), t('viewmedia', 25, { source: '.logo img' })]);
