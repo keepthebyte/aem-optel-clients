@@ -10,13 +10,18 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-03
+
+Classification fixes from testing on small sites and more consent banners. Before
+upgrading, note that consent clicks, referrer channels (messaging, dev, intranet) and
+code-block clicks are classified differently, so those numbers move compared with 0.2.0.
+
 ### Added
 - Cookie banners from Tealium and Osano (cookieconsent) count as consent clicks, plus a
   fallback for other banners: a cookie, consent or gdpr name inside a `dialog`, or next to a
   banner word (`cookie-banner`, `consent-notice`). A cookie word alone is not enough, so
   `a.cookie-dough` on a food site stays a content click. Before this, a Tealium banner's clicks
   counted as content interaction on about 20% of one site's homepage views. (#2)
-
 - Small samples are flagged: `lowSample: true` on grouped rows under 30 bundles (`LOW_SAMPLE`)
   in `activityReport`, `aiReferralReport` segments, `redirectReport` groups and `deadClickReport`.
 - `clickResolution(selector)`: `element` or `block`. Dead-tap rows carry it, and
@@ -46,10 +51,9 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [0.2.0] - 2026-10-03
 
-Use-case reports, built from questions first answered with BigQuery over the
-`helix_rum` tables. Tested on two production domains and cross-checked against
-BigQuery for the same 28 days: visits within 0.2%, raw page views within 0.5%,
-ChatGPT-tagged entries identical. (#1)
+Use-case reports. Tested on two production domains and cross-checked against an
+independent count for the same 28 days: visits within 0.2%, raw page views within
+0.5%, ChatGPT-tagged entries identical. (#1)
 
 ### Added
 - Reports, in the library and the CLI:
@@ -118,6 +122,7 @@ First release: one dependency-free client plus an agent skill.
   `onetrust` in the selector, count as cookie-banner clicks.
 - Journeys label back/forward and reload views instead of "(unknown)".
 
-[Unreleased]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/keepthebyte/aem-optel-clients/releases/tag/v0.1.0

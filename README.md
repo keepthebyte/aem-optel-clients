@@ -79,13 +79,6 @@ One bundle is one sampled page view: `url`, `userAgent` (`mobile:ios`), `weight`
 every checkpoint's source and target mean. It was checked against
 `@adobe/helix-rum-js` 2.17 and `@adobe/helix-rum-enhancer` 2.50.
 
-## Checked against BigQuery
-
-Same domain, same 28 days (UTC), bundles vs the `helix_rum` tables: visits within 0.2%,
-raw page views within 0.5%, ChatGPT-tagged entries identical. Two known gaps, both
-documented in the skill: the bundles hold fewer bot views, and the client drops
-speculative prerenders that were never shown (~20% of raw page views on one site).
-
 ## Tests
 
 ```bash

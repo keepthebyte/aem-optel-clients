@@ -225,8 +225,8 @@ Sites differ. Run `--report checkpoints` and only build on what is actually ther
     came into view 1 s+ after the first ones; carousels can fake it). Say so.
 12. **Prerenders.** Speculation-rules sites can have 20%+ of raw bundles as prerenders
     that were never shown (one retail site: ~1.8M of 8.9M in four weeks). Built-in reports drop
-    them; a hand count of all bundles, or a BigQuery query that does not exclude
-    `checkpoint='prerender'` views, overstates page views by that much (visits are unaffected).
+    them; a hand count of all bundles, or any other count that does not exclude
+    prerendered views, overstates page views by that much (visits are unaffected).
 13. **Same-brand referrers are internal.** A visit from `login.emea.brand.com` or another
     market's subdomain is `owned:internal`, not a referral (matched on registrable domain).
 14. **Redirect `~` values are estimates** from a late fetchStart; exact (`:`) ones come from
@@ -248,7 +248,7 @@ Sites differ. Run `--report checkpoints` and only build on what is actually ther
     percentages, for those ("7 sampled AI visits in 8 weeks"). Load 8-12 weeks of
     hourly files, and check `weight`: one host mixed 100, 10 and 1.
 
-## 4b. Recipes: questions first answered in BigQuery, now from bundles
+## 4b. Recipes: common questions, answered from bundles
 
 All built on one domain's bundles. Load once with `--report raw --out x.jsonl` (or in code)
 and run every report on that file instead of downloading again.
@@ -304,25 +304,25 @@ each with p-value. In code, `comparePeriods(a, b, { base, metrics })` for anythi
 - Prefer site-wide rates and the top pages; per-page or per-channel splits are usually
   `lowSample`.
 
-## 4c. What bundles cannot answer (use BigQuery or another source)
+## 4c. What bundles cannot answer
 
 - **Anything across domains.** One key reads one hostname (an org key: one org's hosts).
   Vertical benchmarks, "AEM fleet" trends, peer sets and "is this a broad effect or one
-  site?" need every peer's key, which is the BigQuery tables' job.
-- **Industry / vertical** is not in the data anywhere (neither is it in BigQuery).
+  site?" need data from every peer site, which one domain key cannot give.
+- **Industry / vertical** is not in the data anywhere.
 - **Geo, IP, raw user agent, browser version**: not collected. The user agent is the
   simplified `device:os:engine` string. Scrapers can't be traced to IPs from here; use CDN logs.
 - **Bot share varies wildly by site.** A small site can be mostly bots (one banking site:
   55% of bundles in 8 weeks); reports drop them, but say how much was dropped.
 - **Bots are under-represented.** The bundler drops part of the bot traffic (one retail
-  site, 4 weeks: 93k bot views in bundles vs 158k in BigQuery) and few `bot:ai:*` agents remain.
+  site, 4 weeks: about 40% fewer bot views than the site's full telemetry) and few `bot:ai:*` agents remain.
   Use bundles for "is this human-looking segment really human", not for bot volumes.
 - **Sessions and visitors.** No visitor or session id: a visit is one entry view. Multi-page
   journeys are stitched only from `navigate` (previous page) and click targets.
 - **Rare events over long ranges** at full sample need hourly files: a year is 8,760
   requests. Monthly files keep totals right with ~700 bundles a month on a mid-size site.
-- **History**: files went back two years on the sites tested (Sept 2024), roughly
-  BigQuery's 25-month retention, but only monthly/daily files are practical that far back.
+- **History**: files went back two years on the sites tested (Sept 2024), but only
+  monthly/daily files are practical that far back.
 
 ## 5. Presenting results
 

@@ -98,7 +98,7 @@
    §1 CONSTANTS AND THE CHECKPOINT REFERENCE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 export const BUNDLER = 'https://bundles.aem.page';
 
 /**
@@ -524,7 +524,6 @@ export function weekOf(b) {
  * Milliseconds from the start of the view to an event. Events carry `timeDelta`
  * (ms on the page's clock); the `top` beacon marks the start of the view, so
  * subtracting it gives "how long after the page started did this happen".
- * Not in BigQuery's per-row shape as directly: this is one of the things bundles do better.
  */
 export function msSinceStart(b, e) {
   if (e?.timeDelta == null) return null;
@@ -1384,8 +1383,8 @@ export function checkpointReport(bundles, { checkpoint, top = 20 } = {}) {
 
 /* ───────────────────────────────────────────────────────────────────────────
    §6b USE-CASE REPORTS
-   Built from the questions that were first answered in BigQuery over the
-   fleet-wide RUM tables, rewritten for one domain's bundles.
+   Ready-made answers to the questions asked most often about one domain:
+   traffic quality, AI referrals, redirects, dead taps, bots, one page, before/after.
    ─────────────────────────────────────────────────────────────────────────── */
 
 /** Groups with fewer sampled bundles than this are anecdotes: reports flag them `lowSample`. */
@@ -1439,7 +1438,7 @@ export function activityReport(bundles, { by = acquisitionKey('channel'), visits
 /**
  * AI assistant referrals versus search. Splits every assistant into organic
  * citations (referrer or utm_source like chatgpt.com) and ads (an `openai` click id:
- * ChatGPT ads, oppref/olref), which BigQuery queries on utm_source alone miss or mix.
+ * ChatGPT ads, oppref/olref), which a filter on utm_source alone misses or mixes.
  *
  * Returns: share of visits, visits per 100 earned-search visits, the activity ladder
  * and non-consent click rate for AI vs search vs all visits, landing pages for AI
