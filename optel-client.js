@@ -98,7 +98,7 @@
    §1 CONSTANTS AND THE CHECKPOINT REFERENCE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-export const VERSION = '0.3.0';
+export const VERSION = '0.3.1';
 export const BUNDLER = 'https://bundles.aem.page';
 
 /**
@@ -659,7 +659,7 @@ export const RULES = {
   /* values that mean an owned channel: email, SMS, QR, print, own website */
   ownedMedium: /email|newsletter|hs_email|organic|sms|qr|qrcode|print|website|web|linkin\.bio|push/i,
   /* referrer hosts of ad networks: a visit from one is paid even without tags */
-  adReferrer: /doubleclick|googlesyndication|googleadservices|amazon-adsystem|imasdk\.googleapis|adnxs|criteo|taboola|outbrain|teads|themediatrust/i,
+  adReferrer: /doubleclick|googlesyndication|googleadservices|amazon-adsystem|imasdk\.googleapis|adnxs|adsrvr|criteo|taboola|outbrain|teads|themediatrust/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|ask\.com|aol\.com|search\.brave\.com|qwant\.com|seznam\.cz|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|snapchat\.com|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|youtu\.be|threads\.net|whatsapp\.com|line\.me|bsky\.app)$/i,
   ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|anthropic\.com|copilot\.microsoft\.com|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
@@ -697,10 +697,10 @@ const VENDORS = [
   [/gemini|bard|notebooklm/i, 'gemini'], [/meta\.ai/i, 'meta-ai'], [/deepseek/i, 'deepseek'], [/mistral/i, 'mistral'], [/grok|x\.ai/i, 'grok'],
   [/google|gclid|dclid|doubleclick|dv360|gdn|adwords|googlesyndication/i, 'google'], [/instagram|(^|[^a-z])ig([^a-z]|$)/i, 'instagram'],
   [/facebook|fbclid|(^|[^a-z])fb([^a-z]|$)|(^|[^a-z])meta([^a-z]|$)/i, 'facebook'], [/bing|msclkid/i, 'bing'], [/microsoft/i, 'microsoft'],
-  [/tiktok|ttclid/i, 'tiktok'], [/youtube|youtu\.be/i, 'youtube'], [/linkedin|lnkd/i, 'linkedin'], [/twitter|(^|\.)x\.com|(^|\.)t\.co$/i, 'x'],
-  [/snapchat/i, 'snapchat'], [/pinterest/i, 'pinterest'], [/reddit/i, 'reddit'], [/spotify/i, 'spotify'], [/criteo/i, 'criteo'],
+  [/tiktok|ttclid/i, 'tiktok'], [/youtube|youtu\.be|^yt$/i, 'youtube'], [/linkedin|lnkd/i, 'linkedin'], [/twitter|(^|\.)x\.com|(^|\.)t\.co$/i, 'x'],
+  [/snapchat|^snap$/i, 'snapchat'], [/pinterest/i, 'pinterest'], [/reddit/i, 'reddit'], [/spotify/i, 'spotify'], [/criteo/i, 'criteo'],
   [/taboola/i, 'taboola'], [/outbrain/i, 'outbrain'], [/yahoo/i, 'yahoo'], [/duckduckgo/i, 'duckduckgo'], [/yandex/i, 'yandex'],
-  [/baidu/i, 'baidu'], [/amazon/i, 'amazon'], [/marketo/i, 'marketo'], [/mailchimp/i, 'mailchimp'], [/whatsapp/i, 'whatsapp'],
+  [/baidu/i, 'baidu'], [/^ttd$|thetrade|tradedesk|adsrvr/i, 'tradedesk'], [/amazon/i, 'amazon'], [/marketo/i, 'marketo'], [/mailchimp/i, 'mailchimp'], [/whatsapp/i, 'whatsapp'],
 ];
 /** Best-guess vendor name for a host, utm value or network name ('google', 'facebook', 'chatgpt', ...), or ''. */
 export const vendorOf = (s) => (VENDORS.find(([re]) => re.test(s || '')) || [])[1] || '';
@@ -789,8 +789,15 @@ export function classifyAcquisition(b, { siteHost = hostOf(b) } = {}) {
     const network = paidEvent.source || '';
     if (RULES.aiAdNetworks.test(network)) return make('paid', 'ai', vendorOf(network) || network);
     // a search or AI referrer only says where the ad was shown (Bing ads on DuckDuckGo / Yahoo): the network wins
-    const vendor = vendorOf(stripSuffix(src)) || (['search', 'ai'].includes(ref.type) ? '' : refVendor) || vendorOf(network) || network;
-    const channel = tagChannel(medium) || (ref.type === 'search' ? 'search' : ref.type === 'social' ? 'social' : '') || (['google', 'bing', 'microsoft'].includes(vendor) ? 'search' : ['facebook', 'instagram', 'linkedin', 'x', 'pinterest', 'tiktok', 'snapchat', 'reddit'].includes(vendor) ? 'social' : ['youtube'].includes(vendor) ? 'video' : '');
+    // vendor evidence: the source tag, then a social referrer (where the ad ran: Instagram, not "Meta"), then the
+    // buying platform the marketer declared (utm_source_platform THETRADE, Snapchat), which beats the ad server it went through
+    const vendor = vendorOf(stripSuffix(src)) || (ref.type === 'social' ? ref.vendor : '') || vendorOf(utm.utm_source_platform)
+      || (['search', 'ai'].includes(ref.type) ? '' : refVendor) || vendorOf(network) || network;
+    // a source like 'display_p' names the channel; utm_content ('video', 'image') only when the referrer says nothing;
+    // doubleclick / DV360 click ids come from display and video buys, never search
+    const channel = tagChannel(medium) || tagChannel(stripSuffix(src))
+      || (ref.type === 'search' ? 'search' : ref.type === 'social' ? 'social' : '') || tagChannel(utm.utm_content)
+      || (/doubleclick|dv360/i.test(network) ? 'display' : '') || (['google', 'bing', 'microsoft'].includes(vendor) ? 'search' : ['facebook', 'instagram', 'linkedin', 'x', 'pinterest', 'tiktok', 'snapchat', 'reddit'].includes(vendor) ? 'social' : ['youtube'].includes(vendor) ? 'video' : '');
     return make('paid', channel, vendor);
   }
   if (src || medium) {
@@ -899,6 +906,8 @@ export function clickResolution(source) {
 }
 
 const normalizeUrl = (u) => String(u || '').replace(/[?#].*$/, '').replace(/\/$/, '');
+/* one key per image across its renditions: AEM serves '…/image.png/width1280.png' and '…/width750.png' */
+const mediaKey = (u) => normalizeUrl(u).replace(/\/width\d+\.\w+$/, '');
 
 /** True when a click's target is a page URL other than the current page (the visitor left via a link). */
 export function isNavigation(e, pageUrl = '') {
@@ -1284,8 +1293,18 @@ export function mediaReach(bundles, { top = 25, checkpoint: cp = 'auto' } = {}) 
   const items = groupBy(human, (b) => events(b, checkpoint).map((e) => e.source).filter((s) => s && !s.startsWith('"')), {
     top,
     total: views,
-    metrics: checkpoint === 'viewmedia' ? { media: (g) => groupBy(g, (b) => events(b, 'viewmedia').map((e) => normalizeUrl(e.target)), { top: 1 })[0]?.key || '' } : undefined,
   });
+  if (checkpoint === 'viewmedia') {
+    // the media each selector showed most: one selector can serve several files (art direction, carousels, A/B images)
+    const media = {};
+    human.forEach((b) => events(b, 'viewmedia').forEach((e) => {
+      if (!e.source || !e.target) return;
+      const k = mediaKey(e.target);
+      const m = media[e.source] || (media[e.source] = {});
+      m[k] = (m[k] || 0) + (b.weight || 0);
+    }));
+    items.forEach((r) => { r.media = Object.entries(media[r.key] || {}).sort((x, y) => y[1] - x[1])[0]?.[0] || ''; });
+  }
   let cliff = null;
   items.forEach((r, i) => {
     if (!i || items[i - 1].share < 0.02) return;

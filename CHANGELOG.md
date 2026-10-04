@@ -10,6 +10,34 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-04
+
+Paid-visit attribution and media reach fixes, found by porting an Experience Workspace
+panel onto the client and comparing its old numbers with the client's. Paid visits are
+labelled differently, so `paid:*` labels move: on one large brand site 11.6% of visits
+changed label (all of them paid), on a B2B site 0.01%.
+
+### Fixed
+- `mediaReach()` named every item after the most-seen media of the whole page instead of
+  the item's own media, so all rows carried the same image (the logo, typically).
+- Paid visits ignored `utm_source_platform` (the buying platform the marketer declared)
+  and fell back to the ad server they passed through: Trade Desk buys landing through
+  Amazon's ad server were `paid:display:amazon`. The platform now counts, after the source
+  tag and a social referrer (an Instagram referrer stays Instagram when the platform is "Meta").
+- Paid visits ignored the channel named in the source tag: `utm_source=display_p` with a
+  doubleclick click id and no medium was `paid:search:google`. The source tag and then
+  `utm_content` (`video`, `image`) now set the channel, after the medium and the referrer.
+- A doubleclick or DV360 click id without tags is display, not search. Google Ads click ids
+  (`gclid`) without tags stay search.
+
+### Added
+- Vendor `tradedesk` (The Trade Desk: `THETRADE`, `ttd`, `adsrvr.org`). Untagged visits
+  from `adsrvr.org` count as paid display, like other ad-server referrers.
+- Short source names `yt` (YouTube) and `snap` (Snapchat): `utm_source=yt_p` is YouTube
+  whatever the platform (DV360) or the click id (Google) says.
+- `mediaReach()` groups an image's renditions (`…/image.png/width750.png`,
+  `…/width1280.png`) under one media URL.
+
 ## [0.3.0] - 2026-10-03
 
 Classification fixes from testing on small sites and more consent banners. Before
@@ -122,7 +150,8 @@ First release: one dependency-free client plus an agent skill.
   `onetrust` in the selector, count as cookie-banner clicks.
 - Journeys label back/forward and reload views instead of "(unknown)".
 
-[Unreleased]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/keepthebyte/aem-optel-clients/releases/tag/v0.1.0
