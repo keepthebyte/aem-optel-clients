@@ -1,0 +1,371 @@
+{
+  "schema": "improve-impact-payload/0.1",
+  "page": {
+    "path": "/products/trail-runner",
+    "url": "https://www.example.com/products/trail-runner",
+    "title": "Trail Runner product page",
+    "language": "en-US",
+    "window": "last 7 days",
+    "source": "synthetic demo data: invented numbers shaped like a campaign landing page"
+  },
+  "metrics": {
+    "views": 18000,
+    "paidOrSocialShare": 0.82,
+    "mobileShare": 0.78,
+    "noTouchShare": 0.9,
+    "deadTapShare": 0.6,
+    "realHitShare": 0.04,
+    "reach": {
+      "from": {
+        "label": "hero image",
+        "share": 0.7
+      },
+      "to": {
+        "label": "the feature cards",
+        "share": 0.12
+      }
+    },
+    "language": {
+      "mismatchShare": 0.12,
+      "groups": [
+        {
+          "lang": "en",
+          "name": "English",
+          "views": 15840,
+          "share": 0.88,
+          "variants": [
+            "en-US",
+            "en-GB",
+            "en-CA"
+          ]
+        },
+        {
+          "lang": "es",
+          "name": "Spanish",
+          "views": 1260,
+          "share": 0.07,
+          "variants": [
+            "es-US",
+            "es-MX",
+            "es-419"
+          ]
+        },
+        {
+          "lang": "de",
+          "name": "German",
+          "views": 360,
+          "share": 0.02,
+          "variants": [
+            "de-DE"
+          ]
+        },
+        {
+          "lang": "fr",
+          "name": "French",
+          "views": 180,
+          "share": 0.01,
+          "variants": [
+            "fr-CA",
+            "fr-FR"
+          ]
+        }
+      ]
+    },
+    "tapRate": {
+      "search": 0.28,
+      "ads": 0.04
+    },
+    "redirect": {
+      "share": 0.4,
+      "addedMs": 800,
+      "lcpRedirectedMs": 3000,
+      "lcpDirectMs": 2000,
+      "topSource": "display ads",
+      "team": "paid media"
+    },
+    "consent": {
+      "dismissShareOfClicks": 0.65,
+      "team": "web engineering"
+    },
+    "topLink": {
+      "label": "/shop/trail-runner",
+      "share": 0.03
+    }
+  },
+  "blocks": [
+    {
+      "id": "hero",
+      "label": "Hero image",
+      "note": "reach 70%"
+    },
+    {
+      "id": "feature-cards",
+      "label": "Feature cards",
+      "note": "most dead taps land here"
+    },
+    {
+      "id": "specs",
+      "label": "Specifications",
+      "note": "reach 9%"
+    },
+    {
+      "id": "reviews",
+      "label": "Reviews",
+      "note": "reach 6%"
+    },
+    {
+      "id": "buy",
+      "label": "Shop now",
+      "note": "the link most searchers tap"
+    }
+  ],
+  "deadTapBlocks": [
+    "feature-cards",
+    "hero",
+    "specs"
+  ],
+  "trafficNote": "A steady week with no campaign burst.",
+  "details": {
+    "dead-taps": {
+      "rows": [
+        [
+          "Views that touched the content",
+          "1.8K"
+        ],
+        [
+          "Of those, taps that hit nothing clickable",
+          "1.08K (60%)"
+        ]
+      ],
+      "table": {
+        "cols": [
+          "What was tapped",
+          "Views",
+          "Of content taps"
+        ],
+        "rows": [
+          [
+            "Feature cards (images)",
+            "520",
+            "29%"
+          ],
+          [
+            "Hero image",
+            "340",
+            "19%"
+          ],
+          [
+            "Specifications heading",
+            "220",
+            "12%"
+          ],
+          [
+            "Shop now (link)",
+            "480",
+            "27%"
+          ],
+          [
+            "Header navigation (links)",
+            "240",
+            "13%"
+          ]
+        ]
+      },
+      "method": "A tap counts as dead when its target is an image, heading or text with no link behind it. Synthetic numbers for the demo."
+    },
+    "reach-cliff": {
+      "table": {
+        "cols": [
+          "Block or image",
+          "Views that saw it",
+          "Share"
+        ],
+        "rows": [
+          [
+            "Hero image",
+            "12.6K",
+            "70%"
+          ],
+          [
+            "Feature cards",
+            "2.16K",
+            "12%"
+          ],
+          [
+            "Specifications",
+            "1.62K",
+            "9%"
+          ],
+          [
+            "Reviews",
+            "1.08K",
+            "6%"
+          ]
+        ]
+      },
+      "method": "Reach is the share of views in which a block or image scrolled into view. The cliff is the largest drop between two consecutive items in page order."
+    },
+    "no-touch": {
+      "rows": [
+        [
+          "Page views",
+          "18K"
+        ],
+        [
+          "Entered the site on this page",
+          "16.2K"
+        ],
+        [
+          "Touched the content",
+          "1.8K (10%)"
+        ],
+        [
+          "Only touched the cookie dialog",
+          "3.3K"
+        ],
+        [
+          "Left without touching anything",
+          "90%"
+        ]
+      ],
+      "method": "Touching the content means any click that is not on the consent dialog."
+    },
+    "translation": {
+      "table": {
+        "cols": [
+          "Browser language",
+          "Views",
+          "Share"
+        ],
+        "rows": [
+          [
+            "English (en-US, en-GB, en-CA)",
+            "15.8K",
+            "88%"
+          ],
+          [
+            "Spanish (es-US, es-MX, es-419)",
+            "1.26K",
+            "7.0%"
+          ],
+          [
+            "German (de-DE)",
+            "360",
+            "2.0%"
+          ],
+          [
+            "French (fr-CA, fr-FR)",
+            "180",
+            "1.0%"
+          ]
+        ]
+      },
+      "method": "The browser sends its preferred language with every visit; the page declares en-US. Regional variants are grouped. A language needs 4% on its own to become an opportunity."
+    },
+    "redirects": {
+      "rows": [
+        [
+          "Views arriving through redirects",
+          "7.2K (40%)"
+        ],
+        [
+          "Median chain",
+          "2 hops, 800 ms"
+        ],
+        [
+          "LCP p75, direct vs redirected",
+          "2.0 s vs 3.0 s"
+        ]
+      ],
+      "table": {
+        "cols": [
+          "Source",
+          "Redirected",
+          "Median wait",
+          "LCP p75"
+        ],
+        "rows": [
+          [
+            "Display ads",
+            "78%",
+            "900 ms",
+            "3.1 s"
+          ],
+          [
+            "Social · paid",
+            "41%",
+            "700 ms",
+            "2.8 s"
+          ]
+        ]
+      },
+      "method": "The browser reports how many redirects a navigation went through and how long they took; that time runs before the first byte."
+    },
+    "consent": {
+      "rows": [
+        [
+          "Views that saw the dialog",
+          "92%"
+        ],
+        [
+          "Dismissed",
+          "2.1K"
+        ],
+        [
+          "Accepted",
+          "1.4K"
+        ],
+        [
+          "Rejected",
+          "300"
+        ],
+        [
+          "Views that clicked anything",
+          "5.1K"
+        ],
+        [
+          "Of those, only the dialog",
+          "3.3K"
+        ]
+      ],
+      "method": "Consent clicks are recognised by the dialog's own control ids; every other click counts as content."
+    },
+    "search-lift": {
+      "table": {
+        "cols": [
+          "Where the visit started",
+          "Share of views",
+          "Touched the content"
+        ],
+        "rows": [
+          [
+            "Ads & social feeds",
+            "82%",
+            "4.0%"
+          ],
+          [
+            "Browsing the site",
+            "6%",
+            "22%"
+          ],
+          [
+            "Search & referring sites",
+            "9%",
+            "28%"
+          ],
+          [
+            "AI answers",
+            "<1%",
+            "35%"
+          ],
+          [
+            "Direct & bookmarks",
+            "2%",
+            "18%"
+          ]
+        ]
+      },
+      "method": "Rungs are inferred from the referrer and campaign tags of the visit."
+    }
+  }
+}

@@ -10,6 +10,16 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Added
+- `extensions/experience-workspace/`: two Experience Workspace tool panels for any
+  site, served from GitHub Pages. **Page Insights** reads a week of a page's
+  telemetry and tells its story (taps, reach, intent, redirects, language, consent).
+  **Improve Impact** ranks what an author can fix in Experience Workspace (each with
+  the visitor cohort it affects) and what needs a redesign, with a ready-to-paste
+  brief for the Stardust skill. Site, key and campaign conventions come from the
+  extension URL or are asked once; the AI-surface section is off unless `?ai=on`.
+  The panels import `optel-client.js` from this repo, so they ship with the client.
+
 ## [0.3.1] - 2026-10-04
 
 Paid-visit attribution and media reach fixes, found by porting an Experience Workspace

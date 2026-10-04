@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Improve impact</title>
+<link rel="icon" href="data:,">
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#fbfbfa, #151515);
+  --bg-2: light-dark(#f0efec, #202020);
+  --card: light-dark(#ffffff, #1c1c1c);
+  --line: light-dark(#e4e2dc, #2c2c2c);
+  --line-2: light-dark(#cfcdc6, #3a3a3a);
+  --ink: light-dark(#0b0b0b, #ffffff);
+  --ink-2: light-dark(#52514e, #c3c2b7);
+  --ink-3: light-dark(#6b6a66, #a3a29a);
+  --accent: light-dark(#2a78d6, #3987e5);
+  --good: light-dark(#0f7b3a, #3fbf7a);
+  --good-bg: light-dark(#e9f6ee, #14281c);
+  --warn: light-dark(#b8560f, #e0843a);
+  --tag: light-dark(#ebe9ff, #2a2740);
+  --tag-ink: light-dark(#3e34a6, #b7b0ff);
+  --modeled: light-dark(#fff3e0, #33270f);
+  /* one hue per kind of opportunity */
+  --k-tap: light-dark(#2a78d6, #5b9bea);       --k-tap-bg: light-dark(#e6f0fc, #16283f);
+  --k-reach: light-dark(#7a4fd3, #a98cf0);     --k-reach-bg: light-dark(#efe9fb, #241b3d);
+  --k-bounce: light-dark(#d9641d, #ef8c4a);    --k-bounce-bg: light-dark(#fdeee3, #3a2314);
+  --k-translate: light-dark(#0f8f8a, #3fc0ba); --k-translate-bg: light-dark(#e2f5f4, #10302e);
+  --k-lift: light-dark(#0f7b3a, #3fbf7a);      --k-lift-bg: light-dark(#e9f6ee, #14281c);
+  --k-redirect: light-dark(#b8860b, #e0b040);  --k-redirect-bg: light-dark(#fbf3dc, #332a10);
+  --k-consent: light-dark(#5c6b7a, #98a7b6);   --k-consent-bg: light-dark(#eceff2, #242a30);
+  --k-design: light-dark(#b0307a, #e77cb8);    --k-design-bg: light-dark(#fbe8f2, #3a1730);
+  --k-opportunity: var(--k-tap); --k-opportunity-bg: var(--k-tap-bg);
+  --k-engaged: var(--k-lift); --k-engaged-bg: var(--k-lift-bg);
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 14px 16px 28px; background: var(--bg); color: var(--ink); font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+.path { font-size: 11.5px; color: var(--ink-3); overflow-wrap: anywhere; }
+.foot { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); }
+.refresh { all: unset; display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 7px; font-size: 11.5px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line); cursor: pointer; }
+.refresh:hover { color: var(--ink); border-color: var(--line-2); }
+.refresh svg { width: 12px; height: 12px; }
+
+/* 1. header metrics */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 2px; }
+.tile { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+.tile .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); }
+.tile b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.tile .note { font-size: 11px; color: var(--ink-2); }
+/* icon badge: a tinted circle, one hue per kind */
+.badge { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--k-bg, var(--bg-2)); color: var(--k, var(--ink-2)); flex: none; }
+.badge svg { width: 18px; height: 18px; }
+.k-tap { --k: var(--k-tap); --k-bg: var(--k-tap-bg); } .k-reach { --k: var(--k-reach); --k-bg: var(--k-reach-bg); } .k-bounce { --k: var(--k-bounce); --k-bg: var(--k-bounce-bg); }
+.k-translate { --k: var(--k-translate); --k-bg: var(--k-translate-bg); } .k-lift { --k: var(--k-lift); --k-bg: var(--k-lift-bg); } .k-redirect { --k: var(--k-redirect); --k-bg: var(--k-redirect-bg); }
+.k-consent { --k: var(--k-consent); --k-bg: var(--k-consent-bg); } .k-design { --k: var(--k-design); --k-bg: var(--k-design-bg); } .k-opportunity { --k: var(--k-opportunity); --k-bg: var(--k-opportunity-bg); } .k-engaged { --k: var(--k-engaged); --k-bg: var(--k-engaged-bg); }
+
+/* 2. framing */
+.framing { margin: 14px 0 0; font-size: 14px; line-height: 1.45; color: var(--ink); text-wrap: pretty; max-width: 46ch; }
+
+/* sections */
+section { margin-top: 20px; }
+h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin: 0 0 8px; font-weight: 600; }
+.cards { display: grid; gap: 8px; }
+section > .intro { margin: -2px 0 10px; font-size: 12px; color: var(--ink-3); text-wrap: pretty; max-width: 52ch; }
+.brief { grid-column: 2; margin: 10px 0 0; padding: 10px 12px; max-height: 260px; overflow: auto; border-radius: 8px; background: var(--bg-2); border: 1px solid var(--line); font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.card { display: grid; grid-template-columns: 34px 1fr; gap: 4px 12px; padding: 12px 14px 12px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--k, var(--accent)); }
+.card.working { background: var(--good-bg); }
+.card .badge { grid-row: 1 / span 2; align-self: start; }
+.card .stat { font-size: 24px; font-weight: 750; letter-spacing: -0.02em; line-height: 1.05; color: var(--k, var(--ink)); font-variant-numeric: tabular-nums; }
+.card .stat small { font-size: 14px; font-weight: 650; letter-spacing: 0; color: var(--ink); margin-left: 6px; }
+.card h3 { font-size: 12.5px; font-weight: 500; color: var(--ink-2); margin: 2px 0 0; line-height: 1.35; text-wrap: pretty; }
+.card p { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); text-wrap: pretty; }
+.card .rest { grid-column: 2; }
+.card .row { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; align-items: center; }
+.rank { font-size: 10.5px; color: var(--ink-3); }
+/* evidence behind a card */
+.details { grid-column: 2; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 12px; }
+.details .kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 3px 0; color: var(--ink-2); }
+.details .kv b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.details table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11.5px; }
+.details th { text-align: left; font-weight: 600; color: var(--ink-3); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.details td { padding: 4px 0; border-bottom: 1px solid var(--line); color: var(--ink-2); vertical-align: top; }
+.details th.num, .details td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 8px; }
+.details td:first-child { color: var(--ink); }
+.details .method { margin-top: 8px; font-size: 11.5px; color: var(--ink-3); text-wrap: pretty; }
+.details .more { margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.details .more a, .details .more button.link { all: unset; color: var(--accent); cursor: pointer; font-size: 12px; font-weight: 600; }
+.btn { all: unset; display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; background: var(--accent); color: #fff; }
+.btn.secondary { background: var(--bg-2); color: var(--ink); border: 1px solid var(--line-2); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn[disabled] { opacity: .6; cursor: default; }
+.btn svg { width: 12px; height: 12px; }
+.state { font-size: 12px; color: var(--good); font-weight: 600; }
+.tag + .tag { margin-left: 4px; }
+.tag { display: inline-block; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 999px; background: var(--tag); color: var(--tag-ink); margin-top: 8px; }
+.say { margin: 6px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--bg-2); font-size: 12.5px; color: var(--ink); border-left: 2px solid var(--line-2); font-style: italic; text-wrap: pretty; }
+
+/* accordions */
+details.acc > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+details.acc > summary::-webkit-details-marker { display: none; }
+details.acc > summary h2 { margin: 0; }
+details.acc > summary .count { font-size: 11px; color: var(--ink-3); }
+details.acc > summary svg { width: 12px; height: 12px; color: var(--ink-3); transition: transform .2s; }
+details.acc[open] > summary svg { transform: rotate(180deg); }
+details.acc .body { padding: 2px 0 8px; }
+
+/* 6. context rows */
+.rows { display: grid; gap: 0; }
+.rows .kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 7px 0; border-top: 1px dashed var(--line); font-size: 12.5px; }
+.rows .kv:first-child { border-top: 0; }
+.rows .k { color: var(--ink-2); }
+.rows .v { text-align: right; font-variant-numeric: tabular-nums; }
+.rows .modeled { display: inline-block; margin-left: 6px; font-size: 10.5px; padding: 1px 6px; border-radius: 999px; background: var(--modeled); color: var(--warn); font-variant-numeric: normal; }
+
+/* 7. methodology */
+.method { margin-top: 22px; font-size: 11.5px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 10px; }
+.method summary { cursor: pointer; list-style: none; }
+.method summary::-webkit-details-marker { display: none; }
+.method summary u { text-decoration-color: var(--line-2); }
+.method ul { margin: 8px 0 0; padding-left: 16px; }
+.method li { margin: 3px 0; }
+.method .tools { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+.method a, .method button.link { all: unset; color: var(--accent); cursor: pointer; font-size: 11.5px; }
+
+/* jump highlight (the block list stands in for the canvas) */
+.blocks { display: grid; gap: 4px; }
+.blocks .blk { display: flex; justify-content: space-between; gap: 10px; padding: 7px 10px; border-radius: 8px; background: var(--bg-2); font-size: 12px; scroll-margin-top: 12px; }
+.blocks .blk small { color: var(--ink-3); }
+.blocks .blk.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { 0% { background: color-mix(in oklab, var(--accent) 35%, transparent); } 100% { background: var(--bg-2); } }
+.setup .field { margin-top: 8px; }
+.setup input { font: inherit; width: 100%; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--card); color: inherit; }
+.setup .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.empty { font-size: 12.5px; color: var(--ink-3); padding: 8px 0; }
+.stamp { font-size: 12px; color: var(--ink-3); margin-top: 10px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div id="app"><p class="stamp">Loading…</p></div>
+<script type="module">
+import { deriveFindings, headerMetrics, framingLine, createLog, payloadFromInsights, stardustBrief, fmtNum, fmtPct } from './rules.js';
+import { siteSettings, projectKey, rememberDomain, rememberKey, forgetKey, normalizeDomain } from '../shared/site.js';
+
+const params = new URLSearchParams(location.search);
+const app = document.getElementById('app');
+const h = (tag, cls, ...kids) => { const el = document.createElement(tag); if (cls) el.className = cls; kids.flat().forEach((k) => { if (k != null && k !== false) el.append(k.nodeType ? k : document.createTextNode(String(k))); }); return el; };
+const svg = (d) => { const t = document.createElement('template'); t.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`; return t.content.firstChild; };
+const KIND_ICON = {
+  tap: '<path d="M6.5 8.5V3.2a1.3 1.3 0 0 1 2.6 0v4.3"/><path d="M9.1 7.2a1.3 1.3 0 0 1 2.6 0v1.3a1.3 1.3 0 0 1 2.6 0V11a4 4 0 0 1-4 4H9.4a3.6 3.6 0 0 1-2.9-1.5L4 10.4a1.2 1.2 0 0 1 1.9-1.4l.6.8"/>',
+  reach: '<path d="M8 2v8.5"/><path d="M4.8 7.3L8 10.5l3.2-3.2"/><path d="M3 13.5h10"/>',
+  bounce: '<rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M2.5 6.5h11"/><path d="M9.5 10.5l2-2-2-2"/>',
+  translate: '<path d="M2.5 4h7M6 2.5V4M4 4c.5 3 2.5 5 5.5 6.5"/><path d="M8.5 9.5C7 8.5 5.5 6.5 5 4"/><path d="M9 13.5l2.5-6 2.5 6M10 11.5h3"/>',
+  lift: '<path d="M2.5 11.5l3.5-3.5 2.5 2.5 5-5"/><path d="M10 5.5h3.5V9"/>',
+  redirect: '<path d="M2.5 4.5h2.2c1 0 1.9.5 2.4 1.3l1.8 2.4c.5.8 1.4 1.3 2.4 1.3h2.2"/><path d="M2.5 9.5h2.2c1 0 1.9-.5 2.4-1.3"/><path d="M11.5 7.5l2 2-2 2M11.5 2.5l2 2-2 2"/>',
+  consent: '<path d="M8 2.5l4.5 1.8v3.4c0 2.9-1.9 5-4.5 5.8-2.6-.8-4.5-2.9-4.5-5.8V4.3z"/><path d="M6 8l1.4 1.4L10.3 6.6"/>',
+  opportunity: '<path d="M8 2.5l1.5 3.6 3.6.4-2.7 2.5.8 3.7L8 10.9l-3.2 1.8.8-3.7L2.9 6.5l3.6-.4z"/>',
+  engaged: '<path d="M4 3.5l7.5 3.2-3.2 1.2-1.2 3.2z"/><path d="M8.3 7.9l3.7 3.7"/>',
+  design: '<rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M2.5 7h11M7 7v6.5"/>',
+};
+const lead = (f) => h('div', 'stat', f.stat || '', f.lead ? h('small', '', f.lead) : null);
+const kindIcon = (kind) => { const el = h('span', `badge k-${kind || 'tap'}`); el.append(svg(KIND_ICON[kind] || KIND_ICON.tap)); return el; };
+const ICON = { info: '<circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 5v.2"/>', refresh: '<path d="M13 8a5 5 0 1 1-1.5-3.6"/><path d="M13 2.5v3h-3"/>', spark: '<path d="M8 2l1.4 3.6L13 7l-3.6 1.4L8 12l-1.4-3.6L3 7l3.6-1.4z"/><path d="M12.5 11.5l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z"/>', chevron: '<path d="M3.5 6l4.5 4.5L12.5 6"/>', copy: '<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2"/>', jump: '<path d="M8 3v10"/><path d="M4.5 9.5L8 13l3.5-3.5"/>', check: '<path d="M3.5 8.5l3 3 6-7"/>', translate: '<path d="M2.5 4h7M6 2.5V4M4 4c.5 3 2.5 5 5.5 6.5"/><path d="M8.5 9.5C7 8.5 5.5 6.5 5 4"/><path d="M9 13.5l2.5-6 2.5 6M10 11.5h3"/>' };
+
+/* ---------- variant (A/B flags) ---------- */
+/* ?order=actions-first|working-first  ?framing=stakes|plain  ?variant=random assigns both once per session */
+const VKEY = 'improve-impact:variant';
+function pickVariant() {
+  let v = null;
+  try { v = JSON.parse(sessionStorage.getItem(VKEY)); } catch { v = null; }
+  if (params.get('variant') === 'random' && !v) v = { order: Math.random() < 0.5 ? 'actions-first' : 'working-first', framing: Math.random() < 0.5 ? 'stakes' : 'plain' };
+  v = v || {};
+  if (params.get('order')) v.order = params.get('order');
+  if (params.get('framing')) v.framing = params.get('framing');
+  v.order = v.order || 'actions-first'; v.framing = v.framing || 'stakes';
+  try { sessionStorage.setItem(VKEY, JSON.stringify(v)); } catch { /* fine */ }
+  return v;
+}
+const variant = pickVariant();
+const session = createLog(`${variant.order}/${variant.framing}`);
+const { log } = session;
+
+/* ---------- state ---------- */
+const state = { payload: null, derived: null, sdk: null, requested: {}, note: '', path: null };
+/* site settings (../shared/site.js): resolved at boot, once the handshake names the project */
+let S = siteSettings(params);
+/* Experience Workspace names a tool panel after its library row title, lowercased with
+   hyphens: "Page Insights" is page-insights. ?insights-panel= when the row is named otherwise. */
+/* translation requests, remembered per host and page */
+const REQ_KEY = (path) => `improve-impact:requested:${S.domain || 'demo'}${path || ''}`;
+const INSIGHTS_PANEL = params.get('insights-panel') || 'page-insights';
+
+/* ---------- ask the agent ----------
+   Instead of moving the canvas, hand the Experience Workspace chat a prompt that carries
+   the finding and its numbers, and let the agent propose the change. The host's
+   setPrompt action opens the chat panel with the text; autoSend runs it at once
+   (?autosend=0 leaves it for the author to review first). Standalone there is no
+   chat, so the prompt is copied to the clipboard instead. */
+const AUTO_SEND = params.get('autosend') !== '0';
+function promptFor(a, p) {
+  const m = p.metrics || {};
+  const blocks = (a.blocks || []).map((id) => (p.blocks || []).find((x) => x.id === id)?.label).filter(Boolean);
+  const lines = [
+    `You are helping the content owner of the page "${p.page.title || p.page.path}" (${p.page.path}) in Experience Workspace.`,
+    `Telemetry for ${p.page.window}: ${a.title}. ${a.number}.`,
+    a.body,
+    `Audience: ${framingLine(p, 'plain')} ${m.mobileShare != null ? `${fmtPct(m.mobileShare)} of views are on a phone.` : ''}`.trim(),
+    a.cohort ? `Who this affects most: ${a.cohort}.` : '',
+    blocks.length ? `Blocks involved: ${blocks.join(', ')}.` : '',
+    'Suggest one concrete change that addresses this for those visitors, using what the page already has: rewrite text, swap or re-crop an image, add or fix a link or an anchor to a block on this page, reorder or remove blocks, or add a block the site already uses. Draft the copy where copy is needed and say which block to change. Do not propose new block designs or styling (those go to a redesign), nor changes to ads, infrastructure or the consent dialog.',
+  ].filter(Boolean);
+  return lines.join('\n');
+}
+async function askAgent(a) {
+  const text = promptFor(a, state.payload);
+  const actions = state.sdk?.actions;
+  /* setPrompt is fire-and-forget and the host drops it silently when the chat element has no
+     setPrompt (the coworker chat, nx-chat-ao, as of 2026-09-21). Copy the prompt as well, so
+     the author can paste it if nothing shows up in the chat. */
+  const copied = await copy(text);
+  if (typeof actions?.setPrompt === 'function') {
+    try { actions.setPrompt(text, { autoSend: AUTO_SEND }); return copied ? 'sent+copied' : 'sent'; } catch { /* host may not support it */ }
+  }
+  return copied ? 'copied' : null;
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* iframe without permission */ }
+  const ta = h('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.append(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; } ta.remove(); return ok;
+}
+
+/* ---------- render ---------- */
+/* The evidence behind a finding: the same tables the full Insights panel builds, cut down
+   to what backs this card, plus how it is measured and a way into the full panel. */
+function evidence(f, extra = []) {
+  const d = f.details; const box = h('div', 'details'); box.hidden = true;
+  extra.forEach(([k, v]) => box.append(h('div', 'kv', h('span', '', k), h('b', '', v))));
+  if (d?.rows) d.rows.forEach(([k, v]) => box.append(h('div', 'kv', h('span', '', k), h('b', '', v))));
+  if (d?.table?.rows?.length) {
+    const t = h('table'); const tr = h('tr');
+    d.table.cols.forEach((c, i) => tr.append(h('th', i ? 'num' : '', c))); t.append(h('thead', '', tr));
+    const tb = h('tbody'); d.table.rows.forEach((r) => { const row = h('tr'); r.forEach((cell, i) => row.append(h('td', i ? 'num' : '', cell))); tb.append(row); }); t.append(tb);
+    box.append(t);
+  }
+  if (!d) box.append(h('p', 'method', 'No evidence tables in this payload; Page Insights has the complete breakdown.'));
+  if (d?.method) box.append(h('p', 'method', d.method));
+  const more = h('div', 'more');
+  const open = h('button', 'link', 'Open Page Insights'); open.type = 'button';
+  open.addEventListener('click', () => {
+    log('open-insights', { finding: f.id }, { action: true });
+    /* in the workspace: switch the tool panel to the Insights view; standalone: open it in a tab */
+    if (typeof state.sdk?.actions?.showPanel === 'function') { try { state.sdk.actions.showPanel(INSIGHTS_PANEL); return; } catch { /* fall through */ } }
+    const u = new URL('../page-insights/index.html', location.href);
+    u.searchParams.set('path', state.payload.page.path || '/'); if (S.domain) u.searchParams.set('domain', S.domain);
+    window.open(u, '_blank', 'noopener');
+  });
+  more.append(open);
+  box.append(more);
+  return box;
+}
+function detailsToggle(f, box) {
+  const b = h('button', 'btn secondary', svg(ICON.info), 'Details'); b.type = 'button'; b.setAttribute('aria-expanded', 'false');
+  b.addEventListener('click', () => {
+    box.hidden = !box.hidden; b.setAttribute('aria-expanded', String(!box.hidden));
+    b.replaceChildren(svg(ICON.info), box.hidden ? 'Details' : 'Hide details');
+    log(box.hidden ? 'details-close' : 'details-open', { finding: f.id }, { action: !box.hidden });
+  });
+  return b;
+}
+
+function actionCard(a, rank) {
+  const c = h('article', `card k-${a.kind || 'tap'}`); c.id = `finding-${a.id}`;
+  c.append(kindIcon(a.kind), lead(a), h('div', 'rest', h('h3', '', a.meaning || a.title), a.cohort ? h('div', '', h('span', 'tag', `for ${a.cohort}`)) : null, h('p', '', a.body)));
+  const row = h('div', 'row rest');
+  const box = evidence(a, [['Rank', `#${rank} of ${state.derived.actions.length}, ${['', 'quick edit', 'layout change', 'workflow'][a.effort]}`], ['Views affected', fmtPct(a.impact)]]);
+  if (a.workflow === 'translate') {
+    const lang = a.languages[0] || 'the requested language';
+    const done = state.requested[a.id];
+    const b = h('button', 'btn', svg(done ? ICON.check : ICON.translate), done ? `Translation requested · ${lang}` : `Request ${lang} translation`); b.type = 'button'; b.disabled = !!done;
+    b.addEventListener('click', () => {
+      state.requested[a.id] = new Date().toISOString();
+      try { localStorage.setItem(REQ_KEY(state.payload.page.path), JSON.stringify(state.requested)); } catch { /* fine */ }
+      log('translation-request', { finding: a.id, language: lang }, { action: true });
+      /* in Experience Workspace the request goes to the chat as a prompt; standalone it is a state change */
+      if (state.sdk?.actions?.setPrompt) { try { state.sdk.actions.setPrompt(`Translate this page into ${lang} and link the translation from the top of the page.`, { autoSend: false }); } catch { /* host may not support it */ } }
+      render();
+    });
+    row.append(b);
+    if (done) row.append(h('span', 'state', `Requested ${new Date(done).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`));
+  } else {
+    const b = h('button', 'btn', svg(ICON.spark), 'Ask chat to resolve'); b.type = 'button';
+    b.addEventListener('click', async () => {
+      b.disabled = true;
+      const via = await askAgent(a);
+      log('ask-agent', { finding: a.id, via, autoSend: AUTO_SEND }, { action: true });
+      const label = via === 'sent+copied' ? 'Asked the chat, prompt also copied' : via === 'sent' ? 'Asked, see the chat' : via === 'copied' ? 'No chat here, prompt copied' : 'Could not reach the chat';
+      b.replaceChildren(svg(via ? ICON.check : ICON.spark), label);
+      setTimeout(() => { b.disabled = false; b.replaceChildren(svg(ICON.spark), 'Ask chat to resolve'); }, 2500);
+    });
+    row.append(b);
+  }
+  row.append(detailsToggle(a, box));
+  c.append(row, box);
+  return c;
+}
+
+/* A redesign: Experience Workspace cannot change a block's design yet, so the card hands
+   over a brief to paste into a Claude Code session with the Stardust plugin. */
+function redesignCard(r) {
+  const c = h('article', `card k-${r.kind}`); c.id = `finding-${r.id}`;
+  c.append(kindIcon(r.kind), lead(r), h('div', 'rest', h('h3', '', r.meaning), h('div', '', r.cohorts.map((x) => h('span', 'tag', `for ${x}`))), h('p', '', r.body)));
+  const brief = stardustBrief(r, state.payload, { fixes: state.derived.actions.map((a) => a.title) });
+  const pre = h('pre', 'brief', brief); pre.hidden = true;
+  const b = h('button', 'btn', svg(ICON.copy), 'Copy Stardust brief'); b.type = 'button';
+  b.addEventListener('click', async () => {
+    const ok = await copy(brief);
+    log('copy-stardust-brief', { finding: r.id, area: r.area, ok }, { action: true });
+    b.replaceChildren(svg(ICON.check), ok ? 'Copied, paste it into Claude Code' : 'Could not copy, open the brief'); setTimeout(() => b.replaceChildren(svg(ICON.copy), 'Copy Stardust brief'), 2500);
+    if (!ok) { pre.hidden = false; t.setAttribute('aria-expanded', 'true'); t.replaceChildren(svg(ICON.info), 'Hide brief'); }
+  });
+  const t = h('button', 'btn secondary', svg(ICON.info), 'Show brief'); t.type = 'button'; t.setAttribute('aria-expanded', 'false');
+  t.addEventListener('click', () => {
+    pre.hidden = !pre.hidden; t.setAttribute('aria-expanded', String(!pre.hidden));
+    t.replaceChildren(svg(ICON.info), pre.hidden ? 'Show brief' : 'Hide brief');
+    log(pre.hidden ? 'brief-close' : 'brief-open', { finding: r.id }, { action: !pre.hidden });
+  });
+  c.append(h('div', 'row rest', b, t), pre);
+  return c;
+}
+
+function workingCard(w) {
+  const c = h('article', `card working k-${w.kind || 'lift'}`); c.id = 'finding-working';
+  c.append(kindIcon(w.kind || 'lift'), lead(w), h('div', 'rest', h('h3', '', w.meaning || w.title), h('p', '', w.body)));
+  const box = evidence(w);
+  c.append(h('div', 'row rest', detailsToggle(w, box)), box);
+  return c;
+}
+
+function talkingCard(t) {
+  const c = h('article', `card k-${t.kind || 'redirect'}`); c.id = `finding-${t.id}`;
+  c.append(kindIcon(t.kind), lead(t), h('div', 'rest', h('h3', '', t.meaning || t.title), h('div', '', h('span', 'tag', `for ${t.audience}`)), h('blockquote', 'say', t.say)));
+  const b = h('button', 'btn secondary', svg(ICON.copy), 'Copy to clipboard'); b.type = 'button';
+  b.addEventListener('click', async () => {
+    const ok = await copy(t.say);
+    log('copy-talking-point', { finding: t.id, audience: t.audience, ok }, { action: true });
+    b.replaceChildren(svg(ICON.check), ok ? 'Copied' : 'Could not copy'); setTimeout(() => b.replaceChildren(svg(ICON.copy), 'Copy to clipboard'), 1500);
+  });
+  const box = evidence(t);
+  c.append(h('div', 'row rest', b, detailsToggle(t, box)), box);
+  return c;
+}
+
+function accordion(id, title, count, body, { open = false } = {}) {
+  const d = h('details', 'acc'); d.id = `sec-${id}`; d.open = open;
+  d.append(h('summary', '', h('h2', '', title), h('span', '', h('span', 'count', count), ' ', svg(ICON.chevron))));
+  d.append(h('div', 'body', body));
+  d.addEventListener('toggle', () => log(d.open ? 'section-open' : 'section-close', { section: id }, { action: d.open }));
+  return d;
+}
+
+function render() {
+  const p = state.payload; const d = state.derived;
+  app.replaceChildren();
+  /* The host hands the panel its page once, at iframe load, and does not tell it when the
+     canvas moves to another document. Reloading the panel fires the iframe's load event
+     again, so the host redoes the handshake with the page that is open now. */
+  if (state.note) app.append(h('p', 'stamp', state.note));
+
+  /* 1. header metrics */
+  const tiles = h('div', 'tiles');
+  headerMetrics(p, d).forEach((t) => tiles.append(h('div', `tile k-${t.kind}`, kindIcon(t.kind), h('div', '', h('div', 'lbl', t.label), h('b', '', t.value), h('div', 'note', t.note)))));
+  app.append(tiles);
+
+  /* 2. framing line */
+  app.append(h('p', 'framing', framingLine(p, variant.framing)));
+
+  /* 3 + 4, in the configured order */
+  const working = d.working ? (() => { const s = h('section'); s.id = 'sec-working'; s.append(h('h2', '', 'What’s working'), h('div', 'cards', workingCard(d.working))); return s; })() : null;
+  const queue = h('section'); queue.id = 'sec-actions';
+  queue.append(h('h2', '', 'Fix in Experience Workspace'), h('p', 'intro', 'Changes with what the page already has: text, images, links, anchors and the order of blocks. Ask chat drafts each one for you.'));
+  if (d.actions.length) queue.append(h('div', 'cards', d.actions.map((a, i) => actionCard(a, i + 1))));
+  else queue.append(h('p', 'empty', 'Nothing in this window that a content change would move.'));
+  (variant.order === 'working-first' ? [working, queue] : [queue, working]).forEach((s) => s && app.append(s));
+
+  /* 4b. redesigns, for the Stardust skill */
+  const redesign = h('section'); redesign.id = 'sec-redesign';
+  redesign.append(h('h2', '', 'Redesign with Stardust'), h('p', 'intro', 'Changes to the design of a block, which Experience Workspace cannot make yet. Copy the brief into Claude Code with the Stardust plugin installed; it starts the redesign with this page\u2019s evidence.'));
+  if (d.redesigns.length) redesign.append(h('div', 'cards', d.redesigns.map(redesignCard)));
+  else redesign.append(h('p', 'empty', 'No part of this page needs more than a content fix this window.'));
+  app.append(redesign);
+
+  /* 5. talking points */
+  const talking = d.talking.length
+    ? h('div', 'cards', d.talking.map(talkingCard))
+    : h('p', 'empty', 'No page-specific asks for other teams this window.');
+  app.append(accordion('talking', 'Talking points for your next meeting', d.talking.length ? `${d.talking.length} ready` : '', talking));
+
+  /* 6. more context */
+  const rows = h('div', 'rows');
+  d.context.forEach((c) => rows.append(h('div', 'kv', h('span', 'k', c.label), h('span', 'v', c.value, c.modeled ? h('span', 'modeled', `modeled · ${c.modeled}`) : null))));
+  const blocks = h('div', 'blocks'); blocks.id = 'blocks';
+  (p.blocks || []).forEach((b) => { const el = h('div', 'blk', h('span', '', b.label), h('small', '', b.note || '')); el.id = `block-${b.id}`; blocks.append(el); });
+  const ctx = h('div', '', rows, p.blocks?.length ? h('div', '', h('h2', '', 'Blocks on this page'), blocks) : null);
+  ctx.querySelector('h2')?.style.setProperty('margin-top', '14px');
+  app.append(accordion('context', 'More context', `${d.context.length} notes`, ctx));
+
+  /* 7. methodology */
+  const meth = h('details', 'method');
+  meth.append(h('summary', '', 'Sampled telemetry and modeled estimates: views, taps and reach are Optel samples where each session stands for many; AI-surface figures are estimates with a stated method version. ', h('u', '', 'How each number is made')));
+  meth.append(h('ul', '',
+    h('li', '', 'Engaged counts a tap on a real link or button only; a tap on an image or heading that opens nothing counts as a dead tap, never as engagement.'),
+    h('li', '', 'Redirect time is what the browser measured between the click and this page’s first byte; LCP p75 comes from the sampled subset of views that report Core Web Vitals.'),
+    h('li', '', p.aiSurface ? `Times featured in an answer = AI fetches × a citation-to-use ratio (${p.aiSurface.methodologyVersion}); the ratio is under research and will move.` : 'No AI-surface figures in this payload.'),
+    h('li', '', 'Action queue order: cheapest effort first (quick edit, then layout change, then workflow), biggest share of views affected within the same effort. Provisional rule.'),
+    h('li', '', 'Redesign briefs start the Stardust skill (github.com/adobe/skills, plugins/stardust) with the area, the evidence, the visitors it has to work for, design goals, what must not change and the numbers to watch; they list the content fixes above so the redesign assumes they ship.'),
+    h('li', '', '\u201cAsk chat to resolve\u201d opens the Experience Workspace chat with a prompt that carries the finding, its numbers, the audience line and the blocks involved, and asks for one concrete content or layout change. Outside the workspace the prompt is copied instead.'),
+    h('li', '', `Data: ${p.page.source}. Window: ${p.page.window}.`),
+  ));
+  const dl = h('button', 'link', 'Download session log'); dl.type = 'button';
+  dl.addEventListener('click', () => { const blob = new Blob([JSON.stringify({ variant, page: p.page.path, timeToFirstActionMs: session.timeToFirstAction(), events: session.entries() }, null, 2)], { type: 'application/json' }); const a = h('a'); a.href = URL.createObjectURL(blob); a.download = 'improve-impact-session.json'; document.body.append(a); a.click(); a.remove(); });
+  const reset = h('button', 'link', 'Reset this session'); reset.type = 'button';
+  reset.addEventListener('click', () => { session.clear(); try { sessionStorage.removeItem(VKEY); } catch { /* fine */ } location.reload(); });
+  meth.append(h('div', 'tools', dl, reset, h('span', '', `${session.entries().length} events logged · variant ${variant.order}, ${variant.framing}`)));
+  app.append(meth);
+  const refresh = h('button', 'refresh', svg(ICON.refresh), 'Re-read page'); refresh.type = 'button'; refresh.title = 'Reload this panel for the page now open in the canvas';
+  refresh.addEventListener('click', () => { log('refresh', { path: p.page.path }); location.reload(); });
+  app.append(h('div', 'foot', h('div', 'path', p.page.path), refresh));
+}
+
+/* ---------- boot ---------- */
+/* The Optel analyzer is shared with Page Insights (../shared/analyze.js) and loads the
+   client from the root of this repo. Imported only for live data, so the demo fixture
+   still renders when it cannot load. */
+const loadAnalyzer = () => import('../shared/analyze.js').catch(() => null);
+
+const DEMO = 'demo-product-page';
+const fixture = (name) => fetch(`./fixtures/${name}.json`, { cache: 'no-cache' }).then((r) => { if (!r.ok) throw new Error(`no fixture ${name}`); return r.json(); });
+
+/* null means there is nothing to read yet: the panel asks for the site instead */
+async function loadPayload(path) {
+  if (params.get('fixture')) return fixture(params.get('fixture'));
+  if (!S.domain || !S.domainKey || !path) return null;
+  const analyzer = await loadAnalyzer();
+  if (!analyzer) throw new Error('the telemetry analyzer did not load');
+  const { loadWeek, analyze, hourList, normalizePath, configure } = analyzer;
+  configure({ paidMedium: S.paidMedium });
+  const now = new Date(); const hours = hourList(now);
+  const pageUrl = S.pageUrl(normalizePath(path));
+  const { bundles } = await loadWeek({ domain: S.domain, domainKey: S.domainKey, path, now });
+  return payloadFromInsights(analyze(bundles, { pageUrl, hours }), { path, url: pageUrl });
+}
+
+/* Asks for what the row URL left out: the host (remembered per project) and its key
+   (remembered per host). Demo data stays one click away. */
+function setup(message) {
+  const needDomain = !S.domain;
+  const card = h('section', 'setup');
+  card.append(h('h2', '', needDomain ? 'Which site?' : 'Domain key needed'));
+  if (message) card.append(h('p', 'stamp', message));
+  card.append(h('p', 'intro', needDomain
+    ? 'Enter the hostname visitors see (usually the www. one) and its Optel domain key. Both stay in this browser; add ?domain= and ?domainkey= to the extension URL to skip this.'
+    : `Telemetry for ${S.domain} is read with its Optel domain key. It stays in this browser.`));
+  const domain = h('input'); domain.placeholder = 'www.example.com'; domain.setAttribute('aria-label', 'hostname'); domain.value = S.domain || '';
+  const key = h('input'); key.placeholder = 'domain key'; key.type = 'password'; key.setAttribute('aria-label', 'domain key');
+  const save = h('button', 'btn', 'Load this page'); save.type = 'button';
+  save.addEventListener('click', () => {
+    const d = normalizeDomain(domain.value); const k = key.value.trim(); if (!d || !k) return;
+    rememberDomain(S.project, d); rememberKey(d, k); S = siteSettings(params, S.project);
+    log('setup', { domain: d }, { action: true });
+    start(state.path);
+  });
+  [domain, key].forEach((el) => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') save.click(); }));
+  const demo = h('button', 'btn secondary', 'Show demo data'); demo.type = 'button';
+  demo.addEventListener('click', async () => { log('demo', {}, { action: true }); show(await fixture(DEMO)); });
+  if (needDomain) card.append(h('div', 'field', domain));
+  card.append(h('div', 'field', key), h('div', 'row', save, demo));
+  app.replaceChildren(card);
+}
+
+function show(payload) {
+  state.payload = payload;
+  if (state.path && !state.payload.page.path) state.payload.page.path = state.path;
+  try { state.requested = JSON.parse(localStorage.getItem(REQ_KEY(state.payload.page.path)) || '{}'); } catch { state.requested = {}; }
+  state.derived = deriveFindings(state.payload);
+  log('open', { path: state.payload.page.path, findings: state.derived.actions.length, redesigns: state.derived.redesigns.length, talking: state.derived.talking.length, working: !!state.derived.working });
+  render();
+}
+
+async function start(path) {
+  state.path = path;
+  app.replaceChildren(h('p', 'stamp', 'Loading…'));
+  let payload;
+  try {
+    payload = await loadPayload(path);
+  } catch (e) {
+    // a wrong key is refused on the first file (OptelError, status 401/403)
+    if (e.status === 401 || e.status === 403) { forgetKey(S.domain); S = siteSettings(params, S.project); setup(`The domain key was rejected for ${S.domain}.`); return; }
+    setup(`Live telemetry failed (${e.message}).`); return;
+  }
+  if (!payload) { setup(path ? '' : 'No page yet: open this from the Experience Workspace tool panel, or add ?path=/some/page.'); return; }
+  show(payload);
+}
+
+if (params.get('path') || params.get('fixture') || window.self === window.top) {
+  start(params.get('path') || null);
+} else {
+  const NX = params.get('nx') ? `https://${params.get('nx')}--da-nx--adobe.aem.live` : 'https://da.live';
+  const timer = setTimeout(() => start(null), 8000);
+  import(`${NX}/nx/utils/sdk.js`).then(({ default: DA_SDK }) => DA_SDK).then((sdk) => {
+    clearTimeout(timer); state.sdk = sdk;
+    S = siteSettings(params, projectKey(sdk));
+    const ctx = sdk.context || sdk.project || {};
+    start(ctx.path || null);
+  }).catch(() => { clearTimeout(timer); start(null); });
+}
+</script>
+</body>
+</html>

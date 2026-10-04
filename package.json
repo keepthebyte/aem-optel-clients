@@ -17,7 +17,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test test/optel-client.test.mjs",
+    "test": "node --test test/optel-client.test.mjs test/extensions.test.mjs",
     "test:live": "node --test test/live.test.mjs"
   },
   "license": "Apache-2.0"
