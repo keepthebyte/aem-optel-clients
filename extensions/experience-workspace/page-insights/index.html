@@ -1,0 +1,1073 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page insights</title>
+<style>
+:root {
+  color-scheme: light dark;
+  font-family: adobe-clean, "Source Sans Pro", -apple-system, system-ui, sans-serif;
+  /* surfaces + ink */
+  --bg: light-dark(#fcfcfb, #1a1a19);
+  --bg-2: light-dark(#f3f3f1, #232322);
+  --ink: light-dark(#0b0b0b, #ffffff);
+  --ink-2: light-dark(#52514e, #c3c2b7);
+  --ink-3: light-dark(#6b6a66, #a3a29a);
+  --line: light-dark(#e6e5e1, #333330);
+  --line-2: light-dark(#d4d3ce, #45443f);
+  --accent: light-dark(#1473e6, #378ef0);
+  /* data: validated categorical slots, sequential blue ramp, status */
+  --s1: light-dark(#2a78d6, #3987e5);
+  --s2: light-dark(#eb6834, #d95926);
+  --s3: light-dark(#1baf7a, #199e70);
+  --seq-1: light-dark(#cde2fb, #0d366b);
+  --seq-2: light-dark(#86b6ef, #184f95);
+  --seq-3: light-dark(#5598e7, #256abf);
+  --seq-4: light-dark(#2a78d6, #3987e5);
+  --seq-5: light-dark(#1c5cab, #6da7ec);
+  --neutral: light-dark(#c9c8c3, #55544f);
+  --critical: light-dark(#d03b3b, #e66767);
+  --good: light-dark(#0f7b3a, #3fbf7a);
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+::selection { background: color-mix(in oklab, var(--s1) 22%, transparent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+html { scrollbar-color: var(--line-2) transparent; }
+body { margin: 0; padding: 14px 16px 24px; font-size: 13px; line-height: 1.45; background: var(--bg); color: var(--ink);
+  -webkit-font-smoothing: antialiased; font-variant-numeric: proportional-nums; }
+a { color: var(--accent); text-underline-offset: 2px; }
+p { margin: 0; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+/* header */
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.head .actions { display: flex; gap: 6px; align-items: center; position: relative; }
+details.menu { position: relative; }
+details.menu > summary { list-style: none; }
+details.menu > summary::-webkit-details-marker { display: none; }
+details.menu .sheet { position: absolute; right: 0; top: calc(100% + 6px); z-index: 5; min-width: 220px; display: grid; padding: 6px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line-2); box-shadow: 0 8px 28px rgba(0, 0, 0, .18); }
+details.menu .sheet button, details.menu .sheet a { all: unset; box-sizing: border-box; display: grid; gap: 1px; padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 12.5px; color: var(--ink); }
+details.menu .sheet button:hover, details.menu .sheet a:hover, details.menu .sheet button:focus-visible, details.menu .sheet a:focus-visible { background: var(--bg-2); outline: none; }
+details.menu .sheet small { font-size: 11px; color: var(--ink-3); }
+details.menu .sheet svg { width: 12px; height: 12px; vertical-align: -1px; margin-left: 2px; }
+details.menu .sheet .done { color: var(--good); }
+@media print {
+  :root { color-scheme: light; }
+  body { padding: 0; font-size: 11.5px; background: #fff; color: #111; }
+  .head .actions, .glance, details.more > summary, .progress, .foot a { display: none !important; }
+  .chapter, .hero, .story .f { break-inside: avoid; }
+  details.more .drill { border: 0; padding: 0; }
+  .track i, .stack i, .bar i, .ladder .bar i, .progress i { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+.head h1 { font-size: 15px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+.path { font-size: 12px; color: var(--ink-2); margin-top: 2px; overflow-wrap: anywhere; }
+.iconbtn { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+  padding: 4px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg); white-space: nowrap; }
+.iconbtn:hover { border-color: var(--line-2); color: var(--ink); }
+.iconbtn:disabled { opacity: .5; cursor: default; }
+.iconbtn svg { width: 12px; height: 12px; }
+.stamp { font-size: 12px; color: var(--ink-3); margin-top: 10px; }
+.progress { height: 3px; background: var(--line); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+.progress i { display: block; height: 100%; background: var(--s1); transition: width .25s ease-out; }
+.stale { opacity: .55; transition: opacity .2s; }
+
+/* hero */
+.hero { margin: 22px 0 6px; }
+.hero .n { font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; }
+.hero .n small { font-size: 14px; font-weight: 500; letter-spacing: 0; color: var(--ink-2); margin-left: 8px; }
+.hero .lede { margin-top: 8px; font-size: 14px; color: var(--ink-2); max-width: 44ch; text-wrap: pretty; }
+.split { margin-top: 16px; }
+.split .track { display: flex; height: 14px; border-radius: 7px; overflow: hidden; gap: 2px; background: var(--bg); }
+.split .track i { display: block; height: 100%; }
+.split .track i.mobile { background: var(--s1); }
+.split .track i.desktop { background: var(--seq-2); }
+.split .track i.ai { min-width: 6px; background: repeating-linear-gradient(135deg, var(--s2) 0 3px, transparent 3px 6px), color-mix(in oklab, var(--s2) 22%, transparent); }
+.split .track i:first-child { border-radius: 7px 0 0 7px; }
+.split .track i:last-child { border-radius: 0 7px 7px 0; }
+.split .lab { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--ink-2); margin-top: 7px; }
+.split .lab span { display: inline-flex; align-items: center; gap: 5px; }
+.split .lab .ico { width: 15px; height: 15px; color: var(--ink-3); }
+.split .lab b { color: var(--ink); font-weight: 600; }
+.split .lab .est { color: var(--ink-3); font-weight: 500; }
+.hero .cap a { color: inherit; }
+.hero .more { margin-top: 6px; }
+
+/* chapters */
+.chapter { padding: 22px 0 18px; border-top: 1px solid var(--line); scroll-margin-top: 8px; }
+/* at a glance: one tile per section, click to jump */
+.glance { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; margin: 18px 0 8px; }
+.glance .tile { all: unset; box-sizing: border-box; display: grid; gap: 1px; padding: 8px 10px 8px 11px; border-radius: 8px; background: var(--bg-2); border-left: 3px solid var(--line-2); cursor: pointer; min-width: 0; }
+.glance .tile:hover { background: color-mix(in oklab, var(--bg-2) 80%, var(--ink) 8%); }
+.glance .tile:focus-visible { outline: 2px solid var(--s1); outline-offset: 1px; }
+.glance .tile.warn { border-left-color: var(--critical); }
+.glance .tile.good { border-left-color: var(--good); }
+.glance .tile.info { border-left-color: var(--s1); }
+.glance .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.glance b { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.glance .note { font-size: 11px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chapter.flash, .hero.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { from { background: color-mix(in oklab, var(--s1) 14%, transparent); } to { background: transparent; } }
+.chapter h2 { font-size: 16px; font-weight: 700; line-height: 1.25; letter-spacing: -0.015em; margin: 0 0 4px; text-wrap: balance; max-width: 40ch; }
+.chapter h2 .hi { color: var(--critical); }
+.chapter h2 .ok { color: var(--good); }
+.chapter .sub { font-size: 12.5px; color: var(--ink-2); max-width: 46ch; text-wrap: pretty; }
+.viz { margin-top: 14px; }
+.cap { font-size: 11.5px; color: var(--ink-3); margin-top: 8px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin-top: 8px; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -0.5px; }
+
+/* story (findings) */
+.story { display: grid; gap: 10px; }
+.story .f { display: grid; grid-template-columns: 18px 1fr; gap: 8px; align-items: start; }
+.story .f svg { width: 16px; height: 16px; margin-top: 1px; }
+.story .f b { display: block; font-weight: 600; line-height: 1.3; }
+.story .f p { color: var(--ink-2); font-size: 12.5px; margin-top: 2px; text-wrap: pretty; }
+.story .warn svg { color: var(--critical); }
+.story .info svg { color: var(--s1); }
+.story .good svg { color: var(--good); }
+
+/* cascade (funnel) */
+.cascade { display: grid; gap: 8px; }
+.cascade .row { display: grid; grid-template-columns: 1fr; gap: 3px; }
+.cascade .lab { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
+.cascade .lab b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.cascade .bar { height: 18px; background: var(--bg-2); border-radius: 0 4px 4px 0; overflow: visible; position: relative; }
+.cascade .bar i { display: block; height: 100%; background: var(--s1); border-radius: 0 4px 4px 0; min-width: 2px; }
+.cascade .bar i.dim { background: var(--seq-2); }
+
+/* columns */
+.cols { display: flex; align-items: flex-end; gap: 6px; height: 132px; padding-bottom: 18px; position: relative; }
+.cols::after { content: ""; position: absolute; left: 0; right: 0; bottom: 18px; height: 1px; background: var(--line-2); }
+.cols .c { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; position: relative; min-width: 0; }
+.cols .c i { display: block; width: 100%; max-width: 24px; background: var(--s1); border-radius: 4px 4px 0 0; min-height: 2px; }
+.cols .c i.part { background: var(--seq-2); }
+.cols .c i.peak { background: var(--seq-5); }
+.cols .c .v { font-size: 11px; color: var(--ink-2); margin-bottom: 3px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cols .c .d { position: absolute; top: 100%; margin-top: 4px; font-size: 10.5px; color: var(--ink-3); white-space: nowrap; }
+.hours { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 11.5px; color: var(--ink-3); }
+.hours svg { flex: 1; height: 26px; }
+
+/* proportional stacked bar */
+.stack { display: flex; height: 22px; gap: 2px; border-radius: 4px; overflow: hidden; }
+.stack i { display: block; height: 100%; min-width: 2px; }
+.stack i.dead { background: var(--critical); }
+.stack i.link, .stack i.button, .stack i.form { background: var(--s1); }
+.stack i.image { background: var(--seq-2); }
+.stack i.dialog { background: var(--neutral); }
+.stack i.paid { background: var(--s2); }
+.stack i.organic { background: var(--s3); }
+.stack i.mobile { background: var(--s1); }
+.stack i.desktop { background: var(--seq-2); }
+.stack i.dismiss { background: var(--neutral); }
+.stack i.accept { background: var(--s3); }
+.stack i.reject { background: var(--s2); }
+.stack i.settings { background: var(--seq-2); }
+.stack i.other { background: var(--line-2); }
+.stack i.match, .stack i.direct { background: var(--s3); }
+.ladder .lh { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; margin-top: 10px; }
+.ladder .lr { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(80px, 1.4fr) auto; gap: 10px; align-items: center; margin-top: 8px; }
+.ladder .lr .name b { display: block; font-weight: 600; color: var(--ink); }
+.ladder .lr .name small { display: block; font-size: 11px; color: var(--ink-3); text-wrap: pretty; }
+.ladder .lr .bar { height: 14px; background: var(--bg-2); border-radius: 4px; overflow: hidden; }
+.ladder .lr .bar i { display: block; height: 100%; min-width: 2px; border-radius: 4px; }
+.ladder .lr .val { font-size: 12px; color: var(--ink-2); white-space: nowrap; text-align: right; }
+.ladder .lr .val b { color: var(--ink); font-weight: 600; }
+.aibox { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.ranked .bar.ai i { background: var(--s1); }
+.stack i.redirected { background: var(--s2); }
+.stack i.variant { background: var(--seq-2); }
+.stack i.foreign { background: var(--s2); }
+
+/* pair of bars on one axis */
+.pair { display: grid; gap: 10px; }
+.pair .r { display: grid; grid-template-columns: 1fr; gap: 3px; }
+.pair .lab { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); }
+.pair .lab b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.pair .bar { height: 16px; }
+.pair .bar i { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; }
+.pair .bar i.neutral { background: var(--neutral); }
+.pair .bar i.s1 { background: var(--s1); }
+
+/* horizontal ranked bars (sources) */
+.ranked { display: grid; gap: 8px; }
+.ranked .r { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: baseline; }
+.ranked .name { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ranked .val { font-size: 12px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ranked .bar { grid-column: 1 / -1; height: 8px; }
+.ranked .bar i { display: block; height: 100%; border-radius: 0 4px 4px 0; min-width: 2px; }
+.ranked .paid i { background: var(--s2); }
+.ranked .organic i { background: var(--s3); }
+.trend { font-size: 11px; font-weight: 600; margin-left: 6px; }
+.trend.up { color: var(--good); }
+.trend.down { color: var(--critical); }
+.trend.new { color: var(--s1); }
+.trend.flat { color: var(--ink-3); }
+.ranked-h { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--ink-2); margin: 20px 0 6px; }
+.ranked-h b { color: var(--ink); font-weight: 600; }
+.ranked-h:first-child { margin-top: 0; }
+
+/* page strip (reach) */
+.strip { display: grid; grid-template-columns: 56px 1fr; gap: 0 12px; }
+.strip .page { border: 1px solid var(--line-2); border-radius: 4px; padding: 3px; display: grid; gap: 2px; align-self: start; }
+.strip .page i { display: block; height: 22px; border-radius: 2px; background: var(--bg-2); }
+.strip .rows { display: grid; gap: 2px; align-self: start; padding-top: 4px; }
+.strip .rows div { height: 22px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; min-width: 0; }
+.strip .rows span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+.strip .rows b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.strip .page i.cut { height: 0; border-top: 2px dashed var(--critical); border-radius: 0; background: none; margin: 3px 0; }
+.strip .rows div.cut { height: 8px; }
+.strip .rows div.cut span { color: var(--critical); font-weight: 600; font-size: 11px; }
+
+/* more: explainer + drill-down */
+details.more { margin-top: 12px; }
+details.more > summary { list-style: none; display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600;
+  color: var(--accent); cursor: pointer; padding: 4px 0; border-radius: 4px; }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary svg { width: 12px; height: 12px; transition: transform .2s cubic-bezier(.2,.7,.2,1); }
+details.more[open] > summary svg { transform: rotate(180deg); }
+details.more > summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.drill { margin-top: 10px; padding: 12px; border-radius: 8px; background: var(--bg-2); display: grid; gap: 12px; }
+.drill h3 { font-size: 12px; font-weight: 700; margin: 0 0 4px; color: var(--ink); }
+.drill .x { font-size: 12.5px; color: var(--ink-2); text-wrap: pretty; }
+.drill .x + .x { margin-top: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; font-weight: 600; color: var(--ink-2); padding: 0 0 4px; border-bottom: 1px solid var(--line-2); }
+td { padding: 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+tr:first-child td { border-top: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .sel { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); overflow-wrap: anywhere; margin-top: 1px; }
+td .to { display: block; font-size: 11px; color: var(--ink-3); overflow-wrap: anywhere; }
+.tag { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 0 6px; border-radius: 999px; border: 1px solid var(--line-2); color: var(--ink-2); white-space: nowrap; }
+.tag.dead { color: var(--critical); border-color: var(--critical); }
+.tag.link, .tag.button, .tag.form { color: var(--s1); border-color: var(--s1); }
+.spark { width: 60px; height: 16px; vertical-align: middle; margin-right: 6px; }
+
+/* key form + misc */
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 12px; background: var(--bg-2); margin-top: 14px; }
+.card h2 { font-size: 13px; margin: 0 0 4px; }
+input { font: inherit; padding: 6px 8px; border: 1px solid var(--line-2); border-radius: 6px; background: var(--bg); color: inherit; width: 100%; }
+.row { display: flex; gap: 8px; margin-top: 8px; }
+.primary { background: var(--accent); color: #fff; font-weight: 600; padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
+.err { display: grid; grid-template-columns: 18px 1fr; gap: 8px; margin-top: 12px; color: var(--critical); font-size: 12.5px; }
+.err svg { width: 16px; height: 16px; }
+.foot { font-size: 11.5px; color: var(--ink-3); margin-top: 22px; padding-top: 12px; border-top: 1px solid var(--line); }
+.foot svg { width: 11px; height: 11px; vertical-align: -1px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="app"><p class="stamp">Connecting to Experience Workspace…</p></div>
+<script type="module">
+import { loadWeek, analyze, hourList, normalizePath, fmtNum, langName, fmtMs, aiPlatformLabel, configure } from '../shared/analyze.js';
+import { siteSettings, projectKey, rememberDomain, rememberKey, forgetKey, normalizeDomain } from '../shared/site.js';
+
+const params = new URLSearchParams(location.search);
+/* site settings (../shared/site.js): resolved at boot, once the handshake names the project */
+let S = siteSettings(params);
+const EXPLORER = 'https://tools.aem.live/tools/optel/oversight/explorer.html';
+/* AI surface: chatbot fetches from Adobe Brand Visibility. Off unless the row URL says
+   ?ai=on; the live read needs ?site-id= and the workspace token, `?ai-snapshot=<url>`
+   points at a JSON snapshot used when the live read is not available.
+   A fetch is a request an assistant makes while answering someone. How often the fetched
+   page then gets featured in the answer differs per assistant, so each one has its own
+   factor. The snapshot's assumption block overrides these defaults. */
+const AI_SHOWN_BY_AGENT = { 'ChatGPT-User': 0.5, 'Claude-User': 0.75, 'Google-ai-mode': 1 };
+const AI_SHOWN_DEFAULT = 0.5;
+const loadAiSnapshot = () => (S.ai && params.get('ai-snapshot')
+  ? fetch(params.get('ai-snapshot'), { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : null)).catch(() => null) /* revalidate: the snapshot changes without the page changing */
+  : Promise.resolve(null));
+
+/* Live path. The Experience Workspace handshake hands the panel an IMS token; Brand
+   Visibility exchanges it for a short-lived session token (POST /auth/login), the same
+   flow Adobe's brand-visibility EW extension uses. With a session the by-url endpoint
+   answers directly and the snapshot above is only the fallback. `?llmo-api=` overrides
+   the API base, `?site-id=` the Brand Visibility site (remembered per domain). */
+const BV_API = (params.get('llmo-api') || 'https://llmo.experiencecloud.live/api/v1').replace(/\/$/, '');
+const BV_SESSION_KEY = 'page-insights:bv-session:v1';
+const bvSiteId = () => S.siteId;
+const sha256 = async (str) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))), (b) => b.toString(16).padStart(2, '0')).join('');
+const jwtExp = (t) => { try { const b = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'); const { exp } = JSON.parse(atob(b.padEnd(Math.ceil(b.length / 4) * 4, '='))); return exp ? exp * 1000 : 0; } catch { return 0; } };
+
+/* IMS token -> Brand Visibility session token, cached for this tab until shortly before expiry. */
+async function bvSession(imsToken) {
+  const hash = await sha256(imsToken);
+  try {
+    const c = JSON.parse(sessionStorage.getItem(BV_SESSION_KEY));
+    if (c && c.hash === hash && c.api === BV_API && jwtExp(c.token) > Date.now() + 30000) return c.token;
+  } catch { /* no usable cache */ }
+  const r = await fetch(`${BV_API}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accessToken: imsToken }) });
+  if (!r.ok) throw new Error(`session exchange HTTP ${r.status}`);
+  const { sessionToken } = await r.json();
+  if (!sessionToken) throw new Error('session exchange returned no token');
+  try { sessionStorage.setItem(BV_SESSION_KEY, JSON.stringify({ hash, api: BV_API, token: sessionToken })); } catch { /* fine */ }
+  return sessionToken;
+}
+
+const isoDay = (d) => d.toISOString().slice(0, 10);
+const rowsOf = (data) => data?.rows ?? data?.data ?? data?.items ?? (Array.isArray(data) ? data : []);
+const rowPath = (row) => { const u = String(row.urlPath ?? row.url_path ?? row.url ?? ''); try { return normalizePath(u.startsWith('http') ? new URL(u).pathname : (u.startsWith('/') ? u : u.slice(u.indexOf('/')))); } catch { return normalizePath(u); } };
+const num = (row, ...keys) => { for (const k of keys) if (row?.[k] != null) return Number(row[k]); return 0; };
+const agentsOf = (row) => row?.uniqueAgentNames ?? row?.unique_agent_names ?? row?.agents ?? [];
+
+async function bvByUrl(session, siteId, path, extra = {}) {
+  const q = new URLSearchParams({ agentType: 'chatbots', limit: '50', pageOffset: '0', sortBy: 'total_hits', sortOrder: 'desc', urlPathSearch: path, ...extra });
+  const r = await fetch(`${BV_API}/sites/${siteId}/agentic-traffic/by-url?${q}`, { headers: { Authorization: `Bearer ${session}` } });
+  if (!r.ok) throw new Error(`by-url HTTP ${r.status}`);
+  const rows = rowsOf(await r.json());
+  return { row: rows.find((x) => rowPath(x) === path) || null, sample: rows[0] };
+}
+
+async function bvReferralByUrl(session, siteId, path, extra = {}) {
+  const q = new URLSearchParams({ source: 'cdn', pageSize: '50', pageOffset: '0', sortBy: 'total_pageviews', sortOrder: 'desc', urlPathSearch: path, ...extra });
+  const r = await fetch(`${BV_API}/sites/${siteId}/referral-traffic/by-url?${q}`, { headers: { Authorization: `Bearer ${session}` } });
+  if (!r.ok) throw new Error(`referral by-url HTTP ${r.status}`);
+  const row = rowsOf(await r.json()).find((x) => rowPath(x) === path);
+  return row ? num(row, 'pageviews', 'total_pageviews') : 0;
+}
+
+/* AI click-throughs for the page: 7-day and 28-day totals plus a 28-day split per assistant. */
+async function fetchRefLive(path, imsToken) {
+  const siteId = bvSiteId();
+  if (!siteId) throw new Error('no Brand Visibility site id');
+  const session = await bvSession(imsToken);
+  const end = new Date(); const start = new Date(end.getTime() - 7 * 864e5);
+  const win = { startDate: isoDay(start), endDate: isoDay(end) };
+  const platRes = await fetch(`${BV_API}/sites/${siteId}/referral-traffic/by-platform?source=cdn`, { headers: { Authorization: `Bearer ${session}` } });
+  if (!platRes.ok) throw new Error(`referral by-platform HTTP ${platRes.status}`);
+  const platforms = rowsOf(await platRes.json()).map((x) => x.platform).filter(Boolean);
+  const [pageviews7d, pageviews28d, ...per] = await Promise.all([
+    bvReferralByUrl(session, siteId, path, win), bvReferralByUrl(session, siteId, path),
+    ...platforms.map((pl) => bvReferralByUrl(session, siteId, path, { platform: pl }).catch(() => null)),
+  ]);
+  const byPlatform28d = {};
+  platforms.forEach((pl, i) => { if (per[i]) byPlatform28d[pl] = per[i]; });
+  const split = Object.values(byPlatform28d).reduce((acc, x) => acc + x, 0);
+  /* if the platform filter were ignored every value would equal the total */
+  const filterWorks = platforms.length <= 1 || split <= pageviews28d * 1.05;
+  return { live: true, fetchedAt: isoDay(end), pageviews7d, pageviews28d, byPlatform28d: filterWorks ? byPlatform28d : {} };
+}
+
+/* Build a snapshot-shaped page entry from the live API for the panel's 7-day window. */
+async function fetchAiLive(path, imsToken, snap) {
+  const siteId = bvSiteId();
+  if (!siteId) throw new Error('no Brand Visibility site id (add ?site-id=)');
+  const session = await bvSession(imsToken);
+  const end = new Date(); const start = new Date(end.getTime() - 7 * 864e5);
+  const win = { startDate: isoDay(start), endDate: isoDay(end) };
+  const [week, month] = await Promise.all([bvByUrl(session, siteId, path, win), bvByUrl(session, siteId, path)]);
+  console.debug('[page-insights] Brand Visibility by-url sample row', week.sample);
+  if (!week.row) return { page: null, reason: 'the page is not in the by-url response' };
+  const { row } = week;
+  const hits = num(row, 'totalHits', 'total_hits');
+  const agents = agentsOf(row);
+  const perAgent = await Promise.all(agents.map((a) => bvByUrl(session, siteId, path, { ...win, userAgent: a })
+    .then((r) => [a, r.row ? num(r.row, 'totalHits', 'total_hits') : 0]).catch(() => [a, null])));
+  const byAgent = Object.fromEntries(perAgent.filter(([, v]) => v != null));
+  /* if the per-agent filter were ignored every count would equal the total; then the split is unknown */
+  const filterWorks = agents.length <= 1 || Object.values(byAgent).some((v) => v !== hits);
+  const trend = (month.row?.hitsTrend ?? month.row?.hits_trend ?? []).map((t) => ({ weekStart: t.weekStart ?? t.week_start, hits: t.value ?? t.hits ?? t.totalHits ?? 0 }));
+  const page = { hits, agents, topAgent: row.topAgent ?? row.top_agent ?? agents[0] ?? '', hits28d: month.row ? num(month.row, 'totalHits', 'total_hits') : null, trend };
+  if (filterWorks && agents.length) page.byAgent = byAgent;
+  const meta = {
+    ...(snap || {}), live: true, window: { start: win.startDate, end: win.endDate }, fetchedAt: isoDay(end),
+    source: 'Adobe Brand Visibility · agentic traffic · by-url · agentType=chatbots (live)',
+    assumption: { ...(snap?.assumption || {}), splitNote: 'Per-assistant counts come straight from Brand Visibility\'s per-agent filter for the same 7-day window.' },
+  };
+  return { page, meta };
+}
+const AGENT_LABEL = { 'ChatGPT-User': 'ChatGPT', 'Claude-User': 'Claude', 'Google-ai-mode': 'Google AI Mode', 'Perplexity-User': 'Perplexity', 'Shap-User': 'Shap', 'Amzn-User': 'Amazon' };
+const agentLabel = (a) => AGENT_LABEL[a] || a.replace(/-User$/, '');
+const listWords = (xs) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`);
+
+const app = document.getElementById('app');
+const state = {
+  path: null, domainKey: null, result: null, hours: [], loading: false, done: 0, total: 0, failed: 0, loadedAt: 0, error: '', open: new Set(),
+  ai: null, aiMeta: null, token: null, aiLiveError: '', aiRef: null,
+};
+
+/* AI-answer click-throughs for the page from Brand Visibility's referral traffic (CDN logs). */
+function attachAiReferrals(r) {
+  const ref = state.aiRef;
+  if (!r || !ref) return r;
+  const byPlatform = Object.entries(ref.byPlatform28d || {}).map(([platform, pageviews]) => ({ platform, label: aiPlatformLabel(platform), pageviews })).sort((x, y) => y.pageviews - x.pageviews);
+  r.aiReferrals = { live: !!ref.live, fetchedAt: ref.fetchedAt, pageviews: ref.pageviews7d ?? null, pageviews28d: ref.pageviews28d ?? 0, byPlatform };
+  return r;
+}
+
+/* Fold the AI-surface snapshot for the current page into an analyze() result:
+   the third "where was this read" segment plus one finding. Leaves RUM numbers untouched. */
+function attachAiSurface(r) {
+  const page = state.ai; const meta = state.aiMeta;
+  if (!r || !page || !meta) return r;
+  const factors = { ...AI_SHOWN_BY_AGENT, ...(meta.assumption?.shownByAgent || {}) };
+  const fallback = meta.assumption?.shownDefault ?? AI_SHOWN_DEFAULT;
+  const agents = page.agents || [];
+  /* Brand Visibility reports one fetch total per URL plus the assistants seen. Until it
+     gives per-agent counts (page.byAgent), the total is split evenly between them. */
+  const exactSplit = !!page.byAgent;
+  const split = page.byAgent || Object.fromEntries(agents.map((a) => [a, page.hits / (agents.length || 1)]));
+  const rows = Object.entries(split)
+    .map(([agent, fetches]) => { const factor = factors[agent] ?? fallback; return { agent, label: agentLabel(agent), fetches, factor, featured: fetches * factor }; })
+    .sort((a, b) => b.fetches - a.fetches);
+  const est = Math.round(rows.reduce((sum, x) => sum + x.featured, 0));
+  const total = (r.engagement.views || 0) + est;
+  const aiShare = total ? est / total : 0;
+  r.aiSurface = {
+    hits: page.hits, est, aiShare, rows, exactSplit, agents: rows.map((x) => x.label), live: !!meta.live,
+    hits28d: page.hits28d, trend: page.trend || [], window: meta.window, fetchedAt: meta.fetchedAt, source: meta.source,
+  };
+  const who = listWords(r.aiSurface.agents);
+  const body = `${who} fetched this page ${n(page.hits)} times in the same 7 days while answering someone. Weighted by how often each assistant features what it fetched, the content was shown about ${n(est)} times inside an answer, where only the first clear sentence about the product survives. Say what it is and who it is for in the opening line.`;
+  const title = `Content featured ~${n(est)} times on AI surfaces this week${aiShare >= 0.01 ? ` (${pc(aiShare)} of reads)` : ''}`;
+  if (aiShare >= 0.05) r.findings.unshift({ level: 'info', title, body });
+  else r.findings.push({ level: 'info', title, body });
+  return r;
+}
+
+/* ---------- helpers ---------- */
+const h = (tag, cls, ...kids) => {
+  const el = document.createElement(tag);
+  if (cls) el.className = cls;
+  kids.flat().forEach((k) => { if (k != null && k !== false) el.append(k.nodeType ? k : document.createTextNode(String(k))); });
+  return el;
+};
+const svgEl = (markup) => { const t = document.createElement('template'); t.innerHTML = markup.trim(); return t.content.firstChild; };
+const pc = (x, d = 0) => `${((x || 0) * 100).toFixed(d)}%`;
+const pcs = (x) => pc(x, x > 0 && x < 0.01 ? 2 : (x < 0.1 ? 1 : 0));
+const n = (x) => fmtNum(x);
+const dayName = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', timeZone: 'UTC' });
+const shortDay = (iso) => iso.slice(5).replace('-', '/');
+
+/* one icon set, one stroke */
+const ICON = {
+  chevron: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6l4.5 4.5L12.5 6"/></svg>',
+  refresh: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6"/><path d="M13 2.5v3h-3"/></svg>',
+  external: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h4v4"/><path d="M13 3L7 9"/><path d="M11 9.5V12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h2.5"/></svg>',
+  phone: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.5" y="2" width="9" height="16" rx="1.8"/><path d="M8.5 15.5h3"/></svg>',
+  desktop: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3.5" width="16" height="10.5" rx="1.5"/><path d="M7 17h6M10 14v3"/></svg>',
+  share: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10V2.5"/><path d="M5.2 5.3L8 2.5l2.8 2.8"/><path d="M3 8.5v4a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-4"/></svg>',
+  spark: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2.5l1.9 5.1L17 9.5l-5.1 1.9L10 16.5l-1.9-5.1L3 9.5l5.1-1.9z"/><path d="M16 15l.6 1.4L18 17l-1.4.6L16 19l-.6-1.4L14 17l1.4-.6z"/></svg>',
+  warn: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.2L14.5 13.5h-13z"/><path d="M8 6.5v3.2M8 11.8v.2"/></svg>',
+  info: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v4M8 5v.2"/></svg>',
+  good: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M5.3 8.2l1.9 1.9 3.6-3.9"/></svg>',
+};
+const icon = (name) => svgEl(ICON[name]);
+
+function sparkline(series, color, w = 60, ht = 16) {
+  const max = Math.max(...series, 1);
+  const step = series.length > 1 ? w / (series.length - 1) : 0;
+  const pts = series.map((v, i) => `${(i * step).toFixed(1)},${(ht - 2 - (v / max) * (ht - 4)).toFixed(1)}`).join(' ');
+  return svgEl(`<svg class="spark" viewBox="0 0 ${w} ${ht}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>`);
+}
+
+function trendBadge(t) {
+  if (t === null) return h('span', 'trend new', 'new');
+  if (!Number.isFinite(t) || Math.abs(t) < 0.1) return h('span', 'trend flat', 'flat');
+  const up = t > 0;
+  return h('span', `trend ${up ? 'up' : 'down'}`, `${up ? '▲' : '▼'} ${t > 9 ? `${t.toFixed(0)}×` : pc(Math.abs(t))}`);
+}
+
+function stackBar(parts, total) {
+  const bar = h('div', 'stack');
+  parts.forEach(([cls, v, label]) => {
+    if (!v) return;
+    const i = h('i', cls); i.style.width = pc(v / total, 2); i.title = `${label}: ${n(v)} (${pc(v / total)})`; bar.append(i);
+  });
+  return bar;
+}
+
+function legend(items) {
+  return h('div', 'legend', items.map(([token, label]) => {
+    const sw = h('i'); sw.style.background = `var(${token})`;
+    return h('span', '', sw, label);
+  }));
+}
+
+/* "More" disclosure: explainer paragraphs + drill-down nodes. Open state survives re-render. */
+function more(key, explain, ...drill) {
+  const d = h('details', 'more');
+  d.open = state.open.has(key);
+  d.addEventListener('toggle', () => { if (d.open) state.open.add(key); else state.open.delete(key); });
+  const s = h('summary', '', 'More', icon('chevron'));
+  const body = h('div', 'drill');
+  const x = h('div', '', h('h3', '', 'How this is measured'), ...[].concat(explain).map((t) => h('p', 'x', t)));
+  body.append(x, ...drill.filter(Boolean));
+  d.append(s, body);
+  return d;
+}
+
+function table(cols, rows) {
+  const t = h('table');
+  const tr = h('tr'); cols.forEach((c) => tr.append(h('th', c.num ? 'num' : '', c.label))); t.append(h('thead', '', tr));
+  const tb = h('tbody');
+  rows.forEach((r) => { const row = h('tr'); r.forEach((cell, i) => row.append(h('td', cols[i].num ? 'num' : '', cell))); tb.append(row); });
+  t.append(tb);
+  return t;
+}
+
+function chapter(title, sub, viz, moreEl) {
+  const c = h('section', 'chapter');
+  c.append(h('h2', '', ...[].concat(title)));
+  if (sub) c.append(h('p', 'sub', sub));
+  c.append(h('div', 'viz', viz));
+  if (moreEl) c.append(moreEl);
+  return c;
+}
+
+/* ---------- at a glance ---------- */
+/* One tile per section: a label, the one number worth scanning, and a state colour.
+   Clicking jumps to the section. Tiles are derived from the same result the sections use. */
+function glanceTiles(r) {
+  const e = r.engagement; const I = r.intent; const R = r.redirects; const L = r.language; const c = r.clicks; const t = r.traffic; const rc = r.reach.cliff; const cs = r.consent; const ai = r.aiSurface;
+  const warns = r.findings.filter((f) => f.level === 'warn').length;
+  return [
+    { id: 'story', label: 'Findings', value: warns ? `${warns} warning${warns > 1 ? 's' : ''}` : 'All clear', note: warns ? 'need a look' : 'within thresholds', level: warns ? 'warn' : 'good' },
+    { id: 'funnel', label: 'Engaged', value: pc(e.contentClickShare), note: 'touched the content', level: e.visits > 0 && e.strictBounceRate >= 0.7 ? 'warn' : 'info' },
+    { id: 'week', label: 'Traffic', value: t.spike >= 3 ? `${t.spike.toFixed(0)}× peak` : 'Steady', note: t.peak ? `busiest ${dayName(t.peak.day)}` : '', level: 'info' },
+    { id: 'taps', label: 'Dead taps', value: pc(c.deadShare), note: 'of content taps', level: c.deadShare >= 0.3 ? 'warn' : 'info' },
+    { id: 'intent', label: 'Intent', value: pc(I.looking), note: 'came looking', level: I.looking >= 0.6 ? 'good' : (I.rungs[0].share >= 0.5 ? 'warn' : 'info') },
+    R && R.redirected ? { id: 'redirects', label: 'Redirects', value: pc(R.redirectedShare), note: `${fmtMs(R.msMedian)} median`, level: R.redirectedShare >= 0.2 && (R.msMedian || 0) >= 300 ? 'warn' : 'info' } : null,
+    L && L.sampled ? { id: 'language', label: 'Language', value: L.other ? pcs(L.otherShare) : '0%', note: 'other language', level: L.otherShare >= 0.05 ? 'warn' : 'good' } : null,
+    { id: 'reach', label: 'Reach', value: rc ? pc(rc.to.share) : pc(r.reach.anyMediaShare), note: rc ? `cliff after ${rc.from.label}` : 'saw an image', level: rc ? 'warn' : 'info' },
+    { id: 'consent', label: 'Consent', value: pc(cs.shownShare), note: 'saw the dialog', level: e.clickedAny > 0 && e.clickedConsentOnly / e.clickedAny >= 0.6 ? 'warn' : 'info' },
+    ai ? { id: 'hero', label: 'AI surface', value: `~${n(ai.est)}`, note: 'times featured', level: 'info' } : null,
+  ].filter(Boolean);
+}
+
+function glance(r, ids) {
+  const nav = h('nav', 'glance'); nav.setAttribute('aria-label', 'At a glance');
+  glanceTiles(r).filter((tl) => tl.id === 'hero' || ids.includes(tl.id)).forEach((tl) => {
+    const b = h('button', `tile ${tl.level}`, h('span', 'lbl', tl.label), h('b', '', tl.value), tl.note ? h('span', 'note', tl.note) : null);
+    b.type = 'button'; b.title = `Jump to ${tl.label.toLowerCase()}`;
+    b.addEventListener('click', () => {
+      const target = tl.id === 'hero' ? app.querySelector('.hero') : document.getElementById(`sec-${tl.id}`);
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
+    });
+    nav.append(b);
+  });
+  return nav;
+}
+
+/* ---------- hero ---------- */
+function hero(r) {
+  const d = r.devices; const total = d.mobile + d.desktop + d.other || 1;
+  const el = h('div', 'hero');
+  el.append(h('div', 'n', n(r.engagement.views), h('small', '', 'page views · last 7 days')));
+  el.append(h('p', 'lede', `${n(r.engagement.visits)} of them arrived here from outside the site. ${pc(d.mobileShare)} happened on a phone${d.mobileShare >= 0.8 ? ', so the phone fold is the page' : ''}.${r.aiSurface ? ` Its content was also featured about ${n(r.aiSurface.est)} times on an AI surface.` : ''}`));
+  const ai = r.aiSurface; const est = ai ? ai.est : 0; const all = total + est;
+  const split = h('div', 'split');
+  const track = h('div', 'track');
+  const seg = (cls, v, title) => { const i = h('i', cls); i.style.width = pc(v / all, 1); i.title = title; return i; };
+  track.append(seg('mobile', d.mobile, `Mobile browser ${n(d.mobile)}`), seg('desktop', d.desktop + d.other, `Desktop browser ${n(d.desktop + d.other)}`));
+  if (ai) track.append(seg('ai', est, `Featured on AI surfaces ~${n(est)} times (estimated from ${n(ai.hits)} chatbot fetches)`));
+  split.append(track);
+  const lab = (name, value, text, est) => { const ic = icon(name); ic.classList.add('ico'); return h('span', '', ic, h('b', '', value), ` ${text}`, est ? h('span', 'est', ' est.') : null); };
+  const labs = h('div', 'lab', lab('phone', pc(d.mobile / all), 'mobile'), lab('desktop', pc((d.desktop + d.other) / all), 'desktop'));
+  /* under 1% a percentage reads as nothing; the count is the honest size */
+  if (ai) labs.append(lab('spark', est / all < 0.01 ? `~${n(est)}` : pc(est / all), est / all < 0.01 ? 'times on AI surfaces' : 'AI surfaces', true));
+  split.append(labs);
+  el.append(split);
+  if (ai) {
+    const win = `${shortDay(ai.window.start)}–${shortDay(ai.window.end)}`;
+    el.append(h('p', 'cap', `AI surface: ${n(ai.hits)} fetches by ${listWords(ai.agents)} ahead of an answer, of which an estimated ${n(ai.est)} ended up featured · Adobe Brand Visibility, ${ai.live ? `live, ${win}` : `${win} snapshot`}`));
+    const approx = (x) => (x > 0 && x < 1 ? '<1' : `~${n(Math.round(x))}`);
+    const factorRows = ai.rows.map((x) => [x.label, approx(x.fetches), pc(x.factor), approx(x.featured)]);
+    const weekRows = ai.trend.map((t) => [`Week of ${shortDay(t.weekStart)}`, n(t.hits)]);
+    el.append(more('ai', [
+      'Mobile and desktop are sampled page views from Optel, so they are people in a browser. The AI surface is different: it counts requests that chat assistants made to this URL while composing an answer for a person. Adobe Brand Visibility calls these citation attempts.',
+      `A fetch does not always turn into a feature, and the odds differ by assistant, so each one is counted with its own factor (below). The factors are assumptions, set in the snapshot, until Brand Visibility can tell fetched from cited per URL. ${ai.exactSplit ? (state.aiMeta.assumption?.splitNote || '') : 'Brand Visibility reports one fetch total per URL plus the assistants seen, so the total is split evenly between them here.'} Training crawlers and search-index bots are excluded.`,
+      `${ai.live ? 'The chatbot numbers come live from Brand Visibility for the same 7-day window as the browser numbers.' : `The chatbot numbers are a snapshot taken ${ai.fetchedAt} for the same 7-day window; the browser numbers are live.${state.token ? ` A live read from Brand Visibility was tried and failed (${state.aiLiveError || 'unknown reason'}), so the snapshot is shown.` : ' No workspace token reached the panel, so the snapshot is shown.'}`}${ai.hits28d != null ? ` Over 28 days this page saw ${n(ai.hits28d)} chatbot fetches.` : ''}`,
+    ],
+    table([{ label: 'Assistant' }, { label: 'Fetches', num: true }, { label: 'Counted', num: true }, { label: 'Featured', num: true }], factorRows),
+    table([{ label: 'Chatbot fetches by week' }, { label: 'Fetches', num: true }], weekRows)));
+  }
+  return el;
+}
+
+/* ---------- chapters ---------- */
+function storyChapter(r) {
+  const list = h('div', 'story');
+  r.findings.forEach((f) => list.append(h('div', `f ${f.level}`, icon(f.level === 'warn' ? 'warn' : f.level === 'good' ? 'good' : 'info'), h('div', '', h('b', '', f.title), h('p', '', f.body)))));
+  const warns = r.findings.filter((f) => f.level === 'warn').length;
+  return chapter(warns ? [`${warns} thing${warns > 1 ? 's' : ''} this week's visitors are telling you`] : ['Nothing alarming this week'], null, list,
+    more('story', ['Each statement is a rule over the numbers below it, with a blunt threshold: bounce over 70%, dead taps over 30% of content taps, a reach drop over 50%, paid share over 60%, a daily peak over 3× the median. The thresholds live in shared/analyze.js and are meant to be adjusted.']));
+}
+
+function funnelChapter(r) {
+  const e = r.engagement; const v = e.views || 1;
+  const first = r.reach.items[0];
+  const stages = [
+    ['Viewed the page', e.views],
+    [first ? `Saw the first image (${first.label})` : 'Saw any image', first ? first.views : r.reach.anyMedia],
+    ['Touched the content', e.clickedContent],
+    ['Followed a link', e.navigated],
+  ];
+  const cascade = h('div', 'cascade');
+  stages.forEach(([label, val], i) => {
+    const row = h('div', 'row');
+    row.append(h('div', 'lab', h('span', '', label), h('b', '', `${pcs(val / v)} · ${n(val)}`)));
+    const bar = h('div', 'bar'); const fill = h('i', i === 0 ? 'dim' : ''); fill.style.width = pc(val / v, 2); fill.title = `${label}: ${n(val)}`; bar.append(fill);
+    row.append(bar); cascade.append(row);
+  });
+  const per100 = Math.round((stages[1][1] / v) * 100); const touch = ((e.clickedContent / v) * 100).toFixed(e.clickedContent / v < 0.05 ? 1 : 0); const link = ((e.navigated / v) * 100).toFixed(1);
+  const title = ['Of every 100 views, ', h('span', '', `${per100}`), ' see the first image, ', h('span', 'hi', `${touch}`), ' touch the content and ', h('span', 'hi', `${link}`), ' follow a link'];
+  const drill = table([{ label: 'Definition' }, { label: 'Views', num: true }, { label: 'Share', num: true }], [
+    ['Page views (bots excluded)', n(e.views), '100%'],
+    ['Visits: entered here from outside the site', n(e.visits), pc(e.visits / v)],
+    ['Bounces: visits with no click at all', n(e.bounces), `${pc(e.bounceRate)} of visits`],
+    ['Bounces, strict: visits whose only clicks were the cookie dialog', n(e.strictBounces), `${pc(e.strictBounceRate)} of visits`],
+    ['Engaged: a content click, or more than 3 images seen', n(e.engaged), pc(e.engagedShare)],
+    ['Clicked anything, dialog included', n(e.clickedAny), pc(e.clickShare)],
+  ]);
+  return chapter(title, 'Where the audience thins out, from arriving to acting.', cascade,
+    more('funnel', [
+      'A view is one sampled session; each stands for many real ones (weight). "Saw the first image" counts sessions in which the most-seen image scrolled into view. "Touched the content" is any click outside the cookie dialog. "Followed a link" is a click whose target is a page URL other than this one.',
+    ], drill));
+}
+
+function weekChapter(r) {
+  const days = r.daily; const max = Math.max(...days.map((d) => d.views), 1);
+  const peak = r.traffic.peak; const last = days[days.length - 1]; const firstDay = days[0];
+  const cols = h('div', 'cols');
+  days.forEach((d) => {
+    const c = h('div', 'c');
+    const partial = d === firstDay || d === last;
+    const label = d === peak || d === last;
+    if (label) c.append(h('span', 'v', n(d.views)));
+    const bar = h('i', `${partial ? 'part' : ''} ${d === peak ? 'peak' : ''}`); bar.style.height = pc(d.views / max); bar.title = `${d.day}: ${n(d.views)} views, ${n(d.visits)} visits${d.botViews ? `, ${n(d.botViews)} bot views excluded` : ''}`;
+    c.append(bar, h('span', 'd', shortDay(d.day)));
+    cols.append(c);
+  });
+  const series = r.hourly.map((x) => x.views);
+  const hours = h('div', 'hours', 'by hour', sparkline(series, 'var(--s1)', 240, 26));
+  const t = r.traffic;
+  const title = t.spike >= 3 && peak
+    ? [`Traffic peaked on ${dayName(peak.day)} at `, h('span', '', `${t.spike.toFixed(0)}×`), ' the median day']
+    : ['A steady week, no campaign burst'];
+  const drill = table([{ label: 'Day' }, { label: 'Views', num: true }, { label: 'Visits', num: true }, { label: 'Bots', num: true }],
+    days.map((d) => [`${dayName(d.day)} ${shortDay(d.day)}${d === firstDay || d === last ? ' (partial)' : ''}`, n(d.views), n(d.visits), d.botViews ? n(d.botViews) : '–']));
+  return chapter(title, `${r.sample.botViews ? `${n(r.sample.botViews)} bot views left out. ` : ''}First and last columns are partial days.`, h('div', '', cols, hours),
+    more('week', ['One column per UTC day, from the last 168 hourly telemetry files. A view is counted in the hour it started. The lighter columns cover only part of a day because the window ends now, not at midnight. The hourly line is the same data at hour resolution.'], drill));
+}
+
+function tapsChapter(r) {
+  const e = r.engagement; const c = r.clicks;
+  const kinds = { dead: 0, link: 0, button: 0, form: 0, image: 0, dialog: 0 };
+  c.areas.forEach((a) => { const k = a.kind === 'unknown' ? 'dead' : a.kind; kinds[k] = (kinds[k] || 0) + a.views; });
+  const kindTotal = Object.values(kinds).reduce((a, b) => a + b, 0) || 1;
+  const stack = stackBar([
+    ['dead', kinds.dead, 'Not clickable'], ['link', kinds.link, 'Links'], ['button', kinds.button + kinds.form, 'Buttons'], ['image', kinds.image, 'Images'], ['dialog', kinds.dialog, 'Modal chrome'],
+  ], kindTotal);
+  const leg = legend([['--critical', 'not clickable'], ['--s1', 'link or button'], ['--seq-2', 'image'], ['--neutral', 'modal chrome']]);
+  const pair = h('div', 'pair');
+  const mk = (label, val, cls, max) => {
+    const row = h('div', 'r');
+    row.append(h('div', 'lab', h('span', '', label), h('b', '', n(val))));
+    const bar = h('div', 'bar'); const i = h('i', cls); i.style.width = pc(val / max, 1); i.title = `${label}: ${n(val)}`; bar.append(i); row.append(bar);
+    return row;
+  };
+  const max = Math.max(e.clickedConsentOnly, e.clickedContent, 1);
+  pair.append(mk('Views that only touched the cookie dialog', e.clickedConsentOnly, 'neutral', max), mk('Views that touched the content', e.clickedContent, 's1', max));
+  const viz = h('div', '', stack, leg, h('p', 'cap', 'Where content taps land, by what was under the finger. Below, the cookie dialog on the same axis.'), h('div', 'viz', pair));
+  const title = c.deadShare >= 0.3
+    ? [h('span', 'hi', pc(c.deadShare)), ' of content taps land on things that do nothing']
+    : [pc(e.contentClickShare, 1), ' of views touch the content'];
+  const tagFor = (k) => ({ dead: ['not clickable', 'dead'], unknown: ['not clickable', 'dead'], link: ['link', 'link'], button: ['button', 'button'], form: ['form', 'form'], image: ['image', ''], dialog: ['modal', ''] }[k] || [k, '']);
+  const areas = table([{ label: 'Area' }, { label: 'Type' }, { label: 'Views', num: true }], c.areas.map((a) => {
+    const [t, cls] = tagFor(a.kind);
+    const cell = h('span', '', a.label, h('span', 'sel', a.source || '(no element)'));
+    if (a.target && a.kind !== 'image') cell.append(h('span', 'to', `→ ${a.target.replace(/^https?:\/\/(www\.)?/, '')}`));
+    return [cell, h('span', `tag ${cls}`, t), `${n(a.views)} · ${pc(a.views / (e.clickedContent || 1))}`];
+  }));
+  const nav = c.navigations.length ? table([{ label: 'Where the clicks led' }, { label: 'Views', num: true }], c.navigations.map((x) => [`${x.label}${x.internal ? '' : ' (external)'}`, n(x.views)])) : null;
+  return chapter(title, `${pc(e.clickShare, 1)} of views click anything at all; ${pc(e.clickedAny ? e.clickedConsentOnly / e.clickedAny : 0)} of those only touch the consent dialog.`, viz,
+    more('taps', [
+      'Telemetry records a click as the element under the pointer and, if there is one, the link it resolves to. The recorder names only links, images, video, forms and buttons; anything else reports as a container id or class. So a tap that reports a bare container with no link target hit nothing interactive: a dead tap. An image reports its own file even inside a link, so images are tagged separately.',
+      'Rows overlap: a tap on a child element also counts for its container, so the areas list adds up to more than the total.',
+    ], h('div', '', h('h3', '', 'Most-tapped areas'), areas), nav));
+}
+
+const RUNG_TOKENS = { ads: '--s2', internal: '--neutral', search: '--seq-2', ai: '--s1', direct: '--s3' };
+function intentChapter(r) {
+  const I = r.intent; const a = r.acquisition;
+  const ladder = h('div', 'ladder');
+  ladder.append(h('div', 'lh', h('span', '', 'Interrupted'), h('span', '', 'share of views · touched the content')));
+  I.rungs.forEach((x) => {
+    const row = h('div', 'lr');
+    row.append(h('span', 'name', h('b', '', x.name), h('small', '', x.why)));
+    const bar = h('div', 'bar'); const i = h('i'); i.style.width = pc(x.share, 1); i.style.background = `var(${RUNG_TOKENS[x.id]})`; i.title = `${x.name}: ${n(x.views)} views`; bar.append(i);
+    row.append(bar, h('span', 'val', h('b', '', pc(x.share)), x.views ? ` · taps ${pcs(x.engagedShare)}` : ''));
+    ladder.append(row);
+  });
+  ladder.append(h('div', 'lh', h('span', '', 'Intentional'), h('span', '', `intent index ${I.index.toFixed(1)} of 5`)));
+
+  /* AI answers, the rung worth its own numbers: Brand Visibility counts click-throughs exactly */
+  const ai = I.rungs.find((x) => x.id === 'ai'); const ref = r.aiReferrals;
+  const aiBox = h('div', 'aibox');
+  aiBox.append(h('div', 'ranked-h', h('b', '', 'AI answers, by assistant'), h('span', '', ref ? `Brand Visibility, ${ref.live ? 'live' : `snapshot ${ref.fetchedAt}`}` : 'Optel sample')));
+  if (ref && ref.byPlatform.length) {
+    const list = h('div', 'ranked'); const max = Math.max(...ref.byPlatform.map((x) => x.pageviews), 1);
+    ref.byPlatform.forEach((x) => {
+      const row = h('div', 'r');
+      row.append(h('span', 'name', x.label), h('span', 'val', `${n(x.pageviews)} click-through${x.pageviews === 1 ? '' : 's'}`));
+      const bar = h('div', 'bar ai'); const i = h('i'); i.style.width = pc(x.pageviews / max, 1); bar.append(i); row.append(bar);
+      list.append(row);
+    });
+    aiBox.append(list);
+    aiBox.append(h('p', 'cap', `${n(ref.pageviews28d)} click-throughs from AI answers over 28 days${ref.pageviews != null ? `, ${n(ref.pageviews)} in the last 7 days` : ''}, counted exactly from the CDN logs. Optel's sample saw ${n(ai.views)} this week.`));
+  } else {
+    aiBox.append(h('p', 'cap', ai.views ? `Optel's sample saw ${n(ai.views)} views from ${ai.sources.map((x) => x.key).join(', ')}.${S.ai ? ' Brand Visibility has no referral count for this page yet.' : ''}` : 'No click-throughs from AI answers reached this page this week.'));
+  }
+
+  const top = I.rungs.slice().sort((x, y) => y.views - x.views)[0];
+  const title = top.id === 'ads' && top.share >= 0.5
+    ? [h('span', '', pc(top.share)), ' of views were interrupted by an ad or a feed, not looking for this page']
+    : I.looking >= 0.5
+      ? [h('span', 'ok', pc(I.looking)), ' of views came looking: search, AI answers or direct']
+      : [`Mostly ${top.name.toLowerCase()}: ${pc(top.share)} of views`];
+  const sub = `Where a view starts says how much it wanted this page. Read from interrupted to intentional; the tap rate beside each rung shows whether the intent held up once here.${a.paid ? ` Paid campaigns brought ${pc(a.paidShare)} of visits.` : ''}`;
+  const rungRows = I.rungs.flatMap((x) => x.sources.map((s) => [x.name, s.key, n(s.views), pcs(s.views / (x.views || 1))]));
+  const drill = h('div', '',
+    h('h3', '', 'Sources per rung'), table([{ label: 'Rung' }, { label: 'Source' }, { label: 'Views', num: true }, { label: 'Of rung', num: true }], rungRows),
+    h('h3', '', 'Paid campaigns'), table([{ label: 'Source' }, { label: 'Trend' }, { label: 'Visits', num: true }], a.paidSources.map((x) => [x.label, trendBadge(x.trend), n(x.views)])),
+  );
+  return chapter(title, sub, h('div', '', ladder, aiBox),
+    more('intent', [
+      'Ads and social feeds: paid clicks of any kind and unpaid social referrals; the visitor was doing something else. Browsing the site: views that did not enter the site on this page. Search and referring sites: search engines (Google AI answers land here too, since they arrive as google.com), other websites, and owned channels such as email or QR codes. AI answers: referrers from ChatGPT, Copilot, Gemini, Perplexity, Claude and the like. Direct: no referrer and no campaign tag, which also catches apps that strip referrers.',
+      'The ladder is Optel\'s sample, so it can rank rungs and compare tap rates but not count small ones. Brand Visibility reads the CDN logs and counts every AI click-through, so the assistant breakdown uses its numbers; the live read needs the workspace token, otherwise a dated snapshot is shown.',
+    ], drill));
+}
+
+function redirectChapter(r) {
+  const R = r.redirects; const views = r.engagement.views || 1;
+  if (!R || !R.redirected) return null;
+  const stack = stackBar([['direct', views - R.redirected, 'Landed directly'], ['redirected', R.redirected, 'Arrived through redirects']], views);
+  const leg = legend([['--s3', `direct ${pc(1 - R.redirectedShare)}`], ['--s2', `redirected ${pc(R.redirectedShare)} · median ${fmtMs(R.msMedian)}, ${R.hopsMedian} hop${R.hopsMedian === 1 ? '' : 's'}`]]);
+  const list = h('div', 'ranked');
+  const max = Math.max(...R.sources.map((x) => x.msMedian || 0), 1);
+  R.sources.slice(0, 6).forEach((x) => {
+    const row = h('div', 'r');
+    row.append(h('span', 'name', x.label, x.type === 'paid' ? h('span', 'trend flat', 'paid') : null),
+      h('span', 'val', `${pc(x.redirectedShare)} redirected · ${fmtMs(x.msMedian)} · ${x.hopsMedian} hop${x.hopsMedian === 1 ? '' : 's'}`));
+    const bar = h('div', `bar ${x.type === 'paid' ? 'paid' : 'organic'}`); const i = h('i'); i.style.width = pc((x.msMedian || 0) / max, 1); i.title = `${x.label}: ${n(x.redirected)} of ${n(x.visits)} visits redirected, median ${fmtMs(x.msMedian)}`; bar.append(i); row.append(bar);
+    list.append(row);
+  });
+  const viz = h('div', '', stack, leg, h('div', 'ranked-h', h('b', '', 'Redirect time by source, longest first'), h('span', '', 'median per visit')), list);
+  const lcpLine = R.lcpP75Redirected && R.lcpP75Direct ? ` LCP p75: ${fmtMs(R.lcpP75Direct)} when landing directly, ${fmtMs(R.lcpP75Redirected)} after a redirect chain (${R.lcpSamples} timed views).` : '';
+  const top = R.sources[0];
+  const title = R.redirectedShare >= 0.2 && (R.msMedian || 0) >= 300
+    ? [h('span', 'warn', pc(R.redirectedShare)), ` of views wait ${fmtMs(R.msMedian)} in redirects before the page starts`]
+    : R.redirectedShare >= 0.2 ? [`${pc(R.redirectedShare)} of views arrive through redirects, at little cost`] : ['Most visits land here directly'];
+  const drill = h('div', '', h('h3', '', 'Per source'), table(
+    [{ label: 'Source' }, { label: 'Visits', num: true }, { label: 'Redirected', num: true }, { label: 'Hops', num: true }, { label: 'Redirect median', num: true }, { label: 'p75', num: true }, { label: 'LCP p75', num: true }],
+    R.sources.map((x) => [x.label, n(x.visits), pc(x.redirectedShare), String(x.hopsMedian ?? '–'), fmtMs(x.msMedian), fmtMs(x.msP75), x.lcpSamples ? fmtMs(x.lcpP75) : '–']),
+  ));
+  const internalLine = R.unattributedShare >= 0.2 ? ` ${pc(R.unattributedShare)} of the redirected views did not enter the site on this page, so the site's own redirects (http to https, trailing slash, old paths) play a part too.` : '';
+  return chapter(title, `An ad click is often handed from the ad server through trackers before it lands here; that chain runs before the first byte and counts towards LCP.${lcpLine}${top ? ` The costliest source is ${top.label}.` : ''}${internalLine}`, viz,
+    more('redirects', [
+      'The redirect checkpoint records how many redirects a navigation went through and how long they took, as the browser measured it. That time is pure waiting: nothing of this page can load until the chain ends, so it lands one to one on LCP. Sources are the same acquisition classes as the traffic chapter; the ranking multiplies redirected visits by the median chain time, so the top row is where a fix gives back the most time.',
+      'Fixes belong with whoever owns the chain, not the page: point the ad or post at the final URL with its tracking parameters, so the click lands here directly; ask each intermediary (ad server, click tracker, link shortener) to drop its hop; and keep the site\'s own redirects (http to https, trailing slash, old paths) out of campaign URLs. LCP figures come from the sampled subset of views that report Core Web Vitals, so they are indicative.',
+    ], drill));
+}
+
+function languageChapter(r) {
+  const L = r.language;
+  if (!L || !L.sampled) return null;
+  const stack = stackBar([['match', L.exact, 'Same language and region'], ['variant', L.variant, 'Same language, other region'], ['foreign', L.other, 'Other language']], L.sampled);
+  const leg = legend([['--s3', `exact ${pc(L.exactShare)}`], ['--seq-2', `same language ${pc(L.variantShare)}`], ['--s2', `other language ${pcs(L.otherShare)}`]]);
+  const list = h('div', 'ranked');
+  const max = Math.max(...L.preferred.map((x) => x.views), 1);
+  L.preferred.slice(0, 6).forEach((x) => {
+    const row = h('div', 'r');
+    const same = x.key.toLowerCase() === L.contentLang.toLowerCase();
+    const foreign = x.key.toLowerCase().split(/[-_]/)[0] !== L.contentLang.toLowerCase().split(/[-_]/)[0];
+    row.append(h('span', 'name', `${langName(x.key)} (${x.key})`), h('span', 'val', `${pcs(x.views / L.sampled)} · ${n(x.views)}`));
+    const bar = h('div', `bar ${same ? 'organic' : (foreign ? 'paid' : '')}`); const i = h('i'); i.style.width = pc(x.views / max, 1); i.title = `${x.key}: ${n(x.views)} views`; bar.append(i); row.append(bar);
+    list.append(row);
+  });
+  const viz = h('div', '', stack, leg, h('div', 'ranked-h', h('b', '', 'Browser language preference'), h('span', '', `${n(L.sampled)} views`)), list);
+  const top = L.otherLangs[0];
+  const title = L.otherShare >= 0.05
+    ? [h('span', '', pc(L.otherShare)), ` of visitors prefer ${top ? langName(top.key) : 'another language'}, the page is in ${langName(L.contentLang)}`]
+    : L.otherShare >= 0.01
+      ? [`${pcs(L.otherShare)} of visitors prefer another language${top ? `, mostly ${langName(top.key)}` : ''}`]
+      : ['Nearly everyone reads this page in the language they asked for'];
+  const drill = h('div', '', h('h3', '', 'Preferred languages'), table([{ label: 'Browser language' }, { label: 'Views', num: true }, { label: 'Share', num: true }], L.preferred.map((x) => [`${langName(x.key)} (${x.key})`, n(x.views), pcs(x.views / L.sampled)])));
+  return chapter(title, `The page declares ${L.contentLang}. ${pc(L.sampledShare)} of views reported the browser's language preference.`, viz,
+    more('language', [
+      'The browser sends its preferred language with every visit and the page declares its own; the language checkpoint records both. Exact means the same language and region (en-US on an en-US page); same language means a different region (en-GB on an en-US page), which is harmless; other language means the browser asked for a language the page is not written in.',
+      'A visible share of other-language readers is a hint to check the locale routing: does the site have that language, does hreflang point to it, and is the language switch findable near the top on a phone? The thresholds are 1% for a note and 5% for a warning.',
+    ], drill));
+}
+
+function reachChapter(r) {
+  const items = r.reach.items.slice(0, 10); const c = r.reach.cliff;
+  const strip = h('div', 'strip');
+  const page = h('div', 'page'); const rows = h('div', 'rows');
+  const steps = ['--seq-1', '--seq-2', '--seq-3', '--seq-4', '--seq-5'];
+  const stepFor = (share) => steps[Math.min(4, Math.max(0, Math.ceil(share * 5) - 1))];
+  items.forEach((m) => {
+    if (c && c.drop >= 0.5 && m === c.to) {
+      // the cliff sits between two images: mark it in both columns at that position
+      page.append(h('i', 'cut'));
+      rows.append(h('div', 'cut', h('span', '', `${pc(c.drop)} of the audience is gone here`)));
+    }
+    const blk = h('i'); if (m.share >= 0.02) blk.style.background = `var(${stepFor(m.share)})`; blk.title = `${m.label}: seen in ${pc(m.share, 1)} of views`;
+    page.append(blk);
+    rows.append(h('div', '', h('span', '', m.label), h('b', '', pcs(m.share))));
+  });
+  strip.append(page, rows);
+  const title = c && c.drop >= 0.5 && c.from.share >= 0.2
+    ? ['Most visitors never scroll past ', h('span', 'hi', c.from.label)]
+    : ['Visitors scroll through most of the page'];
+  const drill = table([{ label: 'Image, in order of reach' }, { label: 'Seen in', num: true }], r.reach.items.map((m) => [h('span', '', m.label, h('span', 'sel', m.source)), `${pc(m.share, 1)} · ${n(m.views)}`]));
+  return chapter(title, `Images in the order people reach them; the stronger the blue, the more views the image was seen in. ${pc(1 - r.reach.anyMediaShare)} of views registered no image at all.`, strip,
+    more('reach', [
+      'Telemetry records each image the moment it scrolls into view. Without the page\'s geometry there is no pixel depth, but an image further down is by definition seen by fewer people, so ranking images by the share of views that saw them reads as a scroll-depth curve. The cliff is the largest relative drop between consecutive images with at least 2% reach.',
+      'Views with no image at all are background tabs, instant exits, or sessions where the page was hidden before anything loaded.',
+    ], drill));
+}
+
+function consentChapter(r) {
+  const c = r.consent; const a = c.actions;
+  const total = a.dismiss + a.accept + a.reject + a.settings + a.other || 1;
+  const stack = stackBar([['dismiss', a.dismiss, 'Dismissed'], ['accept', a.accept, 'Accepted'], ['reject', a.reject, 'Rejected'], ['settings', a.settings, 'Opened settings'], ['other', a.other, 'Other']], total);
+  const leg = legend([['--neutral', `dismissed ${pc(a.dismiss / total)}`], ['--s3', `accepted ${pc(a.accept / total)}`], ['--s2', `rejected ${pc(a.reject / total)}`], ['--seq-2', `settings ${pc(a.settings / total)}`], ['--line-2', `other controls ${pc(a.other / total)}`]]);
+  const title = a.dismiss / total > 0.5
+    ? ['The cookie dialog is the most-used control on the page, and most people just ', h('span', 'hi', 'close it')]
+    : ['The cookie dialog is answered, not dismissed'];
+  const drill = table([{ label: 'Dialog' }, { label: 'Views', num: true }], [
+    ['Shown', `${n(c.shown)} · ${pc(c.shownShare)} of views`], ['Already hidden (consent given earlier)', n(c.hidden)], ['Dismissed without choosing', n(a.dismiss)], ['Accepted', n(a.accept)], ['Rejected', n(a.reject)], ['Opened settings', n(a.settings)], ['Other dialog controls', n(a.other)],
+  ]);
+  return chapter(title, `${n(total)} views interacted with the dialog; ${n(r.engagement.clickedContent)} touched the page's content. It was shown in ${pc(c.shownShare)} of views.`, h('div', '', stack, leg), more('consent', ['The consent checkpoint records whether the dialog was shown or already hidden. Clicks on its controls are recognised by their selectors (OneTrust and the other vendors the distiller knows) and split by what the control does: close, accept, reject, open settings.'], drill));
+}
+
+/* ---------- frame ---------- */
+/* ---------- share ---------- */
+/* Standalone address of this panel for the same page: same origin as the iframe, so the stored
+   domain key travels with it. Never carries the key or a token. */
+function standaloneLink() {
+  const u = new URL(location.href);
+  u.search = ''; u.hash = '';
+  u.searchParams.set('path', state.path || '/');
+  u.searchParams.set('domain', S.domain);
+  return u.toString();
+}
+
+/* Plain-text digest: what a colleague needs without opening the panel. */
+function summaryText(r) {
+  const lines = [`Page insights · ${S.domain}${state.path}`, `Last 7 days, read ${new Date(state.loadedAt || Date.now()).toISOString().slice(0, 10)}`, ''];
+  const d = r.devices;
+  lines.push(`${n(r.engagement.views)} page views · ${pc(d.mobileShare)} mobile · ${n(r.engagement.visits)} entered on this page`);
+  if (r.aiSurface) lines.push(`Featured about ${n(r.aiSurface.est)} times on AI surfaces (${n(r.aiSurface.hits)} chatbot fetches by ${listWords(r.aiSurface.agents)})`);
+  lines.push('', 'At a glance');
+  glanceTiles(r).forEach((t) => lines.push(`- ${t.label}: ${t.value}${t.note ? ` (${t.note})` : ''}`));
+  lines.push('', 'Findings');
+  r.findings.forEach((f) => lines.push(`- ${f.level === 'warn' ? '!' : f.level === 'good' ? '+' : '·'} ${f.title}`, `  ${f.body}`));
+  lines.push('', standaloneLink());
+  return lines.join('\n');
+}
+
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* iframe without clipboard-write, or no activation */ }
+  const ta = h('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.append(ta); ta.select();
+  let ok = false; try { ok = document.execCommand('copy'); } catch { ok = false; }
+  ta.remove(); return ok;
+}
+
+function downloadJson(r) {
+  const payload = { domain: S.domain, path: state.path, readAt: new Date(state.loadedAt || Date.now()).toISOString(), window: 'last 7 days', result: r };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = h('a'); a.href = URL.createObjectURL(blob); a.download = `insights-${(state.path || '/').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home'}.json`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+/* Print with every disclosure open, then restore. Save as PDF is the print dialog's job. */
+function printPanel() {
+  const closed = [...document.querySelectorAll('details.more:not([open])')];
+  closed.forEach((d) => { d.open = true; });
+  const restore = () => { closed.forEach((d) => { d.open = false; }); window.removeEventListener('afterprint', restore); };
+  window.addEventListener('afterprint', restore);
+  window.print();
+}
+
+function shareMenu(r) {
+  const menu = h('details', 'menu');
+  const sum = h('summary', 'iconbtn', icon('share'), 'Share'); sum.title = 'Share, copy, print or export'; menu.append(sum);
+  const sheet = h('div', 'sheet');
+  const item = (label, note, onClick) => {
+    const b = h('button', '', h('span', '', label), note ? h('small', '', note) : null); b.type = 'button';
+    b.addEventListener('click', async () => {
+      const res = await onClick(b);
+      if (res) { b.querySelector('small')?.replaceChildren(h('span', 'done', res)); setTimeout(() => { menu.open = false; }, 900); } else menu.open = false;
+    });
+    return b;
+  };
+  const text = summaryText(r);
+  const shareData = { title: `Page insights · ${state.path}`, text, url: standaloneLink() };
+  if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+    sheet.append(item('Share…', 'the OS share sheet: Messages, Mail, Slack, AirDrop', async () => {
+      try { await navigator.share(shareData); return ''; } catch (e) { return e.name === 'AbortError' ? '' : (await copyText(text) ? 'Not allowed here, copied instead' : 'Not available here'); }
+    }));
+  }
+  sheet.append(item('Copy summary', 'findings and key numbers as text', async () => (await copyText(text) ? 'Copied' : 'Could not copy')));
+  sheet.append(item('Save as PDF', 'opens print, choose "Save as PDF"', async () => { printPanel(); return ''; }));
+  sheet.append(item('Download data', 'every number in this panel, as JSON', async () => { downloadJson(r); return 'Downloading'; }));
+  const open = h('a', '', h('span', '', 'Open standalone ', icon('external')), h('small', '', 'full window, same page')); open.href = standaloneLink(); open.target = '_blank'; open.rel = 'noopener';
+  sheet.append(open);
+  menu.append(sheet);
+  document.addEventListener('click', (e) => { if (menu.open && !menu.contains(e.target)) menu.open = false; });
+  return menu;
+}
+
+function explorerLink() {
+  const u = new URL(EXPLORER);
+  u.searchParams.set('domain', S.domain); u.searchParams.set('filter', state.path); u.searchParams.set('view', 'week'); u.searchParams.set('domainkey', state.domainKey);
+  return u.toString();
+}
+
+/* Asks for what the row URL left out: the host (remembered per project) and its key
+   (remembered per host). */
+function setupForm() {
+  const needDomain = !S.domain;
+  const card = h('div', 'card', h('h2', '', needDomain ? 'Which site?' : 'Domain key needed'),
+    h('p', 'x', needDomain
+      ? 'Enter the hostname visitors see (usually the www. one) and its Optel domain key, the one the Optel explorer carries in its URL. Both stay in this browser; add ?domain= and ?domainkey= to the extension URL to skip this.'
+      : `Telemetry for ${S.domain} is read with its domain key, the one the Optel explorer carries in its URL. It stays in this browser.`));
+  const domain = h('input'); domain.placeholder = 'www.example.com'; domain.setAttribute('aria-label', 'hostname'); domain.value = S.domain || '';
+  const input = h('input'); input.placeholder = 'domain key'; input.type = 'password'; input.setAttribute('aria-label', 'domain key');
+  const save = h('button', 'primary', 'Load insights');
+  save.addEventListener('click', () => {
+    const d = normalizeDomain(domain.value); const v = input.value.trim(); if (!d || !v) return;
+    rememberDomain(S.project, d); rememberKey(d, v);
+    S = siteSettings(params, S.project); state.domainKey = S.domainKey; state.error = ''; run();
+  });
+  [domain, input].forEach((el) => el.addEventListener('keydown', (e) => { if (e.key === 'Enter') save.click(); }));
+  if (needDomain) card.append(h('div', 'row', domain));
+  card.append(h('div', 'row', input, save));
+  return card;
+}
+
+function render() {
+  const prev = app.querySelector('.body');
+  app.replaceChildren();
+  const head = h('div', 'head', h('div', '', h('h1', '', 'Page insights'), h('div', 'path', `${S.domain}${state.path || ''}`)));
+  const refresh = h('button', 'iconbtn', icon('refresh'), 'Refresh'); refresh.disabled = state.loading; refresh.addEventListener('click', () => run());
+  const actions = h('div', 'actions');
+  if (state.result && !state.loading) actions.append(shareMenu(state.result));
+  actions.append(refresh);
+  head.append(actions);
+  app.append(head);
+  if (state.error) app.append(h('div', 'err', icon('warn'), h('span', '', state.error)));
+  if (!S.domain || !state.domainKey) { app.append(setupForm()); return; }
+
+  const stamp = h('div', 'stamp');
+  if (state.loading) {
+    stamp.append(`Loading the last 7 days, hour ${state.done} of ${state.total}${state.result ? ` · ${n(state.result.sample.views)} views so far` : ''}`);
+    const bar = h('div', 'progress'); const i = h('i'); i.style.width = pc(state.total ? state.done / state.total : 0); bar.append(i); stamp.append(bar);
+  } else if (state.result) {
+    const s = state.result.sample; const mins = Math.round((Date.now() - state.loadedAt) / 60000);
+    stamp.append(`Last 7 days, hourly (UTC) · ${s.bundles.toLocaleString()} sampled sessions stand for ${n(s.views)} views · read ${mins ? `${mins} min ago` : 'just now'}${state.failed ? ` · ${state.failed} of ${state.total} hours failed` : ''}`);
+  }
+  app.append(stamp);
+
+  const r = state.result;
+  if (!r) { if (prev && state.loading) { prev.classList.add('stale'); app.append(prev); } return; }
+  if (!r.sample.views && !state.loading) { app.append(h('p', 'cap', 'No telemetry for this page in the last 7 days: either the path differs on the live site, or the page had no sampled traffic.')); return; }
+  const body = h('div', 'body');
+  const sections = [
+    ['story', storyChapter(r)], ['funnel', funnelChapter(r)], ['week', weekChapter(r)], ['taps', tapsChapter(r)], ['intent', intentChapter(r)],
+    ['redirects', redirectChapter(r)], ['language', languageChapter(r)], ['reach', reachChapter(r)], ['consent', consentChapter(r)],
+  ].filter(([, el]) => el);
+  sections.forEach(([id, el]) => { el.id = `sec-${id}`; });
+  body.append(hero(r), glance(r, sections.map(([id]) => id)), ...sections.map(([, el]) => el));
+  const link = h('a', '', 'Open this page in the Optel explorer ', icon('external')); link.href = explorerLink(); link.target = '_blank'; link.rel = 'noopener';
+  body.append(h('div', 'foot', 'Sampled operational telemetry: every session stands for many. Shares under 1% are indicative. ', link));
+  app.append(body);
+}
+
+let raf = 0;
+async function run() {
+  if (state.loading || !state.path) return;
+  if (!S.domain || !state.domainKey) { render(); return; }
+  configure({ paidMedium: S.paidMedium });
+  state.loading = true; state.error = ''; state.done = 0; state.failed = 0;
+  const now = new Date(); state.hours = hourList(now); state.total = state.hours.length;
+  const pageUrl = `https://${S.domain}${state.path}`;
+  render();
+  const snap = await loadAiSnapshot();
+  state.aiMeta = snap || null;
+  state.ai = snap?.pages?.[state.path] || null;
+  state.aiRef = snap?.referrals?.pages?.[state.path] ? { ...snap.referrals.pages[state.path], fetchedAt: snap.referrals.fetchedAt } : null;
+  state.aiLiveError = '';
+  const livePromise = S.ai && state.token
+    ? Promise.all([
+      fetchAiLive(state.path, state.token, snap)
+        .then((live) => { if (live.page) { state.ai = live.page; state.aiMeta = live.meta; } else state.aiLiveError = live.reason; })
+        .catch((e) => { state.aiLiveError = e.message; console.warn('[page-insights] Brand Visibility live read failed, using the snapshot', e); }),
+      fetchRefLive(state.path, state.token)
+        .then((ref) => { state.aiRef = ref; })
+        .catch((e) => console.warn('[page-insights] Brand Visibility referral read failed, using the snapshot', e)),
+    ])
+    : Promise.resolve();
+  let loaded;
+  try {
+    loaded = await loadWeek({
+      domain: S.domain, domainKey: state.domainKey, path: state.path, now,
+      onProgress: (done, total, got) => {
+        state.done = done; state.total = total;
+        if (done % 12 === 0 || done === total) {
+          cancelAnimationFrame(raf);
+          raf = requestAnimationFrame(() => { state.result = attachAiReferrals(attachAiSurface(analyze(got, { pageUrl, hours: state.hours }))); render(); });
+        } else { const s = app.querySelector('.progress i'); if (s) s.style.width = pc(done / total); }
+      },
+    });
+  } catch (err) {
+    await livePromise;
+    state.loading = false; state.result = null;
+    if (err.status === 401 || err.status === 403) {
+      // the bundler rejects a wrong key on the first file; forget it and ask again
+      state.error = 'The domain key was rejected for this domain.';
+      forgetKey(S.domain); state.domainKey = null;
+    } else state.error = `Telemetry failed to load: ${err.message}`;
+    render(); return;
+  }
+  const { bundles, failed } = loaded;
+  await livePromise;
+  state.loading = false; state.loadedAt = Date.now(); state.failed = failed;
+  state.result = attachAiReferrals(attachAiSurface(analyze(bundles, { pageUrl, hours: state.hours })));
+  render();
+}
+
+/* ---------- boot ---------- */
+state.domainKey = S.domainKey;
+
+state.token = params.get('token') || null; /* standalone testing only; in EW the handshake supplies it */
+if (params.get('path')) {
+  state.path = normalizePath(params.get('path'));
+  run();
+} else {
+  /* DA SDK handshake: the canvas posts { ready, project, context, token } plus a
+     MessagePort ~750ms after the iframe loads. `?nx=<ref>` imports the SDK from
+     a da-nx branch instead of production. */
+  const NX_REF = params.get('nx');
+  const NX = NX_REF ? `https://${NX_REF}--da-nx--adobe.aem.live` : 'https://da.live';
+  const bootTimer = setTimeout(() => {
+    app.replaceChildren(h('p', 'stamp', 'No handshake from DA after 8s. Open this from the Experience Workspace tool panel, or append ?path=/some/page to try it standalone.'));
+  }, 8000);
+  import(`${NX}/nx/utils/sdk.js`).then(({ default: DA_SDK }) => DA_SDK).then((sdk) => {
+    clearTimeout(bootTimer);
+    const ctx = sdk.context || sdk.project || {};
+    S = siteSettings(params, projectKey(sdk)); state.domainKey = S.domainKey;
+    state.path = normalizePath(ctx.path || '/');
+    state.token = params.get('token') || sdk.token || null;
+    run();
+  }).catch((e) => { clearTimeout(bootTimer); app.replaceChildren(h('p', 'stamp', `Could not load the DA SDK: ${e.message}`)); });
+}
+</script>
+</body>
+</html>
