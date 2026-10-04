@@ -125,6 +125,7 @@ export const CHECKPOINTS = {
   'cwv-cls': { source: 'selector of the shifting element (sometimes)', target: '-', value: 'unitless score', use: 'Cumulative Layout Shift.' },
   'cwv-inp': { source: 'selector of the interacted element (sometimes)', target: '-', value: 'milliseconds', use: 'Interaction to Next Paint. Only views with an interaction.' },
   'cwv-ttfb': { source: '-', target: '-', value: 'milliseconds', use: 'Time to First Byte.' },
+  cwv: { source: '-', target: '-', use: 'Legacy marker sent by older helix-rum-js versions when CWV collection starts. Carries no value: ignore it and read cwv-lcp / cwv-cls / cwv-inp / cwv-ttfb.' },
   loadresource: { source: 'resource URL (same-host JSON, .plain.html, APIs)', target: 'duration in ms', use: 'Fetches the page made: API and fragment latency.' },
   missingresource: { source: 'resource URL', target: 'HTTP status (>= 400)', use: 'Broken fetches: missing images, failing APIs. errorReport().' },
   error: { source: 'location "fn@https://host/file.js:line:col" | "undefined error" | "Unhandled Rejection" | form field selector', target: 'error message | validity type (valueMissing, typeMismatch, ...) for form validation', use: 'JavaScript errors and failed form validation. errorReport().' },
@@ -619,7 +620,9 @@ export function cwvOf(b) {
     const v = Number(e.value);
     if (!Number.isFinite(v)) return;
     const k = m[1];
-    out[k] = (k === 'lcp' || k === 'cls') ? Math.max(out[k] ?? 0, v) : v;
+    // browsers report sub-millisecond floats (134.69999999995343): whole ms, CLS to 4 places
+    const r = k === 'cls' ? Math.round(v * 1e4) / 1e4 : Math.round(v);
+    out[k] = (k === 'lcp' || k === 'cls') ? Math.max(out[k] ?? 0, r) : r;
   });
   return out;
 }
@@ -668,6 +671,13 @@ export const RULES = {
      packaging_o (owned), pr_e (earned). One large brand tags all campaigns this way. Set to null to turn off. */
   typeSuffix: /_(p|o|e)$/i,
   email: /(^|\.)(mail\.google\.com|outlook\.live\.com|outlook\.office\.com|mail\.yahoo\.com|mail\.aol\.com)$/i,
+  /* links shared in chat tools: a real channel for B2B and developer sites */
+  messaging: /(^|\.)(slack\.com|app\.slack\.com|teams\.microsoft\.com|teams\.live\.com|teams\.[a-z.]*microsoft|discord\.com|discord\.gg|telegram\.org|t\.me|web\.whatsapp\.com)$/i,
+  /* a developer's own machine: local builds and previews (aem up on :3000), not an audience */
+  dev: /^(localhost|127\.\d+\.\d+\.\d+|\[::1\])$|\.(localhost|test)$/i,
+  /* a private network: a company's internal tools (ERP, service portal, intranet) linking to the
+     site. A real audience for B2B sites (shipment tracking from an ERP), so earned, not dev. */
+  intranet: /^(10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)$|\.(local|internal|intranet|corp|lan|home\.arpa)$/i,
   /* in-app referrers ('android-app://com.facebook.katana/') → a host the rules understand */
   androidApps: {
     'com.google.android.gm': 'mail.google.com',
@@ -699,7 +709,7 @@ export const vendorOf = (s) => (VENDORS.find(([re]) => re.test(s || '')) || [])[
 function hostFrom(source) {
   if (!source) return '';
   const app = /^android-app:\/\/([^/]+)/i.exec(source);
-  if (app) return RULES.androidApps[app[1].toLowerCase()] || (/\.[a-z]{2,}$/i.test(app[1]) && !/^(com|org|net|io)\./i.test(app[1]) ? app[1] : '');
+  if (app) return (RULES.androidApps[app[1].toLowerCase()] || '').replace(/^www\./, '') || (/\.[a-z]{2,}$/i.test(app[1]) && !/^(com|org|net|io)\./i.test(app[1]) ? app[1] : '');
   try { return new URL(source).hostname.replace(/^(www|m|l|lm|mobile)\./, ''); } catch { return ''; }
 }
 
@@ -707,7 +717,7 @@ function hostFrom(source) {
  * What kind of place a referrer URL is.
  * @param {string} url       the `enter` event source
  * @param {string} [siteHost] the site's own host, to spot internal referrers
- * @returns {{ type: 'direct'|'internal'|'search'|'social'|'ai'|'email'|'ad'|'app'|'other', vendor: string, host: string }}
+ * @returns {{ type: 'direct'|'internal'|'search'|'social'|'ai'|'email'|'messaging'|'dev'|'intranet'|'ad'|'app'|'other', vendor: string, host: string }}
  */
 export function classifyReferrer(url, siteHost = '') {
   if (!url || url === '(direct)') return { type: 'direct', vendor: '', host: '' };
@@ -719,6 +729,9 @@ export function classifyReferrer(url, siteHost = '') {
   if (RULES.ai.test(host)) return { type: 'ai', vendor, host };
   if (RULES.adReferrer.test(host)) return { type: 'ad', vendor, host };
   if (RULES.email.test(host)) return { type: 'email', vendor, host };
+  if (RULES.messaging.test(host)) return { type: 'messaging', vendor, host };
+  if (RULES.dev.test(host)) return { type: 'dev', vendor: '', host };
+  if (RULES.intranet.test(host)) return { type: 'intranet', vendor: '', host };
   if (RULES.search.test(host)) return { type: 'search', vendor, host };
   if (RULES.social.test(host)) return { type: 'social', vendor, host };
   return { type: 'other', vendor, host };
@@ -796,6 +809,7 @@ export function classifyAcquisition(b, { siteHost = hostOf(b) } = {}) {
   }
   if (emailEvent) return make('owned', 'email', emailEvent.source);
   if (ref.type === 'internal') return make('owned', 'internal', ref.host);
+  if (ref.type === 'dev') return make('owned', 'dev', ref.host);
   if (ref.type === 'ad') return make('paid', 'display', ref.vendor || ref.host);
   if (ref.type === 'direct') return make('earned', 'direct', '');
   if (ref.type === 'email') return make('owned', 'email', ref.vendor);
@@ -849,8 +863,10 @@ const MEDIA_URL = /\.(png|jpe?g|gif|webp|avif|svg|mp4|webm|mov|m3u8)(\?|#|$)|\/m
  *
  * @param {{source?: string, target?: string}} e   a click event
  * @param {string} [pageUrl]  the page's own URL: a target equal to it is not a navigation
- * @returns {'consent'|'link'|'button'|'form'|'media'|'dead'|'unknown'}
+ * @returns {'consent'|'link'|'button'|'form'|'media'|'text'|'dead'|'unknown'}
+ *   text = a click in a code block (pre, code, highlight.js `.hljs`, Prism `.language-*`): almost always selecting text to copy.
  *   dead = a tap on something with no link and no button: people expected it to do something.
+ *          See clickResolution(): a dead tap reported only as a block or section is imprecise.
  */
 export function classifyClick(e, pageUrl = '') {
   const source = (e?.source || '').trim();
@@ -864,7 +880,23 @@ export function classifyClick(e, pageUrl = '') {
   if (/^a\b/.test(name)) return 'link';
   if (/^(img|video)\b/.test(name)) return 'media';
   if (target && !MEDIA_URL.test(target) && normalizeUrl(target) !== normalizeUrl(pageUrl)) return 'link';
+  // whole class or tag only: '.pre-order' or '.code-of-conduct' is not a code block
+  if (/(?:^|[\s.])(?:hljs(?:-[\w-]+)?|pre|code|language-[\w-]+)(?=$|[\s.#[:])/.test(name)) return 'text';
   return 'dead';
+}
+
+/**
+ * How precisely a click selector locates the element:
+ *   'element'  a specific element inside a block ('.cards .cards-card-body', '#teaser-x .cmp-teaser__content')
+ *   'block'    only a block, section or wrapper ('.product-list', '.default-content-wrapper', '#container-x'):
+ *              the enhancer found nothing more specific, so the click landed on text, padding, or an
+ *              element without id/class. Real dead UI can hide here (a product tile that is not a link),
+ *              but so can text selection. Open the page before calling it broken.
+ */
+export function clickResolution(source) {
+  const parts = String(source || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1 || /-(wrapper|container)$|^(main|header|footer|body|section|dialog)$/.test(parts[parts.length - 1])) return 'block';
+  return 'element';
 }
 
 const normalizeUrl = (u) => String(u || '').replace(/[?#].*$/, '').replace(/\/$/, '');
@@ -1192,7 +1224,7 @@ export function errorReport(bundles, { top = 20 } = {}) {
   return {
     views,
     errorViewShare: ratio(weightOf(human.filter((b) => has(b, 'error'))), views),
-    jsErrors: groupBy(human, (b) => events(b, 'error').map((e) => `${e.target ?? ''} @ ${e.source ?? ''}`), { top, total: views }),
+    jsErrors: groupBy(human, (b) => events(b, 'error').map((e) => `${e.target || '(no message)'} @ ${e.source || '(no location)'}`), { top, total: views }),
     notFound: groupBy(nf, pathOf, {
       top, total: views, metrics: { from: (g) => groupBy(g, (b) => firstEvent(b, '404')?.source || '(direct)', { top: 3 }).map(({ key, views: v }) => ({ referrer: key, views: v })) },
     }),
@@ -1356,6 +1388,9 @@ export function checkpointReport(bundles, { checkpoint, top = 20 } = {}) {
    fleet-wide RUM tables, rewritten for one domain's bundles.
    ─────────────────────────────────────────────────────────────────────────── */
 
+/** Groups with fewer sampled bundles than this are anecdotes: reports flag them `lowSample`. */
+export const LOW_SAMPLE = 30;
+
 /** Acquisition label keys for grouping, at three depths: 'type', 'channel' (paid:search), 'source' (paid:search:google). */
 export const acquisitionKey = (depth = 'channel') => (b) => {
   const a = classifyAcquisition(b);
@@ -1392,6 +1427,7 @@ export function activityReport(bundles, { by = acquisitionKey('channel'), visits
       top,
       total,
       metrics: {
+        lowSample: (g) => g.length < LOW_SAMPLE,
         ladder,
         consentShown: (g) => ratio(weightOf(g.filter((b) => firstEvent(b, 'consent')?.target === 'show')), weightOf(g)),
         firstClickMsP50: (g) => percentile(g.map((b) => [timeTo(b, 'click', (e) => classifyClick(e) !== 'consent'), b.weight]), 0.5),
@@ -1439,6 +1475,7 @@ export function aiReferralReport(bundles, { top = 15 } = {}) {
         per100Search: ratio(p.visits * 100, searchViews),
         vsSearchClick: compareProportions(search.filter(contentClick).length, search.length, g.filter(contentClick).length, g.length),
         likelyAutomated: g.length >= 100 && p.clickRate < 0.35 * s.clickRate,
+        lowSample: g.length < LOW_SAMPLE,
       };
     });
   const searchLanding = groupBy(search, pathOf, { top: top * 3, total: searchViews });
@@ -1503,7 +1540,7 @@ export function redirectReport(bundles, { by, top = 15, buckets = [500, 1500] } 
   return {
     visits: total,
     overall: stats(visits),
-    groups: groupBy(visits, key, { top, total, metrics: { stats } }).map(({ stats: s, ...r }) => ({ ...r, ...s })),
+    groups: groupBy(visits, key, { top, total, metrics: { stats } }).map(({ stats: s, ...r }) => ({ ...r, ...s, lowSample: r.bundles < LOW_SAMPLE })),
     byDelay: groupBy(visits, bucketOf, { total, metrics: { ladder } }),
     from: groupBy(visits, (b) => parseRedirect(b)?.from || null, { top, total }),
     slowestLandings: groupBy(visits.filter((b) => parseRedirect(b)), pathOf, { metrics: { msP75: (g) => percentile(g.map((b) => [parseRedirect(b).ms, b.weight]), 0.75) } })
@@ -1524,10 +1561,13 @@ export function deadClickReport(bundles, { top = 20 } = {}) {
   // sources wrapped in quotes ('""') are enhancer placeholders with no element, not taps on anything
   const dead = (b) => events(b, 'click').filter((e) => !/^"/.test(e.source || '') && classifyClick(e, b.url) === 'dead');
   const withDead = human.filter((b) => dead(b).length);
+  const withElementDead = human.filter((b) => dead(b).some((e) => clickResolution(e.source) === 'element'));
   const clickers = human.filter((b) => events(b, 'click').some((e) => classifyClick(e, b.url) !== 'consent'));
   return {
     views,
     deadViewShare: ratio(weightOf(withDead), views),
+    // the subset located to a specific element; block-only ones need a look at the page (clickResolution)
+    elementDeadViewShare: ratio(weightOf(withElementDead), views),
     deadShareOfClickers: ratio(weightOf(withDead), weightOf(clickers)),
     repeatShare: ratio(weightOf(withDead.filter((b) => { const c = new Map(); dead(b).forEach((e) => c.set(e.source, (c.get(e.source) || 0) + 1)); return [...c.values()].some((n) => n > 1); })), weightOf(withDead)),
     firstDeadMsP50: percentile(withDead.map((b) => [timeTo(b, 'click', (e) => classifyClick(e, b.url) === 'dead'), b.weight]), 0.5),
@@ -1538,7 +1578,7 @@ export function deadClickReport(bundles, { top = 20 } = {}) {
         pages: (g) => groupBy(g, pathOf, { top: 3 }).map((r) => r.key),
         mobileShare: (g) => ratio(weightOf(g.filter((b) => device(b) === 'mobile')), weightOf(g)),
       },
-    }),
+    }).map((r) => ({ ...r, resolution: clickResolution(r.key), lowSample: r.bundles < LOW_SAMPLE })),
     pages: groupBy(withDead, pathOf, { top, metrics: { rateOnPage: (g) => ratio(weightOf(g), weightOf(human.filter((b) => pathOf(b) === pathOf(g[0])))) } }),
     devices: groupBy(withDead, device, { total: weightOf(withDead) }),
   };

@@ -17,8 +17,32 @@ change report shapes or classification results; read **Changed** before upgradin
   `a.cookie-dough` on a food site stays a content click. Before this, a Tealium banner's clicks
   counted as content interaction on about 20% of one site's homepage views. (#2)
 
+- Small samples are flagged: `lowSample: true` on grouped rows under 30 bundles (`LOW_SAMPLE`)
+  in `activityReport`, `aiReferralReport` segments, `redirectReport` groups and `deadClickReport`.
+- `clickResolution(selector)`: `element` or `block`. Dead-tap rows carry it, and
+  `deadClickReport` adds `elementDeadViewShare`. On a developer docs site, 11% of views had a
+  "dead tap", 2% at element level; the rest were clicks on text and section wrappers.
+- `classifyClick` returns `text` for clicks in code blocks (`pre`, `code`, `.hljs`, Prism
+  `.language-*`): text selection, not dead taps. Only whole classes match, so `.pre-order`
+  and `.code-of-conduct` stay dead taps.
+- Referrer types `messaging` (Teams, Slack, Discord, Telegram, WhatsApp web), `dev`
+  (localhost, `127.x`, `.test`) and `intranet` (private IP ranges, `.local`, `.internal`,
+  `.corp`, `.lan`). Visits become `earned:messaging`, `owned:dev` and `earned:intranet`
+  instead of `earned:referral`. Teams was 3.6% of visits on a developer site. Intranet
+  referrers are a company's internal systems (ERP, service portals) linking to the site:
+  a real audience on B2B sites, so they count as earned, not as developer traffic.
+- `CHECKPOINTS.cwv`: the value-less marker older script versions send.
+- Skill: small-site guidance (sample sizes, mixed weights, bot and prerender shares).
+
+### Changed
+- CWV values are rounded where they are read (`cwvOf`): whole ms, CLS to 4 places.
+  p75s no longer print as `134.69999999995343`.
+
 ### Fixed
 - `flows()` listed clicks on images and files (a logo `.svg`) as next pages. (#2)
+- Google's Android app referrer was reported as `www.google.com` next to `google.com`.
+- JS errors without a message or location were labelled `" @ undefined error"`; now
+  `(no message) @ ...`.
 
 ## [0.2.0] - 2026-10-03
 
