@@ -25,8 +25,17 @@ change report shapes or classification results; read **Changed** before upgradin
     click pattern.
   - External click targets keep their host in `topClicks`: a jobs site is no longer listed
     as `/`.
+  - `verify.js` reads Section Metadata delivered as `data-*` attributes on the section
+    (as `.plain.html` serves it on Source Bus sites), not only as a block. Before, every
+    section looked unlabelled there and the check reported a false mismatch.
+  - The engine (`cohorts.js`, `cohort-panel.js`, `cohort-rules.js`) passes the
+    boilerplate's airbnb lint, so sites no longer need to lint-ignore it.
+- `homepage-cohorts` install: the `experiment-loader.js` preload carries the CSP nonce
+  (`nonce="aem"`); without it the boilerplate's policy blocks it.
 
 ### Added
+- `homepage-cohorts` install: wiring a consent manager (Osano, OneTrust) to the plugin's
+  consent, and what consent means for demos of memory rules (`?cohort=`).
 - `homepage-cohorts`:
   - `size.js` and `review.js` take a comma list in `--path`, for one rule set across locales
     with the same audience.

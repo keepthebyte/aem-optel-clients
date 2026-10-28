@@ -20,7 +20,8 @@ function go(params, path = window.location.pathname) {
   window.location.href = `${u.pathname}${u.search.replace(/=(&|$)/g, '$1')}`;
 }
 
-/* Original = the plugin forced to control (works before and after promotion); New = the cohort page. */
+/* Original = the plugin forced to control (works before and after promotion);
+   New = the cohort page. */
 function switcher(rules) {
   const exp = rules.experiment || 'homepage-cohorts';
   const newPath = rules.pocPath || '/new';

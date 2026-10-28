@@ -8,13 +8,8 @@
  *
  * Reads the .plain.html of both (no browser). Exit code 1 on a mismatch, with the first difference.
  */
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from './lib.js';
-
-const args = parseArgs(process.argv.slice(2));
-if (!args.original || !args.cohort) {
-  console.error('usage: node verify.js --original <url of the homepage> --cohort <url of the cohort page>');
-  process.exit(2);
-}
 
 const plainUrl = (u) => {
   const url = new URL(u);
@@ -37,44 +32,64 @@ export function sections(html) {
 
 const text = (h) => h.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
-/* section metadata rows → { cohorts, hidefor, slot, ... } and the section without its metadata block */
-function meta(section) {
+const key = (k) => k.toLowerCase().replace(/[^a-z]/g, '');
+
+/*
+ * Section metadata → { cohorts, hidefor, slot, ... } and the section without its metadata block.
+ * Two deliveries: a `section-metadata` block inside the section (document authoring), or
+ * `data-*` attributes on the section's own <div> (Source Bus / Experience Workspace sites:
+ * `<div data-slot="hero" data-cohorts="default">`). Read both.
+ */
+export function meta(section) {
+  const open = section.match(/^<div\b([^>]*)>/i)?.[1] || '';
+  const m = Object.fromEntries([...open.matchAll(/\sdata-([\w-]+)="([^"]*)"/gi)].map(([, k, v]) => [key(k), v.toLowerCase()]));
   const i = section.search(/<div class="section-metadata">/i);
-  if (i < 0) return { m: {}, body: section };
+  if (i < 0) return { m, body: section };
   const block = sections(section.slice(i))[0] || '';
   const rows = [...block.matchAll(/<div>\s*<div>([\s\S]*?)<\/div>\s*<div>([\s\S]*?)<\/div>\s*<\/div>/gi)];
-  const m = Object.fromEntries(rows.map(([, k, v]) => [text(k).toLowerCase().replace(/[^a-z]/g, ''), text(v).toLowerCase()]));
+  rows.forEach(([, k, v]) => { m[key(text(k))] = text(v).toLowerCase(); });
   return { m, body: section.replace(block, '') };
 }
 
 const list = (v) => (v || '').split(',').map((x) => x.trim()).filter(Boolean);
-const keptForDefault = ({ m }) => (!m.cohorts || list(m.cohorts).includes('default')) && !list(m.hidefor).includes('default');
+export const keptForDefault = ({ m }) => (!m.cohorts || list(m.cohorts).includes('default')) && !list(m.hidefor).includes('default');
 
-async function get(u) {
-  const r = await fetch(plainUrl(u));
-  if (!r.ok) throw new Error(`${r.status} ${plainUrl(u)}`);
-  return r.text();
+/** The sections a visitor with no rule matched gets: kept for default, one per slot (as apply() does). */
+export function defaultView(html) {
+  const slotsSeen = new Set();
+  return sections(html).map(meta).filter(keptForDefault).filter(({ m }) => {
+    if (!m.slot) return true;
+    if (slotsSeen.has(m.slot)) return false;
+    slotsSeen.add(m.slot);
+    return true;
+  }).map((s) => text(s.body));
 }
 
-const [orig, cohort] = await Promise.all([get(args.original), get(args.cohort)]);
-const a = sections(orig).map(meta).map((s) => text(s.body));
-const slotsSeen = new Set();
-const b = sections(cohort).map(meta).filter(keptForDefault).filter(({ m }) => {
-  // one section per slot survives, as in apply()
-  if (!m.slot) return true;
-  if (slotsSeen.has(m.slot)) return false;
-  slotsSeen.add(m.slot);
-  return true;
-}).map((s) => text(s.body));
+export const originalView = (html) => sections(html).map(meta).map((s) => text(s.body));
 
-let ok = a.length === b.length;
-let first = -1;
-for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
-  if (a[i] !== b[i]) { ok = false; first = i; break; }
-}
-if (ok) {
-  console.log(`ok: the cohort page with no rule matched has the original's ${a.length} sections`);
-} else {
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  if (!args.original || !args.cohort) {
+    console.error('usage: node verify.js --original <url of the homepage> --cohort <url of the cohort page>');
+    process.exit(2);
+  }
+  const get = async (u) => {
+    const r = await fetch(plainUrl(u));
+    if (!r.ok) throw new Error(`${r.status} ${plainUrl(u)}`);
+    return r.text();
+  };
+  const [orig, cohort] = await Promise.all([get(args.original), get(args.cohort)]);
+  const a = originalView(orig);
+  const b = defaultView(cohort);
+  let ok = a.length === b.length;
+  let first = -1;
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    if (a[i] !== b[i]) { ok = false; first = i; break; }
+  }
+  if (ok) {
+    console.log(`ok: the cohort page with no rule matched has the original's ${a.length} sections`);
+    return;
+  }
   console.log(`MISMATCH: original has ${a.length} sections, cohort page keeps ${b.length} for default`);
   if (first >= 0) {
     console.log(`first difference at section ${first + 1}:`);
@@ -84,3 +99,5 @@ if (ok) {
   console.log('Fix: new sections need `Cohorts: <experience>` (or `Hide For: default`); default slots must be the original sections, unchanged.');
   process.exit(1);
 }
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();

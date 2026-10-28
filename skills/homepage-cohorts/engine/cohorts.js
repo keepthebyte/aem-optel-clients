@@ -1,5 +1,6 @@
 /*
- * Homepage cohorts: first-match rules over first-party signals, applied to the sections of one page.
+ * Homepage cohorts: first-match rules over first-party signals,
+ * applied to the sections of one page.
  *
  * Copy to the site as scripts/cohorts.js (with scripts/cohort-rules.js). Dependency-free.
  * The same module runs in Node: the skill's size.js and review.js evaluate these rules on
@@ -41,7 +42,8 @@ function hostOf(url) {
   try { return new URL(url).hostname.toLowerCase().replace(/^(www|m)\./, ''); } catch (e) { return ''; }
 }
 
-/* same site: the host itself or a sibling under the same base (login.example.com, shop.example.com) */
+/* same site: the host itself or a sibling under the same base
+   (login.example.com, shop.example.com) */
 function sameSite(host, siteHost) {
   const base = (h) => h.split('.').slice(-2).join('.');
   return !!host && !!siteHost && (host === siteHost || base(host) === base(siteHost));
@@ -58,7 +60,10 @@ export function sourceOf(refHost, siteHost, utm = {}) {
   return 'other';
 }
 
-/** The intent named by a text (campaign tags, a path), from rules.intents: [[id, regex], ...] in priority order. */
+/**
+ * The intent named by a text (campaign tags, a path),
+ * from rules.intents: [[id, regex], ...] in priority order.
+ */
 export function intentFrom(rules, text = '') {
   return ((rules.intents || []).find(([, re]) => rx(re).test(text)) || [null])[0];
 }
@@ -74,7 +79,8 @@ export function topInterest(memory = {}) {
  * Does one `when` clause hold? Every key must hold; an array value means "any of".
  *   source: 'direct'|'internal'|'search'|'social'|'ai'|'other' (or an array)
  *   referrer: ['portal.example.com', ...]   host or parent domain of the referrer
- *   utm: { source, medium, campaign, content, term, any }   regex strings (case-insensitive); any = campaign|content|term
+ *   utm: { source, medium, campaign, content, term, any }
+ *        regex strings (case-insensitive); any = campaign|content|term
  *   paid: true | false | ['google', 'facebook', ...]
  *   device: 'mobile' | 'desktop'
  *   signedIn: true | false            on-device memory: this browser clicked sign-in before
@@ -83,15 +89,21 @@ export function topInterest(memory = {}) {
  *   intent: ['pricing', ...]          intent named by the campaign tags (or the top interest)
  *   any: [when, when, ...]            at least one nested clause holds
  */
-export function matches(when = {}, s, rules = {}) {
-  return Object.entries(when).every(([k, v]) => {
+function paidMatches(v, s) {
+  if (v === true) return s.paid.length > 0;
+  if (v === false) return !s.paid.length;
+  return arr(v).some((n) => s.paid.includes(n));
+}
+
+export function matches(when, s, rules = {}) {
+  return Object.entries(when || {}).every(([k, v]) => {
     switch (k) {
       case 'source': return arr(v).includes(s.source);
       case 'referrer': return arr(v).some((h) => s.refHost === h || s.refHost.endsWith(`.${h}`));
       case 'utm': return Object.entries(v).every(([f, re]) => (f === 'any'
         ? rx(re).test(`${s.utm.campaign} ${s.utm.content} ${s.utm.term}`)
         : rx(re).test(s.utm[f] || '')));
-      case 'paid': return v === true ? s.paid.length > 0 : v === false ? !s.paid.length : arr(v).some((n) => s.paid.includes(n));
+      case 'paid': return paidMatches(v, s);
       case 'device': return s.device === v;
       case 'signedIn': return !!s.memory.signedIn === v;
       case 'visits': return (s.memory.visits || 0) >= (v.min ?? 0) && (s.memory.visits || 0) <= (v.max ?? Infinity);
@@ -103,18 +115,28 @@ export function matches(when = {}, s, rules = {}) {
   });
 }
 
+/** The rule's intent: from the campaign tags, from visit memory, or tags first then memory. */
+function intentOf(rules, r, s) {
+  const fromUtm = intentFrom(rules, `${s.utm.campaign} ${s.utm.content} ${s.utm.term}`);
+  if (r.intent === false) return null;
+  if (r.intent === 'utm') return fromUtm;
+  if (r.intent === 'memory') return topInterest(s.memory);
+  return fromUtm || topInterest(s.memory);
+}
+
 /**
  * First rule that matches wins. Bots never match (they always get the original sections).
- * @returns {{ rule: string|null, experience: string, intent: string|null, keys: string[], label: string }}
+ * @returns {{ rule: string|null, experience: string, intent: string|null,
+ *   keys: string[], label: string }}
  */
 export function matchRule(rules, s) {
   const r = s.bot ? null : (rules.rules || []).find((x) => matches(x.when, s, rules));
-  if (!r) return { rule: null, experience: 'default', intent: null, keys: ['default'], label: 'no rule matched' };
-  const fromUtm = intentFrom(rules, `${s.utm.campaign} ${s.utm.content} ${s.utm.term}`);
-  const intent = r.intent === false ? null
-    : r.intent === 'utm' ? fromUtm
-      : r.intent === 'memory' ? topInterest(s.memory)
-        : fromUtm || topInterest(s.memory);
+  if (!r) {
+    return {
+      rule: null, experience: 'default', intent: null, keys: ['default'], label: 'no rule matched',
+    };
+  }
+  const intent = intentOf(rules, r, s);
   const keys = [...new Set([intent && `${r.experience}:${intent}`, r.experience, 'default'].filter(Boolean))];
   return {
     rule: r.id, experience: r.experience, intent, keys, label: r.label || r.id,
@@ -123,19 +145,34 @@ export function matchRule(rules, s) {
 
 /* ---------- browser: signals, memory, apply ---------- */
 
+/**
+ * With `memory.requireConsent`, memory is read and written only after the experimentation
+ * plugin recorded consent (localStorage `experimentation-consented`).
+ */
+export function memoryAllowed(rules) {
+  if (!rules.memory?.requireConsent) return true;
+  try {
+    return localStorage.getItem('experimentation-consented') === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+const storeKey = (rules) => rules.memory?.storeKey || 'cohorts-v1';
+
 export function readMemory(rules) {
   if (!memoryAllowed(rules)) return {};
-  try { return JSON.parse(localStorage.getItem(rules.memory?.storeKey || 'cohorts-v1')) || {}; } catch (e) { return {}; }
+  try {
+    return JSON.parse(localStorage.getItem(storeKey(rules))) || {};
+  } catch (e) {
+    return {};
+  }
 }
 
 function writeMemory(rules, v) {
-  try { localStorage.setItem(rules.memory?.storeKey || 'cohorts-v1', JSON.stringify(v)); } catch (e) { /* blocked */ }
-}
-
-/** With `memory.requireConsent`, memory is read and written only after the experimentation plugin recorded consent. */
-export function memoryAllowed(rules) {
-  if (!rules.memory?.requireConsent) return true;
-  try { return localStorage.getItem('experimentation-consented') === 'true'; } catch (e) { return false; }
+  try {
+    localStorage.setItem(storeKey(rules), JSON.stringify(v));
+  } catch (e) { /* storage blocked */ }
 }
 
 /** Signals for this view. Demo/simulation overrides: ?ref=<host> stands in for the referrer. */
@@ -152,7 +189,9 @@ export function browserSignals(rules) {
     refHost,
     source: sourceOf(refHost, siteHost, utm),
     utm,
-    paid: [...new Set(Object.entries(SIGNALS.paidParams).filter(([p]) => q.has(p)).map(([, n]) => n))],
+    paid: [...new Set(Object.entries(SIGNALS.paidParams)
+      .filter(([p]) => q.has(p))
+      .map(([, n]) => n))],
     device: mobile ? 'mobile' : 'desktop',
     bot: SIGNALS.bot.test(ua) || navigator.webdriver === true,
     memory: readMemory(rules),
@@ -165,7 +204,10 @@ export function resolve(rules, signals = browserSignals(rules)) {
   const forced = new URLSearchParams(window.location.search).get('cohort');
   const r = forced && (rules.rules || []).find((x) => x.id === forced);
   const ctx = r
-    ? { ...matchRule({ ...rules, rules: [{ ...r, when: {} }] }, { ...signals, bot: false }), forced: true }
+    ? {
+      ...matchRule({ ...rules, rules: [{ ...r, when: {} }] }, { ...signals, bot: false }),
+      forced: true,
+    }
     : matchRule(rules, signals);
   return { ...ctx, signals };
 }
@@ -173,7 +215,8 @@ export function resolve(rules, signals = browserSignals(rules)) {
 /**
  * Prune and reorder decorated sections for the matched keys (most specific first).
  * Section Metadata on the cohort page:
- *   Slot: hero        one section per slot survives: the first whose Cohorts list has the most specific key
+ *   Slot: hero        one section per slot survives: the first whose
+ *                     Cohorts list has the most specific key
  *   Cohorts: a, b:x   section only for these experiences (default = the original page's sections)
  *   Hide For: a       section removed for these experiences
  *   Promote: a        section moved right under the first section for these experiences
@@ -183,7 +226,10 @@ export function apply(main, keys) {
   const own = keys.length === 1 ? keys : keys.filter((k) => k !== 'default');
   const sections = [...main.querySelectorAll(':scope > .section')];
   const slots = {};
-  sections.forEach((s) => { if (s.dataset.slot) (slots[s.dataset.slot] = slots[s.dataset.slot] || []).push(s); });
+  sections.forEach((s) => {
+    const { slot } = s.dataset;
+    if (slot) (slots[slot] = slots[slot] || []).push(s);
+  });
   Object.values(slots).forEach((group) => {
     let winner;
     keys.some((k) => { winner = group.find((s) => list(s.dataset.cohorts || 'default').includes(k)); return winner; });
@@ -193,7 +239,8 @@ export function apply(main, keys) {
     if (!s.isConnected || s.dataset.slot) return;
     const only = list(s.dataset.cohorts);
     const hide = list(s.dataset.hideFor);
-    if ((only.length && !only.some((c) => own.includes(c))) || hide.some((c) => own.includes(c))) s.remove();
+    const mine = (c) => own.includes(c);
+    if ((only.length && !only.some(mine)) || hide.some(mine)) s.remove();
   });
   const live = [...main.querySelectorAll(':scope > .section')];
   const [anchor] = live;
@@ -219,7 +266,9 @@ export function runCohorts(main, rules, { sampleRUM, getMetadata } = {}) {
   } catch (e) {
     // never show every variant at once: fall back to the original sections
     apply(main, ['default']);
-    ctx = { rule: null, experience: 'default', keys: ['default'], error: String(e) };
+    ctx = {
+      rule: null, experience: 'default', keys: ['default'], error: String(e),
+    };
   }
   ctx.arm = arm;
   body.dataset.cohort = ctx.rule || 'none';
@@ -242,7 +291,10 @@ export function rememberVisit(rules, now = Date.now()) {
   writeMemory(rules, m);
 }
 
-/** Mark this browser as signed in once it clicks a sign-in control (rules.memory.signIn: CSS selector). */
+/**
+ * Mark this browser as signed in once it clicks a sign-in control
+ * (rules.memory.signIn: CSS selector).
+ */
 export function watchSignIn(rules) {
   const sel = rules.memory?.signIn;
   if (!sel) return;
