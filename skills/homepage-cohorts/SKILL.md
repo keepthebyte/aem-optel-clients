@@ -53,8 +53,10 @@ node $OPTEL --domain www.example.com --path / --last 7d --report page
 node $OPTEL --domain www.example.com --path / --last 30d --granularity hour --report raw --out home.jsonl
 ```
 
-Use hourly files for a single page (daily files are subsampled ~40x). Small sites: 8-12
-weeks. From the brief, note: views, channel and device mix, the activity ladder ("did
+Always hourly files: daily and monthly files are thinned subsets (from 1.4x to ~50x fewer
+bundles for one page, depending on traffic; monthly ~11x on a mid-size site), and cohort
+rules split the page's sample again by rule and arm. Expect ~100 s per month of hourly
+files. Reload until the CLI reports 0 failed files. Small sites: 8-12 weeks. From the brief, note: views, channel and device mix, the activity ladder ("did
 nothing" instead of bounce), top clicks with consent separated, next pages. Those are the
 problem statement for the video, so keep the numbers and their sample sizes.
 
@@ -112,6 +114,10 @@ Read the review:
   split or the tagging is broken: stop and fix that first (run `verify.js`).
 - **Per rule**: `keep` (beats the holdout), `fix or drop` (worse), `no clear difference yet`,
   `not enough data yet` (< 30 sampled views per arm: raise sampling or wait).
+  The holdout arm is the bottleneck: it gets 10% of a rule's views. A 4% rule on a page
+  with ~2,400 sampled views a month has ~97 in the rule and ~10 in its holdout, so it
+  needs months pooled (`--start` three months back) before it can be judged. Check
+  `control.bundles` per rule before reading anything into a lift.
 - **Shares**: measured shares replace the modelled estimates from step 2.
 - **Unmatched traffic** (`unmatched.bySource`, `byFirstClick`): large groups no rule catches
   are candidate new rules (a new campaign, a new referrer, a new AI assistant).
