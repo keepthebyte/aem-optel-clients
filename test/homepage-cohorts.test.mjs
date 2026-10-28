@@ -13,6 +13,7 @@ import {
 import {
   signalsFromBundle, goalHit, entryOf, ruleOf,
 } from '../skills/homepage-cohorts/scripts/lib.js';
+import { defaultView, originalView } from '../skills/homepage-cohorts/scripts/verify.js';
 import rules from '../skills/homepage-cohorts/engine/cohort-rules.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -191,4 +192,16 @@ test('review.js: lift per rule against the holdout, A/A on unmatched', () => {
   assert.equal(r.rules.find((x) => x.id === 'campaign').verdict, 'not enough data yet');
   assert.equal(r.meta.controlShare, 160 / 320);
   assert.match(fs.readFileSync(path.join(tmp, 'r.md'), 'utf8'), /\| Sent by an AI assistant \|/);
+});
+
+test('verify: section metadata as a block or as data-* attributes', () => {
+  const orig = '<div><h1>Hello</h1></div><div><p>Two</p></div>';
+  const asBlock = `<div><h1>Hello</h1><div class="section-metadata"><div><div>Slot</div><div>hero</div></div></div></div>
+<div><h1>Risk first</h1><div class="section-metadata"><div><div>Slot</div><div>hero</div></div><div><div>Cohorts</div><div>clients</div></div></div></div>
+<div><p>Two</p></div>`;
+  const asAttrs = '<div data-slot="hero" data-cohorts="default"><h1>Hello</h1></div><div data-slot="hero" data-cohorts="clients"><h1>Risk first</h1></div><div data-hide-for="mobile"><p>Two</p></div><div data-cohorts="mobile"><p>Tasks</p></div>';
+  assert.deepEqual(defaultView(asBlock), originalView(orig));
+  assert.deepEqual(defaultView(asAttrs), originalView(orig));
+  // a new section without Cohorts breaks the holdout
+  assert.notDeepEqual(defaultView(`${asAttrs}<div><p>Extra</p></div>`), originalView(orig));
 });

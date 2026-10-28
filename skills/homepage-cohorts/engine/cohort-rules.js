@@ -30,7 +30,8 @@ export default {
     signIn: 'a[href*="login"], a[href*="signin"], [data-signin]',
   },
 
-  // what each experience is, for the Sankey, the review and the video (`default` = the original page)
+  // what each experience is, for the Sankey, the review and the video
+  // (`default` = the original page)
   experiences: {
     customer: { label: 'Customer: sign-in first', sub: 'Sign in · help signing in · top tasks · one offer' },
     prospect: { label: 'Prospect: answer & act', sub: 'Repeats the ad or the interest · quote · advisor' },
