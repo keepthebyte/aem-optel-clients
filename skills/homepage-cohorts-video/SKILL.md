@@ -112,6 +112,11 @@ Keep the storyboard with the review: next month's update starts from it.
 
 ## Pitfalls
 
+- **Loudness between scenes**: every scene is a separate TTS request and comes back at its
+  own loudness (10–12 dB apart is common). `render.js` measures each scene's narration and
+  brings it to -20 LUFS before the mix is normalised to -16 LUFS; its log prints the gain per
+  scene. A gain at the ±15 dB cap means a scene came back near-silent: re-voice it.
+
 - **The default must equal the homepage.** If the original capture and the cohort page with
   no rule matched differ, fix the site (`verify.js` in `homepage-cohorts`) before filming.
 - **Session stickiness**: the experiment arm is kept per browser session; capture.js starts
