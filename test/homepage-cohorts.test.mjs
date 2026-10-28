@@ -10,7 +10,9 @@ import * as optel from '../optel-client.js';
 import {
   matchRule, matches, sourceOf, intentFrom,
 } from '../skills/homepage-cohorts/engine/cohorts.js';
-import { signalsFromBundle, goalHit, entryOf } from '../skills/homepage-cohorts/scripts/lib.js';
+import {
+  signalsFromBundle, goalHit, entryOf, ruleOf,
+} from '../skills/homepage-cohorts/scripts/lib.js';
 import rules from '../skills/homepage-cohorts/engine/cohort-rules.js';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -87,6 +89,33 @@ test('bundle → signals: referrer, utm, ad clicks, modelled memory', () => {
   assert.equal(signalsFromBundle(optel, rules, B([{ checkpoint: 'navigate', source: 'https://www.example.com/x' }])).source, 'internal');
 });
 
+test('modelled memory only takes views no observable rule claims', () => {
+  // a first visit on a phone that clicks sign-in stays a mobile view: its own click is not memory
+  const mobileSignin = B([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: '.header a', target: 'https://www.example.com/login' }], { ua: 'mobile:ios' });
+  assert.equal(ruleOf(optel, rules, mobileSignin).rule, 'mobile-first-visit');
+  // the same click on desktop with no other signal is modelled as "signed in before"
+  const desktopSignin = B([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: '.header a', target: 'https://www.example.com/login' }]);
+  const m = ruleOf(optel, rules, desktopSignin);
+  assert.equal(m.rule, 'signed-in-before');
+  assert.equal(m.modelled, true);
+});
+
+test('model.click sets the interest an interest rule asks for', () => {
+  const r = {
+    intents: [['careers', 'careers|jobs']],
+    rules: [{ id: 'careers-back', experience: 'careers', when: { visits: { min: 2 }, interest: ['careers'] }, model: { click: 'careers' } }],
+  };
+  const s = signalsFromBundle(optel, r, B([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: 'a', target: 'https://careers.example.com/' }]));
+  assert.equal(s.memory.interests.careers, 1);
+  assert.equal(matchRule(r, s).rule, 'careers-back');
+});
+
+test('email tools that link through their own host are owned email', () => {
+  const a = optel.classifyAcquisition(B([{ checkpoint: 'enter', source: 'https://x.us.prod.marketingusercontent.com/' }]));
+  assert.equal(a.type, 'owned');
+  assert.equal(a.channel, 'email');
+});
+
 test('goals and entry sources', () => {
   const b = B([{ checkpoint: 'enter', source: 'https://chatgpt.com/' }, { checkpoint: 'click', source: '.hero a', target: 'https://www.example.com/pricing' }]);
   assert.equal(goalHit(optel, { click: 'pricing' }, b), true);
@@ -119,6 +148,13 @@ test('size.js → cohorts.json → sankey.js', () => {
   assert.equal(share['mobile-first-visit'], 0.2);
   assert.equal(share.none, 0.1);
   assert.equal(c.columns.length, 4);
+  // signed-in-before is modelled: its goal rate today would be circular
+  c.rules.filter((r) => r.modelled).forEach((r) => assert.equal(r.today.goalRate, null));
+  // external click targets keep their host
+  assert.ok(c.rules.find((r) => r.id === 'from-portal').today.topClicks.some((t) => t.click === '/login'));
+  // --path takes a comma list
+  run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'b.jsonl'), '--path', '/,/other', '--out', path.join(tmp, 'c2.json')]);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'c2.json'), 'utf8')).meta.bundles, 11);
   // every flow stage sums to the total
   [0, 1, 2].forEach((col) => {
     const ids = new Set(c.columns[col].nodes.map((x) => x.id));

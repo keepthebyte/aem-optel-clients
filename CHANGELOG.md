@@ -10,6 +10,30 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Fixed
+- `classifyConsent`: the Osano Cookie Manager (`osano-cm-*`, `osano-manage-cookies`) is a
+  cookie banner. Before, its accept/deny/manage clicks counted as content clicks and topped
+  homepage click lists and cohort goals on a site using it.
+- `classifyAcquisition`: links from Dynamics 365 Customer Insights marketing email
+  (`marketingusercontent.com`, `mkt.dynamics.com`) are owned email, not referrals.
+- `homepage-cohorts` sizing:
+  - Modelled memory now applies only to views no referrer, tag or device rule matches.
+    Modelled from the view's own clicks, it used to move the views that reached a goal into
+    the memory rules (one search rule read 0% instead of 27%).
+  - Modelled rules report no goal rate today, since their views are chosen by clicking.
+  - `model.click` sets the rule's `when.interest`, so interest rules can be modelled from a
+    click pattern.
+  - External click targets keep their host in `topClicks`: a jobs site is no longer listed
+    as `/`.
+
+### Added
+- `homepage-cohorts`:
+  - `size.js` and `review.js` take a comma list in `--path`, for one rule set across locales
+    with the same audience.
+  - SKILL.md says to find the homepage's real path (`/` often redirects), compare locales
+    before writing one rule set, check that the cookie banner is recognised, and name email
+    tools and Wi-Fi portals as sources.
+
 ### Changed
 - `aem-optel` skill: sample-size guidance measured on a second, mid-size site. Daily and
   monthly files are thinned subsets of the hourly ones, by 1.4x to ~50x for one page

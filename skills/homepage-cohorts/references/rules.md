@@ -70,6 +70,13 @@ cookie banner.
    puts half the traffic into "returning with an interest". Report modelled shares as
    ranges and replace them with measured ones after the first month (review.js measures
    what the rules actually matched).
+   size.js applies modelled memory only to views no referrer, tag or device rule matches:
+   memory is modelled from the view's own clicks, so letting it take other rules' views would
+   move exactly the views that reached a goal (a searcher who clicked a service page) into the
+   memory rule, leaving the search rule at ~0%. For the same reason a modelled rule has no
+   goal rate today (`today.goalRate: null`): its views were chosen by clicking.
+   `model.click` also sets the rule's `when.interest`, so interest rules can be modelled from
+   a click pattern as well as from `clickIntent`.
 6. **One goal per rule, the cohort's own job**: sign-in for customers, quote or contact for
    prospects, any navigation for mobile explorers. Not "any click" everywhere.
 

@@ -24,8 +24,9 @@ if (!args.rules || !args.bundles) {
 }
 const o = await loadOptel();
 const rules = await loadRules(args.rules);
-const pagePath = o.normalizePath(args.path || '/');
-const human = o.realViews(readBundles(args.bundles)).filter((b) => o.pathOf(b) === pagePath);
+const pagePath = args.path || '/';
+const paths = new Set(String(pagePath).split(',').map((p) => o.normalizePath(p.trim())));
+const human = o.realViews(readBundles(args.bundles)).filter((b) => paths.has(o.pathOf(b)));
 const tagged = human.filter((b) => o.has(b, 'audience'));
 const armOf = (b) => o.firstEvent(b, 'audience').target;
 const ruleOf = (b) => o.firstEvent(b, 'audience').source || 'none';

@@ -21,8 +21,11 @@ if (!args.rules || !args.bundles) {
 const o = await loadOptel();
 const rules = await loadRules(args.rules);
 const all = readBundles(args.bundles);
+// the homepage is not always '/' ('/' may redirect to '/en/home.html'); --path takes a comma list
+// for one rule set over several paths (e.g. two locales with the same audience)
 const pagePath = args.path || '/';
-const views = o.realViews(all).filter((b) => o.pathOf(b) === o.normalizePath(pagePath));
+const paths = new Set(String(pagePath).split(',').map((p) => o.normalizePath(p.trim())));
+const views = o.realViews(all).filter((b) => paths.has(o.pathOf(b)));
 const total = o.weightOf(views);
 if (!views.length) { console.error(`no human views of ${pagePath} in ${args.bundles}`); process.exit(1); }
 
@@ -73,7 +76,14 @@ const columns = [
   },
 ];
 
-const topClicks = (bs) => o.groupBy(bs, (b) => clicks(o, b).map((c) => (c.target ? o.normalizePath(c.target) : c.source)), { top: 5, total: o.weightOf(bs) })
+const clickKey = (b, c) => {
+  if (!c.target) return c.source;
+  try {
+    const u = new URL(c.target, b.url);
+    return u.host === new URL(b.url).host ? o.normalizePath(u.pathname) : `${u.host}${o.normalizePath(u.pathname)}`;
+  } catch { return c.target; }
+};
+const topClicks = (bs) => o.groupBy(bs, (b) => clicks(o, b).map((c) => clickKey(b, c)), { top: 5, total: o.weightOf(bs) })
   .map((g) => ({ click: g.key, share: g.share, bundles: g.bundles }));
 
 const ruleRows = ruleList.map((r) => {
@@ -90,7 +100,8 @@ const ruleRows = ruleList.map((r) => {
     bundles: bs.length,
     lowSample: bs.length < o.LOW_SAMPLE,
     today: {
-      goalRate: bs.length ? bs.filter((b) => goalHit(o, r.goal, b)).length / bs.length : 0,
+      // a modelled rule's views are picked by the clicks that model its memory: its goal rate today is circular
+      goalRate: r.model ? null : (bs.length ? bs.filter((b) => goalHit(o, r.goal, b)).length / bs.length : 0),
       didNothing: bs.length ? o.weightOf(bs.filter((b) => o.activityOf(b) === 'nothing')) / w : 0,
       topClicks: topClicks(bs),
     },
