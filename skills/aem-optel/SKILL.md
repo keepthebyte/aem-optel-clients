@@ -97,12 +97,27 @@ Measured on a large brand site (~17M views a week):
 | `--last 3m`+ | monthly | ~2 s, ~160 MB | subsampled further (~700 bundles/month on a 7M-views/month site) |
 | 28 days `--granularity hour --checkpoints ...` | 672 hourly | ~25 s, ~1.8 GB (623k bundles) | full |
 
-Coarser files keep totals right but hold far fewer bundles. That is fine for
-site-wide numbers and too thin for one page or a rare event: one page over 30 days
-gave 395 bundles from daily files and 19,000 with `--granularity hour` (~40 s).
-So for a single page, a funnel or an experiment over more than a week, add
-`--granularity hour`. Sites also sample at different rates (weights of 100 and
-1,000 both occur), so never assume a weight.
+Coarser files keep totals right but hold far fewer bundles: each daily or monthly
+file is a thinned subset of the hourly ones (every daily bundle is also in an hourly
+file), with weights raised to compensate. How much is lost depends on the site's
+traffic, so measure it instead of assuming a factor. One month of one homepage on two
+sites:
+
+| Site | Hourly | Daily | Monthly |
+| --- | --- | --- | --- |
+| ~17M views a week | 19,000 bundles (~40 s) | 395 (**~50x fewer**) | fewer still |
+| ~240k views a month on the page | 2,427 bundles (~100 s, weight 100) | 1,724 (1.4x fewer, weight 100–200) | 216 (**11x fewer**, weight 800–1,600) |
+
+Totals agree across all three (within the sample's noise). So:
+
+- **Site-wide totals**: daily or monthly files are fine and fast.
+- **One page, a cohort, a funnel, an experiment or a rare event** over more than a
+  week: `--granularity hour`, always. Never monthly files.
+- **Check what you got**: the CLI prints `N files failed`; any failure means
+  undercounted bundles *and* totals (a network drop cost one 30-day hourly load a
+  quarter of its files). Load again until it is 0 before reporting.
+- Sites sample at different rates (weights of 100 and 1,000 both occur), and coarse
+  files mix weights, so never assume a weight: sum it.
 
 Start with `24h` or `7d` for one page. Do not load a year to answer a question about
 last week. Re-use a `--report raw --out` file instead of re-downloading for follow-ups.

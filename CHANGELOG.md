@@ -10,6 +10,15 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Changed
+- `aem-optel` skill: sample-size guidance measured on a second, mid-size site. Daily and
+  monthly files are thinned subsets of the hourly ones, by 1.4x to ~50x for one page
+  depending on traffic (monthly ~11x on the mid-size site), so the factor is measured, not
+  assumed. Per-page, cohort and experiment work always loads hourly files; a load with
+  failed files is reloaded before reporting.
+- `homepage-cohorts` skill: always hourly files, ~100 s per month; the holdout arm is the
+  sample bottleneck, so small rules are judged on pooled months.
+
 ### Added
 - `skills/homepage-cohorts`: optimise an EDS homepage for the cohorts in its traffic.
   First-match rules in one file (`cohort-rules.js`) are sized on Optel bundles
