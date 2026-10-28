@@ -11,6 +11,21 @@ change report shapes or classification results; read **Changed** before upgradin
 ## [Unreleased]
 
 ### Added
+- `skills/homepage-cohorts`: optimise an EDS homepage for the cohorts in its traffic.
+  First-match rules in one file (`cohort-rules.js`) are sized on Optel bundles
+  (`size.js` → `cohorts.json`), drawn as a Sankey (`sankey.js`), served by a
+  dependency-free engine (`engine/cohorts.js`, Section Metadata picks the sections) and
+  reviewed monthly against the holdout (`review.js`: lift and p per rule, an A/A check
+  on unmatched views, the biggest unmatched groups). POC on `/new` or a branch; promotion
+  is a 90/10 experiment with the AEM Experimentation plugin, rolled back by authors with
+  `Experiment Status: off`. `verify.js` checks the cohort page with no rule matched is
+  the homepage. The engine fires an `audience` checkpoint (rule id, arm) on every view.
+- `skills/homepage-cohorts-video`: a narrated video of that work, for the pitch and the
+  monthly update. `capture.js` (pages and marked elements; hides automation so the engine
+  does not serve the bot default; collapses scroll-driven sticky sections), `tts.js`
+  (ElevenLabs with timestamps, `say`, or silent; cached per scene), `stage.html` (scene
+  types: browser, Sankey reveal and paths, phones, results, facts, holdout) and
+  `render.js` (stills at every cue, or the MP4).
 - `extensions/experience-workspace/`: two Experience Workspace tool panels for any
   site, served from GitHub Pages. **Page Insights** reads a week of a page's
   telemetry and tells its story (taps, reach, intent, redirects, language, consent).

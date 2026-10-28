@@ -1,0 +1,166 @@
+/* stylelint-disable no-descending-specificity */
+
+/* demo-only panel (?demo): fixed, loaded late, never shifts layout. Theme it with the --cohort-* properties. */
+:root {
+  --cohort-dark: #1f1a3d;
+  --cohort-accent: #ff7a59;
+  --cohort-link: #4b3fb0;
+  --cohort-tint: #f1effa;
+  --cohort-ink: #1a1a1a;
+  --cohort-ink-2: #555;
+  --cohort-rule: #e3e1ea;
+}
+
+.cohort-panel {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 8px;
+  max-width: min(400px, calc(100vw - 32px));
+  font-family: var(--cohort-font, var(--body-font-family, system-ui, sans-serif));
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.cohort-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cohort-compare {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--cohort-dark);
+  box-shadow: 0 6px 20px rgb(20 12 60 / 30%);
+}
+
+.cohort-compare a:any-link {
+  padding: 7px 14px;
+  color: #cfc8ef;
+  font-weight: 600;
+}
+
+.cohort-compare a[aria-current] {
+  background: #fff;
+  color: var(--cohort-dark);
+}
+
+.cohort-compare a:hover {
+  color: #fff;
+  text-decoration: none;
+}
+
+.cohort-compare a[aria-current]:hover {
+  color: var(--cohort-dark);
+}
+
+.cohort-same {
+  padding: 7px 12px;
+  background: #fff;
+  color: var(--cohort-ink-2);
+  box-shadow: 0 6px 20px rgb(20 12 60 / 18%);
+}
+
+.cohort-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  padding: 10px 16px;
+  background: var(--cohort-accent);
+  color: var(--cohort-dark);
+  font: inherit;
+  box-shadow: 0 6px 20px rgb(20 12 60 / 30%);
+  cursor: pointer;
+}
+
+.cohort-pill b {
+  font-weight: 600;
+}
+
+.cohort-pill span {
+  font-weight: 400;
+}
+
+.cohort-pill:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.cohort-switch button:focus-visible {
+  outline: 2px solid var(--cohort-link);
+  outline-offset: 2px;
+}
+
+.cohort-body {
+  padding: 20px;
+  border: 1px solid #d9d3f0;
+  border-top: 4px solid var(--cohort-accent);
+  background: #fff;
+  color: var(--cohort-ink);
+  box-shadow: 0 16px 48px rgb(20 12 60 / 45%);
+}
+
+.cohort-why {
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.cohort-body dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+  margin: 16px 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--cohort-rule);
+  border-bottom: 1px solid var(--cohort-rule);
+}
+
+.cohort-body dt {
+  color: var(--cohort-link);
+}
+
+.cohort-body dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.cohort-note {
+  color: var(--cohort-ink-2);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.cohort-try {
+  margin-top: 16px;
+  color: var(--cohort-link);
+  font-weight: 600;
+}
+
+.cohort-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.cohort-switch button {
+  border: 1px solid #c9c1ea;
+  padding: 6px 10px;
+  background: var(--cohort-tint);
+  color: var(--cohort-dark);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cohort-switch button:hover {
+  border-color: var(--cohort-link);
+  background: var(--cohort-link);
+  color: #fff;
+}

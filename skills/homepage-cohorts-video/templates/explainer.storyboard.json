@@ -1,0 +1,52 @@
+{
+  "title": "Homepage cohorts: the pitch",
+  "host": "www.example.com",
+  "sankey": "sankey.svg",
+  "review": "review.json",
+  "brand": { "dark": "#221a4c", "dark2": "#342a72", "accent": "#f2715a" },
+  "voice": { "provider": "say", "sayVoice": "Samantha" },
+  "scenes": [
+    { "id": "intro", "type": "title", "duration": 4, "kicker": "Homepage · Operational Telemetry", "title": "One homepage.<br><em>Many reasons</em> to visit." },
+
+    { "id": "problem", "type": "browser",
+      "narration": "This is our homepage, and every visitor gets the same one. {scroll}It is a long page. {stat1}<share that clicks nothing, in words> of homepage views end without a single click. {stat2}And most of the clicks we do get go to one link: {ring}sign in.",
+      "pages": [{ "at": 0, "page": "orig", "url": "/", "label": "<b>Original</b> The same page for every visitor", "sig": "<views from cohorts.json meta> homepage views · <weeks> weeks", "sigAt": 1 }],
+      "scroll": [{ "at": "scroll", "to": 0.25, "dur": 3.5 }, { "at": "ring", "to": 0, "dur": 1.2 }],
+      "rings": [{ "at": "ring+0.6", "mark": "orig.signin", "pulse": true }],
+      "stats": [{ "at": "stat1", "until": "ring", "n": "<n>%", "t": "of views click nothing" }, { "at": "stat2", "until": "ring", "n": "<n>%", "t": "of clicks go to sign in" }] },
+
+    { "id": "mix", "type": "sankey-reveal", "intro": "Same page. A very mixed crowd.",
+      "narration": "Optel shows who those visitors are. {col1}Where they come from: search, ads, AI assistants, our own portal. {col2}Which device. {col3}Then the first rule that matches. {col4}And the homepage experience that rule picks." },
+
+    { "id": "paths", "type": "sankey-paths",
+      "narration": "{p1}<largest cohort>: <share in words>. {p2}<most valuable cohort>: <share>. {p3}<third cohort>: <share>, and this one is modelled from what visitors did, until the site remembers them.",
+      "highlights": [
+        { "at": "p1", "rules": ["<rule id>"], "caption": "<rule label> <b><share>%</b>" },
+        { "at": "p2", "rules": ["<rule id>"], "caption": "<rule label> <b><share>%</b>" },
+        { "at": "p3", "rules": ["<rule id>"], "caption": "<rule label> <b><share>%</b> · modelled" }
+      ] },
+
+    { "id": "customer", "type": "browser",
+      "narration": "Customers coming back from the portal {new}now get sign-in and their top tasks first. {ring}The rest of the page is still there, below.",
+      "pages": [
+        { "at": 0, "page": "orig", "url": "/", "label": "<b>Original</b>" },
+        { "at": "new", "page": "customer", "url": "/", "label": "<b>Customer</b> Sign-in first", "sig": "<share>% of views", "sigAt": "new" }
+      ],
+      "rings": [{ "at": "ring", "mark": "customer.slot" }] },
+
+    { "id": "mobile", "type": "phones",
+      "narration": "{orig}On a phone, the first visit looked like this. {new}Now it starts with the tasks phones come for. {fewer}And it is a much shorter page.",
+      "left": { "page": "m-orig", "label": "ORIGINAL" }, "right": { "page": "m-new", "label": "NEW · <b>QUICK TASKS</b>", "at": "new" },
+      "scrollToEnd": "fewer",
+      "notes": [{ "at": "fewer+1", "n": "<n>×", "t": "shorter" }] },
+
+    { "id": "facts", "type": "facts", "image": "panel", "zoomTo": "panel.panel",
+      "narration": "{f1}The choice is made in the browser, before the page paints. {f2}No personal data: referrer, campaign tags, device, and a visit memory on the device only. {f3}Every rule is a few lines that authors can read.",
+      "facts": [{ "at": "f1", "text": "Decided before the page paints" }, { "at": "f2", "text": "No personal information" }, { "at": "f3", "text": "Rules authors can read" }] },
+
+    { "id": "hold", "type": "holdout", "split": 90, "hold": 1,
+      "narration": "Ten percent keep today's homepage. That holdout tells us, rule by rule, every month, whether the new first view does better. And one setting switches it all off." },
+
+    { "id": "end", "type": "title", "duration": 4, "kicker": "Homepage cohorts", "title": "One homepage. <em>A first view that fits.</em>" }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "title": "Homepage cohorts: <month>",
+  "host": "www.example.com",
+  "sankey": "sankey.svg",
+  "review": "review.json",
+  "brand": { "dark": "#221a4c", "dark2": "#342a72", "accent": "#f2715a" },
+  "voice": { "provider": "say", "sayVoice": "Samantha" },
+  "scenes": [
+    { "id": "intro", "type": "title", "duration": 3, "kicker": "Homepage cohorts · <month>", "title": "What the holdout <em>told us</em>." },
+
+    { "id": "numbers", "type": "stats", "title": "<month> on the homepage",
+      "narration": "{s1}<views in words> homepage views. {s2}<tagged share> went through the rules, {s3}and ten percent kept the original page as the holdout.",
+      "stats": [{ "at": "s1", "n": "<views>", "t": "homepage views" }, { "at": "s2", "n": "<n>%", "t": "matched a rule" }, { "at": "s3", "n": "<controlShare>%", "t": "holdout", "muted": true }] },
+
+    { "id": "results", "type": "results", "title": "Each rule against its holdout", "sub": "<start> to <end> · goal rate per sampled view", "hold": 2,
+      "narration": "{r0}<rule>: <cohort rate> against <holdout rate>, we keep it. {r1}<rule>: no clear difference yet. {r2}<rule>: not enough visits yet to tell.",
+      "rowCues": ["r0", "r1", "r2"], "rules": ["<rule id>", "<rule id>", "<rule id>"],
+      "goalLabels": { "<rule id>": "<what the goal means in words>" } },
+
+    { "id": "unmatched", "type": "sankey-paths",
+      "narration": "{u1}<unmatched share> of views matched no rule. {u2}The biggest group among them: <top bySource key, in words>. That is next month's candidate.",
+      "highlights": [{ "at": "u1", "rules": ["none"], "caption": "No rule matched <b><n>%</b>" }] },
+
+    { "id": "next", "type": "facts", "image": "orig", "zoomTo": "orig.hero",
+      "narration": "{f1}Keep <rule>. {f2}Change <rule>'s first view. {f3}Add a rule for <candidate>.",
+      "facts": [{ "at": "f1", "text": "Keep: <rule>" }, { "at": "f2", "text": "Fix: <rule>" }, { "at": "f3", "text": "New: <candidate>" }] },
+
+    { "id": "hold", "type": "holdout", "duration": 3 }
+  ]
+}
