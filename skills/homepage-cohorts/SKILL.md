@@ -47,6 +47,16 @@ The explainer video for leadership, and the monthly video update, are made with 
 
 ## 1. Analyse the homepage traffic
 
+First find the homepage's real path and its locales: `/` often redirects
+(`curl -sI https://www.example.com/` → `/en/home.html`), and Optel records the final path.
+List the homepage-like paths with the most views (`--report pages` over a week), and look at
+each large locale on its own (device mix, entry sources, top clicks): locales of one brand can
+behave very differently (one sends most visitors on from other pages of the site, another
+gets twice the search share). Rules can cover several paths with the same audience
+(`size.js --path /en/home.html,/en-gb/home.html`); otherwise size and run them per locale,
+and leave small locales on the original page (under ~30 sampled views per rule and arm a
+month, nothing can be judged).
+
 ```bash
 OPTEL=path/to/optel-client.js   # next to the aem-optel skill, or the aem-optel-clients repo root
 node $OPTEL --domain www.example.com --path / --last 7d --report page
@@ -56,8 +66,14 @@ node $OPTEL --domain www.example.com --path / --last 30d --granularity hour --re
 Always hourly files: daily and monthly files are thinned subsets (from 1.4x to ~50x fewer
 bundles for one page, depending on traffic; monthly ~11x on a mid-size site), and cohort
 rules split the page's sample again by rule and arm. Expect ~100 s per month of hourly
-files. Reload until the CLI reports 0 failed files. Small sites: 8-12 weeks. From the brief, note: views, channel and device mix, the activity ladder ("did
-nothing" instead of bounce), top clicks with consent separated, next pages. Those are the
+files. Reload until the CLI reports 0 failed files. Small sites: 8-12 weeks.
+
+From the brief, note: views, channel and device mix, the activity ladder ("did nothing"
+instead of bounce), top clicks with consent separated, next pages. Check that the cookie
+banner's clicks are recognised as consent (`--report clicks` lists them under consent): an
+unrecognised CMP makes "accept" the homepage's top click and every cohort's goal. If it is not,
+add its selectors to `CONSENT` in optel-client.js. Email tools and captive Wi-Fi portals often
+arrive as plain referrers: name them in the rules' `sources` so they get their own entry. Those are the
 problem statement for the video, so keep the numbers and their sample sizes.
 
 ## 2. Write and size the rules

@@ -53,9 +53,10 @@ export function clicks(o, b) {
 /**
  * The signals the browser would have built for this view.
  * Memory is not in Optel: rules with `model` estimate it from what the view does today
- * (steady state: today's sign-in clickers are recognised next time).
+ * (steady state: today's sign-in clickers are recognised next time). `{ modelled: false }`
+ * leaves memory empty, as on a first visit.
  */
-export function signalsFromBundle(o, rules, b) {
+export function signalsFromBundle(o, rules, b, { modelled = true } = {}) {
   const utmRaw = o.utmOf(b);
   const utm = Object.fromEntries(['source', 'medium', 'campaign', 'content', 'term'].map((k) => [k, (utmRaw[`utm_${k}`] || '').toLowerCase()]));
   const siteHost = (o.hostOf(b) || '').replace(/^www\./, '');
@@ -66,10 +67,12 @@ export function signalsFromBundle(o, rules, b) {
   const memory = { visits: 1, interests: {} };
   const cl = clicks(o, b);
   (rules.rules || []).forEach((r) => {
-    if (!r.model) return;
+    if (!r.model || !modelled) return;
     if (r.model.click && cl.some((c) => rx(r.model.click).test(c.text))) {
       if (r.when.signedIn) memory.signedIn = true;
       if (r.when.visits?.min) memory.visits = Math.max(memory.visits, r.when.visits.min);
+      // an interest rule modelled from a click: the click is the evidence of that interest
+      [].concat(r.when.interest || []).forEach((i) => { memory.interests[i] = 1; });
     }
     if (r.model.clickIntent) {
       const i = cl.map((c) => intentFrom(rules, c.target || '')).find(Boolean);
@@ -89,7 +92,17 @@ export function signalsFromBundle(o, rules, b) {
   };
 }
 
-export const ruleOf = (o, rules, b) => matchRule(rules, signalsFromBundle(o, rules, b));
+/**
+ * The rule this view would get. Modelled memory is an overlay on what no observable rule claims:
+ * memory is modelled from this view's own clicks, so letting it take views from referrer, tag or
+ * device rules would move exactly the views that reached a goal into the memory rules (their goal
+ * rate becomes ~100%, the other rules' ~0%). Views an observable rule matches keep that rule.
+ */
+export function ruleOf(o, rules, b) {
+  const observed = matchRule(rules, signalsFromBundle(o, rules, b, { modelled: false }));
+  if (observed.rule) return observed;
+  return { ...matchRule(rules, signalsFromBundle(o, rules, b)), modelled: true };
+}
 
 /** goal: { click: regex } | { navigate: true } | { checkpoint: 'formsubmit' }; default: any non-consent click */
 export function goalHit(o, goal, b) {

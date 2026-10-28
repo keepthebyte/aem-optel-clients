@@ -335,6 +335,12 @@ test('consent: Tealium prompt and generic cookie banners; form consent checkboxe
   assert.equal(optel.classifyClick({ source: "form#newsletter input#consent" }), 'form');
   assert.equal(optel.classifyConsent('.cmp-button'), null, 'cmp- is the AEM core components prefix, not a CMP');
   assert.equal(optel.classifyConsent('dialog button.cc-btn.cc-allow'), 'accept', 'Osano cookieconsent');
+  assert.equal(optel.classifyConsent('dialog button.osano-cm-accept-all'), 'accept', 'Osano Cookie Manager');
+  assert.equal(optel.classifyConsent('dialog button.osano-cm-denyAll'), 'reject', 'Osano deny all');
+  assert.equal(optel.classifyConsent('dialog button.osano-cm-manage'), 'settings', 'Osano manage');
+  assert.equal(optel.classifyConsent('dialog button.osano-cm-dialog__close'), 'dismiss', 'Osano close');
+  assert.equal(optel.classifyConsent('footer button.osano-manage-cookies--button'), 'settings', 'Osano re-open link');
+  assert.equal(optel.classifyConsent('dialog button.c-location__close-btn'), null, 'a location picker dialog is not a banner');
   assert.equal(optel.classifyConsent('#cookie-notice button#cn-accept-cookie'), 'accept');
   assert.equal(optel.classifyConsent('#gdpr-banner button.reject'), 'reject');
   // content that merely mentions cookies or consent is not a banner (food and legal sites)

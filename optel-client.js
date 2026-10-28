@@ -669,7 +669,8 @@ export const RULES = {
   /* Brand naming conventions that state the type in the tag itself: utm_source=social_p (paid),
      packaging_o (owned), pr_e (earned). One large brand tags all campaigns this way. Set to null to turn off. */
   typeSuffix: /_(p|o|e)$/i,
-  email: /(^|\.)(mail\.google\.com|outlook\.live\.com|outlook\.office\.com|mail\.yahoo\.com|mail\.aol\.com)$/i,
+  /* webmail, and email tools whose links pass through their own host (Dynamics 365 Customer Insights) */
+  email: /(^|\.)(mail\.google\.com|outlook\.live\.com|outlook\.office\.com|mail\.yahoo\.com|mail\.aol\.com|marketingusercontent\.com|mkt\.dynamics\.com)$/i,
   /* links shared in chat tools: a real channel for B2B and developer sites */
   messaging: /(^|\.)(slack\.com|app\.slack\.com|teams\.microsoft\.com|teams\.live\.com|teams\.[a-z.]*microsoft|discord\.com|discord\.gg|telegram\.org|t\.me|web\.whatsapp\.com)$/i,
   /* a developer's own machine: local builds and previews (aem up on :3000), not an audience */
@@ -700,7 +701,7 @@ const VENDORS = [
   [/tiktok|ttclid/i, 'tiktok'], [/youtube|youtu\.be|^yt$/i, 'youtube'], [/linkedin|lnkd/i, 'linkedin'], [/twitter|(^|\.)x\.com|(^|\.)t\.co$/i, 'x'],
   [/snapchat|^snap$/i, 'snapchat'], [/pinterest/i, 'pinterest'], [/reddit/i, 'reddit'], [/spotify/i, 'spotify'], [/criteo/i, 'criteo'],
   [/taboola/i, 'taboola'], [/outbrain/i, 'outbrain'], [/yahoo/i, 'yahoo'], [/duckduckgo/i, 'duckduckgo'], [/yandex/i, 'yandex'],
-  [/baidu/i, 'baidu'], [/^ttd$|thetrade|tradedesk|adsrvr/i, 'tradedesk'], [/amazon/i, 'amazon'], [/marketo/i, 'marketo'], [/mailchimp/i, 'mailchimp'], [/whatsapp/i, 'whatsapp'],
+  [/baidu/i, 'baidu'], [/^ttd$|thetrade|tradedesk|adsrvr/i, 'tradedesk'], [/amazon/i, 'amazon'], [/marketo/i, 'marketo'], [/mailchimp/i, 'mailchimp'], [/marketingusercontent|mkt\.dynamics/i, 'dynamics'], [/whatsapp/i, 'whatsapp'],
 ];
 /** Best-guess vendor name for a host, utm value or network name ('google', 'facebook', 'chatgpt', ...), or ''. */
 export const vendorOf = (s) => (VENDORS.find(([re]) => re.test(s || '')) || [])[1] || '';
@@ -835,6 +836,12 @@ const CONSENT = [
   { match: /#cassie|button#cassie/, accept: /accept/, reject: /reject/ },
   {
     match: /#didomi/, accept: /agree-button/, reject: /disagree-button/, dismiss: /popup-close|continue-without-agreeing/,
+  },
+  /* Osano Cookie Manager (the current Osano CMP; the old cookieconsent cc-* classes are matched below):
+     'dialog button.osano-cm-accept-all', '.osano-cm-denyAll', '.osano-cm-manage', '.osano-cm-dialog__close',
+     and the footer re-open link 'button.osano-manage-cookies--button'. */
+  {
+    match: /osano-cm-|osano-manage-cookies/i, accept: /accept/i, reject: /deny|reject/i, dismiss: /close/i, settings: /manage|save|toggle|preference/i,
   },
   /* Tealium consent prompt: 'dialog button#consent_prompt_submit', '#__tealiumGDPRecModal' */
   {
