@@ -11,6 +11,9 @@ change report shapes or classification results; read **Changed** before upgradin
 ## [Unreleased]
 
 ### Fixed
+- `homepage-cohorts-video` stage: the dim behind stat cards fades out with them; rings work
+  on marks in the header; the ring glow and background shade follow the brand colours; the
+  web fonts are loaded before the first frame; the holdout label wraps instead of clipping.
 - `classifyConsent`: the Osano Cookie Manager (`osano-cm-*`, `osano-manage-cookies`) is a
   cookie banner. Before, its accept/deny/manage clicks counted as content clicks and topped
   homepage click lists and cohort goals on a site using it.
@@ -34,6 +37,11 @@ change report shapes or classification results; read **Changed** before upgradin
   (`nonce="aem"`); without it the boilerplate's policy blocks it.
 
 ### Added
+- `homepage-cohorts-video`:
+  - `capture.js`: `session` / `local` storage set before page scripts run, to dismiss a demo
+    or consent dialog in every shot. Pages that never go network-idle are captured after load.
+  - Stage: `accentInk` brand variable for a light accent on white; per-phone `scroll` in
+    `phones` scenes.
 - `homepage-cohorts` install: wiring a consent manager (Osano, OneTrust) to the plugin's
   consent, and what consent means for demos of memory rules (`?cohort=`).
 - `homepage-cohorts`:

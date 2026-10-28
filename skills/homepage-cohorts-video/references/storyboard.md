@@ -16,6 +16,10 @@ reaches `{stat1}`, `"stat1+1.5"` is 1.5 s later, a number is seconds from the sc
 }
 ```
 
+`brand` sets CSS variables of the stage: `dark`, `dark2`, `accent`, `ink`, `soft`, `font`,
+`serif`, and `accentInk` (the accent on white cards and chips; set it when the accent is too
+light to read on white, e.g. a yellow).
+
 `sankey` and `review` are paths relative to the storyboard. `host` is shown in the browser
 address bar.
 
@@ -57,7 +61,8 @@ label at the bottom left. Captions state the share from `cohorts.json`, and "mod
 modelled rules.
 
 **`phones`**: two phones. `left` / `right`: `{ page, label, at }` (the right phone slides in
-at `right.at`), `notes: [{ at, until, n, t, s }]` (a number with a label to the right),
+at `right.at`; an optional `scroll: { at, to, dur }` scrolls that phone to a mark of its
+capture or a CSS pixel offset, e.g. to show what sits under the hero), `notes: [{ at, until, n, t, s }]` (a number with a label to the right),
 `scrollToEnd` (a cue: both scroll to their end at the same pace, to compare page length).
 
 **`results`**: each rule against its holdout, from `review.json`. `title`, `sub`, `rules`
