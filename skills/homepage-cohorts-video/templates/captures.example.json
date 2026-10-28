@@ -1,0 +1,11 @@
+{
+  "base": "https://main--site--org.aem.page",
+  "pages": [
+    { "id": "orig", "path": "/?experiment=homepage-cohorts/control", "marks": { "signin": "header a[href*='login']", "hero": "main .section:first-child" } },
+    { "id": "customer", "path": "/new?cohort=from-portal", "marks": { "slot": "main .section[data-slot]" } },
+    { "id": "prospect", "path": "/new?cohort=campaign&utm_medium=cpc&utm_campaign=pricing", "marks": { "slot": "main .section[data-slot]" } },
+    { "id": "m-orig", "path": "/?experiment=homepage-cohorts/control", "mobile": true },
+    { "id": "m-new", "path": "/new?cohort=mobile-first-visit", "mobile": true },
+    { "id": "panel", "path": "/new?demo&ref=portal.example.com", "viewport": true, "click": ".cohort-pill", "marks": { "panel": ".cohort-body" } }
+  ]
+}
