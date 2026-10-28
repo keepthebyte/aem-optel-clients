@@ -58,7 +58,9 @@ node capture.js --config captures.json --out work/captures
 ```
 
 A demo or consent dialog that would cover every shot is dismissed up front with
-`"session"` / `"local"` (storage keys set before the page's scripts run). Pages that never
+`"session"` / `"local"` (storage keys set before the page's scripts run); a badge that stays
+on screen after it is hidden with the page's `css` (`".demo-badge{display:none}"`). Say that it
+is a demo in the video instead (title or end card). Pages that never
 go network-idle (an embedded video player) are captured 20 s after load.
 
 Check the log: `cohort=` must be the rule you asked for (a capture showing `none` means the
