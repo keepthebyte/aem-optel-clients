@@ -17,7 +17,9 @@
  * }
  * Per page: path, mobile (390x844 @2x), viewport (screenshot only the first screen),
  * click (selector clicked before the shot), keepPanel (keep the ?demo panel), wait (ms), marks,
- * css (extra CSS for the shot), keepSticky (see below).
+ * css (extra CSS for the shot), keepSticky (see below), session / local (storage set before
+ * any page script runs, e.g. a dismissed consent or demo dialog: { "demo-ack": "1" }; also at the
+ * top level for every page).
  *
  * Scroll-driven sections (a sticky stage inside a box several screens tall) come out as a frame
  * followed by screens of empty background in a full-page shot. Unless keepSticky is set, every
@@ -63,8 +65,15 @@ for (const pg of cfg.pages) {
     : { viewport: { width: 1920, height: 1080 }, userAgent: UA, deviceScaleFactor: 1 });
   // every capture starts as a new visitor (no memory, no stored experiment arm)
   await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('capture-kept')) { localStorage.clear(); sessionStorage.setItem('capture-kept', '1'); } } catch (e) { /* noop */ } });
+  // storage set before any page script runs, e.g. a dismissed consent or demo dialog: { "session": { "key": "1" }, "local": {...} }
+  const store = { session: { ...cfg.session, ...pg.session }, local: { ...cfg.local, ...pg.local } };
+  if (Object.keys(store.session).length || Object.keys(store.local).length) {
+    await ctx.addInitScript((st) => { try { Object.entries(st.session).forEach(([k, v]) => sessionStorage.setItem(k, v)); Object.entries(st.local).forEach(([k, v]) => localStorage.setItem(k, v)); } catch (e) { /* noop */ } }, store);
+  }
   const page = await ctx.newPage();
-  await page.goto(new URL(pg.path, cfg.base).href, { waitUntil: 'networkidle' });
+  // networkidle never comes on pages with polling or streaming media: fall back to load
+  await page.goto(new URL(pg.path, cfg.base).href, { waitUntil: 'networkidle', timeout: 20000 })
+    .catch(async (e) => { if (!/Timeout/.test(e.message)) throw e; console.error(`${pg.id}: no networkidle after 20 s, continuing after load`); });
   await page.waitForTimeout(pg.wait || 1200);
   if (!pg.viewport) {
     // scroll through once so lazy images load, then back to the top

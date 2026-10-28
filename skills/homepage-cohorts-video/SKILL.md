@@ -57,6 +57,10 @@ Copy `templates/captures.example.json`. One entry per page the video shows:
 node capture.js --config captures.json --out work/captures
 ```
 
+A demo or consent dialog that would cover every shot is dismissed up front with
+`"session"` / `"local"` (storage keys set before the page's scripts run). Pages that never
+go network-idle (an embedded video player) are captured 20 s after load.
+
 Check the log: `cohort=` must be the rule you asked for (a capture showing `none` means the
 engine took the browser for a bot: run through capture.js, which hides automation, and
 never headless shell), and `MISSING marks` must be empty. Scroll-driven sections (a sticky
@@ -85,7 +89,7 @@ node tts.js --storyboard storyboard.json --out work/audio             # cached p
 
 Spell numbers the way they should be spoken ("forty-eight percent"); the screen shows the
 digits. Brand the stage with `storyboard.brand` (CSS variables `dark`, `dark2`, `accent`,
-`ink`, `soft`, `font`, `serif`) and `storyboard.fonts` (a stylesheet URL).
+`ink`, `soft`, `font`, `serif`, `accentInk`) and `storyboard.fonts` (a stylesheet URL).
 
 ## 4. Render
 
