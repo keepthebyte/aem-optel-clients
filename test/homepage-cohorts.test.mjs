@@ -67,6 +67,13 @@ test('source and intent classification', () => {
   assert.equal(sourceOf('chatgpt.com', 'example.com'), 'ai');
   assert.equal(sourceOf('', 'example.com', { source: 'chatgpt.com' }), 'ai');
   assert.equal(sourceOf('google.co.uk', 'example.com'), 'search');
+  // attribution.now/reclaim-direct-traffic
+  assert.equal(sourceOf('google.com', 'example.com', { source: 'chatgpt.com' }), 'search', 'a tagged URL in search results');
+  assert.equal(sourceOf('chatgpt.com', 'example.com', { source: 'chatgpt.com' }, ['openai']), 'other', 'a ChatGPT ad is paid, not a citation');
+  assert.equal(sourceOf('com.openai.chatgpt', 'example.com'), 'ai', 'ChatGPT Android app');
+  assert.equal(sourceOf('copilot.cloud.microsoft', 'example.com'), 'ai');
+  assert.equal(sourceOf('', 'example.com', { source: 'copilot.com?form=mg0auo' }), 'ai');
+  assert.equal(sourceOf('', 'example.com', { source: 'geminiforbusiness' }), 'ai');
   assert.equal(intentFrom(rules, '/plans/business'), 'pricing');
 });
 

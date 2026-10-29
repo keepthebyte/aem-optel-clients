@@ -34,7 +34,7 @@ A rule:
 
 | Condition | Example | From |
 | --- | --- | --- |
-| `source` | `'ai'`, `['search', 'social']` | referrer class: `direct internal search social ai other` |
+| `source` | `'ai'`, `['search', 'social']` | referrer class: `direct internal search social ai other`. `ai` = an AI referrer or `utm_source`, unless a search referrer (organic search) or a ChatGPT ad click (`paid: ['openai']`) |
 | `referrer` | `['portal.example.com']` | referrer host or a parent domain |
 | `utm` | `{ medium: '^(paid|cpc)$', any: 'spring' }` | regex per tag; `any` = campaign, content or term |
 | `paid` | `true`, `['google', 'openai']` | ad click ids on the URL (gclid, fbclid, msclkid, oppref, ...) |

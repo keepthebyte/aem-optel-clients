@@ -79,12 +79,13 @@ export function signalsFromBundle(o, rules, b, { modelled = true } = {}) {
       if (i) { memory.interests[i] = 1; memory.visits = Math.max(memory.visits, r.when.visits?.min || 2); }
     }
   });
+  const paid = [...new Set(o.events(b, 'paid').map((e) => e.source).filter(Boolean))];
   return {
     refHost,
     // a view without `enter` came from another page of the site
-    source: visit ? sourceOf(refHost, siteHost, utm) : 'internal',
+    source: visit ? sourceOf(refHost, siteHost, utm, paid) : 'internal',
     utm,
-    paid: [...new Set(o.events(b, 'paid').map((e) => e.source).filter(Boolean))],
+    paid,
     device: o.device(b) === 'mobile' ? 'mobile' : 'desktop',
     bot: false, // realViews() already removed bots
     memory,

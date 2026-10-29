@@ -662,7 +662,7 @@ export const RULES = {
   adReferrer: /doubleclick|googlesyndication|googleadservices|amazon-adsystem|imasdk\.googleapis|adnxs|adsrvr|criteo|taboola|outbrain|teads|themediatrust/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|ask\.com|aol\.com|search\.brave\.com|qwant\.com|seznam\.cz|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|snapchat\.com|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|youtu\.be|threads\.net|whatsapp\.com|line\.me|bsky\.app)$/i,
-  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|anthropic\.com|copilot\.microsoft\.com|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
+  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|anthropic\.com|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
   aiUtm: /chatgpt|openai|perplexity|copilot|gemini|claude|deepseek|mistral|grok/i,
   /* ad networks whose click ids mean "an ad inside an AI assistant" (ChatGPT ads: oppref / olref) */
   aiAdNetworks: /^openai$/i,
@@ -690,6 +690,7 @@ export const RULES = {
     'com.reddit.frontpage': 'reddit.com',
     'com.twitter.android': 'x.com',
     'jp.naver.line.android': 'line.me',
+    'com.openai.chatgpt': 'chatgpt.com',
   },
 };
 
@@ -807,7 +808,9 @@ export function classifyAcquisition(b, { siteHost = hostOf(b) } = {}) {
     const stated = suffixType(src) || suffixType(medium);
     const ch = tagChannel(medium) || tagChannel(stripSuffix(src)) || tagChannel(utm.utm_content);
     if (stated) return make(stated, ch || (stated === 'owned' ? 'web' : 'campaign'), vendor);
-    if (RULES.aiUtm.test(src)) return make('earned', 'ai', vendorOf(src) || src.toLowerCase());
+    // an AI tag behind a search referrer is a search result linking a tagged URL: organic search
+    // (https://attribution.now/reclaim-direct-traffic)
+    if (RULES.aiUtm.test(src)) return ref.type === 'search' ? make('earned', 'search', ref.vendor) : make('earned', 'ai', vendorOf(src) || src.toLowerCase());
     if (RULES.paidMedium.test(medium) || RULES.paidMedium.test(src)) return make('paid', ch, vendor);
     if (RULES.ownedMedium.test(medium) || RULES.ownedMedium.test(src)) return make('owned', ch || 'web', vendor);
     if (ref.type === 'internal') return make('owned', 'internal', ref.host);

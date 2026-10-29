@@ -21,10 +21,12 @@
 /* ---------- built-in signal classification (kept small: this ships to every visitor) ---------- */
 
 export const SIGNALS = {
-  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|copilot\.microsoft\.com|gemini\.google\.com|meta\.ai|deepseek\.com|mistral\.ai|grok\.com|you\.com|phind\.com)$/i,
+  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|meta\.ai|deepseek\.com|mistral\.ai|grok\.com|you\.com|phind\.com)$/i,
   aiUtm: /chatgpt|openai|perplexity|copilot|gemini|claude|deepseek|mistral|grok/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|search\.brave\.com|qwant\.com|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|threads\.net|bsky\.app)$/i,
+  // in-app referrers (android-app://com.openai.chatgpt/ has the host com.openai.chatgpt)
+  apps: { 'com.openai.chatgpt': 'chatgpt.com' },
   bot: /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|prerender|preview/i,
   mobileUa: /Mobi|Android|iPhone|iPad/i,
   // ad click ids on the landing URL → network (same names as Optel's `paid` checkpoint)
@@ -49,14 +51,20 @@ function sameSite(host, siteHost) {
   return !!host && !!siteHost && (host === siteHost || base(host) === base(siteHost));
 }
 
-/** direct | internal | search | social | ai | other */
-export function sourceOf(refHost, siteHost, utm = {}) {
-  if (SIGNALS.aiUtm.test(utm.source || '')) return 'ai';
-  if (!refHost) return 'direct';
-  if (sameSite(refHost, siteHost)) return 'internal';
-  if (SIGNALS.ai.test(refHost)) return 'ai';
-  if (SIGNALS.search.test(refHost)) return 'search';
-  if (SIGNALS.social.test(refHost)) return 'social';
+/**
+ * direct | internal | search | social | ai | other
+ * AI after https://attribution.now/reclaim-direct-traffic: an AI referrer or utm_source counts,
+ * but a search referrer wins (Google results linking a chatgpt.com-tagged URL are organic search)
+ * and a ChatGPT ad click (`paid: ['openai']`) is paid, not an AI citation.
+ */
+export function sourceOf(refHost, siteHost, utm = {}, paid = []) {
+  const host = SIGNALS.apps[refHost] || refHost;
+  const ai = !paid.includes('openai') && (SIGNALS.aiUtm.test(utm.source || '') || SIGNALS.ai.test(host));
+  if (host && SIGNALS.search.test(host)) return 'search';
+  if (ai) return 'ai';
+  if (!host) return 'direct';
+  if (sameSite(host, siteHost)) return 'internal';
+  if (SIGNALS.social.test(host)) return 'social';
   return 'other';
 }
 
@@ -182,16 +190,17 @@ export function browserSignals(rules) {
   const utm = Object.fromEntries(UTM.map((k) => [k, (q.get(`utm_${k}`) || '').toLowerCase()]));
   const refHost = (q.get('ref') || hostOf(document.referrer)).replace(/^(www|m)\./, '');
   const siteHost = u.hostname.replace(/^www\./, '');
+  const paid = [...new Set(Object.entries(SIGNALS.paidParams)
+      .filter(([p]) => q.has(p))
+      .map(([, n]) => n))];
   const ua = navigator.userAgent;
   const mobile = (navigator.userAgentData && navigator.userAgentData.mobile)
     || SIGNALS.mobileUa.test(ua) || window.matchMedia('(max-width: 599px)').matches;
   return {
     refHost,
-    source: sourceOf(refHost, siteHost, utm),
+    source: sourceOf(refHost, siteHost, utm, paid),
     utm,
-    paid: [...new Set(Object.entries(SIGNALS.paidParams)
-      .filter(([p]) => q.has(p))
-      .map(([, n]) => n))],
+    paid,
     device: mobile ? 'mobile' : 'desktop',
     bot: SIGNALS.bot.test(ua) || navigator.webdriver === true,
     memory: readMemory(rules),
