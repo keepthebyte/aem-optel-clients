@@ -10,6 +10,17 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Changed
+- AI assistant attribution follows https://attribution.now/reclaim-direct-traffic, in
+  `classifyAcquisition` and the `homepage-cohorts` engine (`sourceOf`):
+  - A `utm_source` like `chatgpt.com` behind a search referrer is organic search (a search
+    result linking a tagged URL), not AI.
+  - The ChatGPT Android app referrer `android-app://com.openai.chatgpt/` is ChatGPT.
+  - Copilot referrers `copilot.com`, `copilot.cloud.microsoft` and
+    `m365copilotapp.svc.cloud.microsoft` are AI.
+  - `sourceOf` takes the view's ad networks: a ChatGPT ad click (`oppref`/`olref`) is no
+    longer `source: 'ai'`. Match it with `paid: ['openai']`.
+
 ### Fixed
 - `homepage-cohorts-video` render: each scene's narration is levelled to the same loudness
   before the mix. Scenes are voiced one request each and came back up to 12 dB apart; only

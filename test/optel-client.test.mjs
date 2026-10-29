@@ -190,6 +190,19 @@ test('acquisition: real-world tagging seen on production domains', () => {
     { checkpoint: 'utm', source: 'utm_source', target: 'openai' }, { checkpoint: 'utm', source: 'utm_medium', target: 'paid_openai' }])).label, 'paid:ai:chatgpt');
   // ChatGPT citation: earned AI
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'chatgpt.com' }])).label, 'earned:ai:chatgpt');
+  // ChatGPT ad that also carries the citation tag: still the ad
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://chatgpt.com/' }, { checkpoint: 'paid', source: 'openai', target: 'oppref' },
+    { checkpoint: 'utm', source: 'utm_source', target: 'chatgpt.com' }])).label, 'paid:ai:chatgpt');
+  // attribution.now/reclaim-direct-traffic: a chatgpt.com tag behind a Google referrer is organic search
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://www.google.com/' }, { checkpoint: 'utm', source: 'utm_source', target: 'chatgpt.com' }])).label, 'earned:search:google');
+  // ChatGPT Android app, Copilot hosts and tags, Gemini for Workspace, Perplexity apps
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'android-app://com.openai.chatgpt/' }])).label, 'earned:ai:chatgpt');
+  ['https://copilot.com/', 'https://copilot.cloud.microsoft/', 'https://m365copilotapp.svc.cloud.microsoft/'].forEach((source) => {
+    assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source }])).label, 'earned:ai:copilot', source);
+  });
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'copilot.com?form=MG0AUO' }])).label, 'earned:ai:copilot');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'geminiforbusiness' }])).label, 'earned:ai:gemini');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'perplexity' }])).label, 'earned:ai:perplexity');
   // Facebook ad that also carries a DV360 dclid: Facebook, not Google
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'http://m.facebook.com/' }, { checkpoint: 'paid', source: 'doubleclick', target: 'dclid' }, { checkpoint: 'paid', source: 'facebook', target: 'fbclid' },
     { checkpoint: 'utm', source: 'utm_source', target: 'Facebook' }, { checkpoint: 'utm', source: 'utm_medium', target: 'Paid_Social' }])).label, 'paid:social:facebook');
