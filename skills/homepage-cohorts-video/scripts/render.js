@@ -12,7 +12,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, execFileSync } from 'node:child_process';
+import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -105,8 +105,22 @@ if (scenes.length === 1) f += '[0:v]null[v];';
 const total = starts[starts.length - 1] + scenes[scenes.length - 1].dur;
 const au = scenes.map((s, i) => (s.audio ? { file: s.audio, at: starts[i] + LEAD } : null)).filter(Boolean);
 const ain = au.flatMap((a) => ['-i', a.file]);
+// each scene is a separate TTS request and comes back at its own loudness (10 dB apart is common):
+// bring every scene to the same integrated loudness first, then normalise the mix
+const NARRATION_LUFS = -20;
+const lufs = (file) => {
+  const log = spawnSync('ffmpeg', ['-nostats', '-i', file, '-af', 'ebur128', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+  const m = [...log.matchAll(/^\s+I:\s+(-?[\d.]+) LUFS/gm)].pop();
+  return m ? Number(m[1]) : null;
+};
 if (au.length) {
-  au.forEach((a, j) => { const ms = Math.round(a.at * 1000); f += `[${scenes.length + j}:a]adelay=${ms}|${ms}[a${j}];`; });
+  au.forEach((a, j) => {
+    const ms = Math.round(a.at * 1000);
+    const l = lufs(a.file);
+    const gain = l === null || l < -70 ? 0 : Math.max(-15, Math.min(15, NARRATION_LUFS - l));
+    console.error(`audio ${path.basename(a.file)}: ${l ?? '?'} LUFS, ${gain >= 0 ? '+' : ''}${gain.toFixed(1)} dB`);
+    f += `[${scenes.length + j}:a]volume=${gain.toFixed(2)}dB,adelay=${ms}|${ms}[a${j}];`;
+  });
   f += `${au.map((_, j) => `[a${j}]`).join('')}amix=inputs=${au.length}:normalize=0,loudnorm=I=-16:TP=-1.5,apad[a]`;
 } else {
   f += `anullsrc=r=44100:cl=stereo[a]`;
