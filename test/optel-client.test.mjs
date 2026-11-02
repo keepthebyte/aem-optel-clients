@@ -203,6 +203,20 @@ test('acquisition: real-world tagging seen on production domains', () => {
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'copilot.com?form=MG0AUO' }])).label, 'earned:ai:copilot');
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'geminiforbusiness' }])).label, 'earned:ai:gemini');
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'perplexity' }])).label, 'earned:ai:perplexity');
+  // rum-distiller#145: copilot, gemini, claude only as whole words
+  ['capgemini', 'eventcopilot.ai', 'm365copilot', 'claudette'].forEach((target) => {
+    assert.ok(!optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target }])).label.includes(':ai'), target);
+  });
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://cr.m365copilotapp.svc.cloud.microsoft/' }])).label, 'earned:ai:copilot');
+  // Muse, Meta's personal agent
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://muse.ai/' }])).label, 'earned:ai:muse');
+  // a blog post on openai.com or anthropic.com is a referral, not an assistant answer
+  ['https://openai.com/index/customer-story/', 'https://help.openai.com/', 'https://www.anthropic.com/customers/x'].forEach((source) => {
+    assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source }])).channel, 'referral', source);
+  });
+  // rum-distiller#145: an AI referrer beats tags (not click ids)
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://chatgpt.com/' }, { checkpoint: 'utm', source: 'utm_medium', target: 'newsletter' }])).label, 'earned:ai:chatgpt');
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://gemini.google.com/' }, { checkpoint: 'utm', source: 'utm_source', target: 'google' }, { checkpoint: 'utm', source: 'utm_medium', target: 'cpc' }])).label, 'earned:ai:gemini');
   // Facebook ad that also carries a DV360 dclid: Facebook, not Google
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'http://m.facebook.com/' }, { checkpoint: 'paid', source: 'doubleclick', target: 'dclid' }, { checkpoint: 'paid', source: 'facebook', target: 'fbclid' },
     { checkpoint: 'utm', source: 'utm_source', target: 'Facebook' }, { checkpoint: 'utm', source: 'utm_medium', target: 'Paid_Social' }])).label, 'paid:social:facebook');
