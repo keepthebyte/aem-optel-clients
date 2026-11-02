@@ -662,8 +662,10 @@ export const RULES = {
   adReferrer: /doubleclick|googlesyndication|googleadservices|amazon-adsystem|imasdk\.googleapis|adnxs|adsrvr|criteo|taboola|outbrain|teads|themediatrust/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|ask\.com|aol\.com|search\.brave\.com|qwant\.com|seznam\.cz|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|snapchat\.com|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|youtu\.be|threads\.net|whatsapp\.com|line\.me|bsky\.app)$/i,
-  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|openai\.com|perplexity\.ai|claude\.ai|anthropic\.com|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
-  aiUtm: /chatgpt|openai|perplexity|copilot|gemini|claude|deepseek|mistral|grok/i,
+  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|perplexity\.ai|claude\.ai|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|muse\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
+  /* `chatgpt` is tagged in many shapes (chatgptads, chatgpt_conversion); copilot, gemini and claude
+     are words in other names (capgemini, eventcopilot.ai, claudette), so they must stand alone (rum-distiller) */
+  aiUtm: /chatgpt|openai|perplexity|(?<![a-z0-9])(copilot|gemini(forbusiness)?|claude|anthropic)(?![a-z0-9])|deepseek|mistral|grok/i,
   /* ad networks whose click ids mean "an ad inside an AI assistant" (ChatGPT ads: oppref / olref) */
   aiAdNetworks: /^openai$/i,
   /* Brand naming conventions that state the type in the tag itself: utm_source=social_p (paid),
@@ -695,8 +697,8 @@ export const RULES = {
 };
 
 const VENDORS = [
-  [/chatgpt|openai/i, 'chatgpt'], [/perplexity/i, 'perplexity'], [/claude|anthropic/i, 'claude'], [/copilot/i, 'copilot'],
-  [/gemini|bard|notebooklm/i, 'gemini'], [/meta\.ai/i, 'meta-ai'], [/deepseek/i, 'deepseek'], [/mistral/i, 'mistral'], [/grok|x\.ai/i, 'grok'],
+  [/chatgpt|openai/i, 'chatgpt'], [/perplexity/i, 'perplexity'], [/(?<![a-z0-9])(claude|anthropic)(?![a-z0-9])/i, 'claude'],
+  [/(?<![a-z0-9])copilot(?![a-z0-9])|(^|\.)m365copilotapp\./i, 'copilot'], [/(?<![a-z0-9])gemini(forbusiness)?(?![a-z0-9])|bard|notebooklm/i, 'gemini'], [/meta\.ai/i, 'meta-ai'], [/(^|\.)muse\.ai$/i, 'muse'], [/deepseek/i, 'deepseek'], [/mistral/i, 'mistral'], [/grok|x\.ai/i, 'grok'],
   [/google|gclid|dclid|doubleclick|dv360|gdn|adwords|googlesyndication/i, 'google'], [/instagram|(^|[^a-z])ig([^a-z]|$)/i, 'instagram'],
   [/facebook|fbclid|(^|[^a-z])fb([^a-z]|$)|(^|[^a-z])meta([^a-z]|$)/i, 'facebook'], [/bing|msclkid/i, 'bing'], [/microsoft/i, 'microsoft'],
   [/tiktok|ttclid/i, 'tiktok'], [/youtube|youtu\.be|^yt$/i, 'youtube'], [/linkedin|lnkd/i, 'linkedin'], [/twitter|(^|\.)x\.com|(^|\.)t\.co$/i, 'x'],
@@ -747,7 +749,7 @@ export function classifyReferrer(url, siteHost = '') {
  *   vendor   'google' | 'facebook' | 'chatgpt' | ... or ''
  *   label    'paid:search:google' (rum-distiller style; split on ':' to facet)
  *
- * Order of evidence: ad click ids (`paid`) → utm tags → email tool ids (`email`) → referrer.
+ * Order of evidence: ad click ids (`paid`) → AI referrer → utm tags → email tool ids (`email`) → referrer.
  * @returns {{ type: string, channel: string, vendor: string, label: string, referrer: string, utm: object } | null}
  */
 export function classifyAcquisition(b, { siteHost = hostOf(b) } = {}) {
@@ -802,6 +804,9 @@ export function classifyAcquisition(b, { siteHost = hostOf(b) } = {}) {
       || (/doubleclick|dv360/i.test(network) ? 'display' : '') || (['google', 'bing', 'microsoft'].includes(vendor) ? 'search' : ['facebook', 'instagram', 'linkedin', 'x', 'pinterest', 'tiktok', 'snapchat', 'reddit'].includes(vendor) ? 'social' : ['youtube'].includes(vendor) ? 'video' : '');
     return make('paid', channel, vendor);
   }
+  // an AI referrer beats every tag but an ad click id: the assistant cited a tagged URL (rum-distiller
+  // classifyVisitAcquisition). A newsletter link quoted in ChatGPT is ChatGPT traffic, not email.
+  if (ref.type === 'ai') return make('earned', 'ai', ref.vendor || ref.host);
   if (src || medium) {
     const generic = /^(social|paid|display|search|video|email|organic|cpc|web)$/i; // 'social_p' names a channel, not a vendor
     const vendor = vendorOf(stripSuffix(src)) || vendorOf(utm.utm_source_platform) || refVendor || (generic.test(stripSuffix(src)) ? '' : stripSuffix(src).toLowerCase());

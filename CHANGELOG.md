@@ -10,6 +10,21 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Changed
+- AI attribution matches Optel / `@adobe/rum-distiller` after
+  [adobe/rum-distiller#145](https://github.com/adobe/rum-distiller/pull/145):
+  - `copilot`, `gemini`, `claude` and `anthropic` count as AI only as whole words, in tags and in
+    `vendorOf`. `utm_source=capgemini` or `eventcopilot.ai` used to be `earned:ai:*`.
+  - In `classifyAcquisition`, an AI referrer beats every utm tag (an ad click id still wins). A
+    ChatGPT referrer with `utm_medium=newsletter` is `earned:ai:chatgpt`, no longer
+    `owned:email:chatgpt`.
+  - `openai.com` and `anthropic.com` are no longer AI referrers: a customer story on the OpenAI
+    blog is a referral. `chatgpt.com`, `chat.openai.com` and `claude.ai` still are.
+  - `muse.ai` (Muse, Meta's personal AI agent) is an AI referrer: `earned:ai:muse`.
+  - `homepage-cohorts` `sourceOf`: any ad click id makes a visit not `ai`, not only ChatGPT ads.
+    Facebook, Google and DV360 ads tagged `utm_source=chatgpt.com` exist (about 0.25% of AI-tagged
+    visits, Oct 22–28 2026).
+
 ## [0.4.0] - 2026-10-29
 
 ### Changed

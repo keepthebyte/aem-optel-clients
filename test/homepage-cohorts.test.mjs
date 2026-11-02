@@ -67,6 +67,11 @@ test('source and intent classification', () => {
   assert.equal(sourceOf('chatgpt.com', 'example.com'), 'ai');
   assert.equal(sourceOf('', 'example.com', { source: 'chatgpt.com' }), 'ai');
   assert.equal(sourceOf('google.co.uk', 'example.com'), 'search');
+  // a Facebook or DV360 ad tagged utm_source=chatgpt.com is paid, not an AI citation
+  assert.equal(sourceOf('', 'example.com', { source: 'chatgpt.com' }, ['facebook']), 'direct');
+  // rum-distiller#145: capgemini is not Gemini
+  assert.equal(sourceOf('', 'example.com', { source: 'capgemini' }), 'direct');
+  assert.equal(sourceOf('', 'example.com', { source: 'geminiforbusiness' }), 'ai');
   // attribution.now/reclaim-direct-traffic
   assert.equal(sourceOf('google.com', 'example.com', { source: 'chatgpt.com' }), 'search', 'a tagged URL in search results');
   assert.equal(sourceOf('chatgpt.com', 'example.com', { source: 'chatgpt.com' }, ['openai']), 'other', 'a ChatGPT ad is paid, not a citation');
