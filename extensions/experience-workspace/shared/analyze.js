@@ -65,6 +65,20 @@ export async function loadWeek({
   return { bundles, failed: failed.length, hours };
 }
 
+/**
+ * Paces partial re-analysis while a week of files loads. `due()` says whether to analyse now;
+ * `run(fn)` times the analysis. The next one waits at least `minGap` ms and at least `factor`
+ * times the last analysis, so a page whose analysis takes 400 ms is re-drawn every ~2.4 s
+ * instead of on every 12th file. `now` is injectable for tests.
+ */
+export function partialPacer({ minGap = 1200, factor = 6, now = () => Date.now() } = {}) {
+  let last = -Infinity; let cost = 0;
+  return {
+    due: () => now() - last >= Math.max(minGap, cost * factor),
+    run(fn) { const t = now(); fn(); cost = now() - t; last = now(); },
+  };
+}
+
 /* ---------- labels ---------- */
 
 const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
@@ -149,6 +163,88 @@ function clickKind(e, pageUrl) {
   const parts = (e.source || '').trim().split(/\s+/);
   if (parts[0] === 'dialog' && !/^(button|a)\b/.test(parts[parts.length - 1] || '')) return 'dialog';
   return kind === 'media' ? 'image' : kind;
+}
+
+/* Site chrome: the header, nav and footer are on every page and in view first. Their images
+   are not the page's content (a header logo is "the first image" on every view, so it made a
+   reach cliff out of the hero), and their links are not the page's next step (the account
+   link in a header is a site task, not what this page offers). */
+const CHROME = /^(header|nav|footer)\b/i;
+export const isChrome = (source) => CHROME.test(String(source || '').trim());
+
+/**
+ * Cohorts measured on this page, from the `audience` checkpoint the homepage-cohorts engine
+ * fires once per view (source = rule id, or `none`; target = arm: `control`, `challenger-1`, or
+ * `poc` on the cohort page itself) and the plugin's `experiment` checkpoint (source = experiment
+ * id, target = variant). null when no view carries one. Per rule and arm: views, sampled
+ * bundles, and the share that touched the content and that followed a link, so a cohort can
+ * be read against its own holdout. Arms under 30 sampled bundles are `lowSample`.
+ */
+export function cohortSplit(bundles, { pageUrl = '' } = {}) {
+  const tagged = bundles.filter((b) => has(b, 'audience'));
+  if (!tagged.length) return null;
+  const views = weightOf(bundles);
+  const exp = {};
+  bundles.forEach((b) => events(b, 'experiment').slice(0, 1).forEach((e) => {
+    const k = `${e.source || ''}`; const x = exp[k] || (exp[k] = { id: k, arms: {} });
+    x.arms[e.target || ''] = (x.arms[e.target || ''] || 0) + (b.weight || 0);
+  }));
+  const rules = {};
+  tagged.forEach((b) => {
+    const e = events(b, 'audience')[0];
+    const id = e.source || 'none'; const arm = e.target || 'poc'; const w = b.weight || 0;
+    const r = rules[id] || (rules[id] = { rule: id, views: 0, bundles: 0, arms: {} });
+    const a = r.arms[arm] || (r.arms[arm] = { arm, views: 0, bundles: 0, engaged: 0, navigated: 0 });
+    r.views += w; r.bundles += 1; a.views += w; a.bundles += 1;
+    const cl = events(b, 'click').filter((c) => classifyClick(c, pageUrl) !== 'consent');
+    if (cl.length) a.engaged += w;
+    if (cl.some((c) => isNavigation(c, pageUrl))) a.navigated += w;
+  });
+  const LOW = 30;
+  const tagViews = weightOf(tagged);
+  return {
+    coverage: ratio(tagViews, views),
+    experiments: Object.values(exp).map((x) => {
+      const total = Object.values(x.arms).reduce((t, v) => t + v, 0);
+      return { id: x.id, arms: Object.entries(x.arms).map(([arm, v]) => ({ arm, views: v, share: ratio(v, total) })).sort((p, q) => q.views - p.views) };
+    }),
+    rules: Object.values(rules).map((r) => ({
+      rule: r.rule,
+      views: r.views,
+      bundles: r.bundles,
+      share: ratio(r.views, tagViews),
+      arms: Object.values(r.arms).map((a) => ({
+        ...a, engagedShare: ratio(a.engaged, a.views), navigatedShare: ratio(a.navigated, a.views), lowSample: a.bundles < LOW,
+      })).sort((p, q) => (p.arm === 'control') - (q.arm === 'control') || q.views - p.views),
+    })).sort((p, q) => (p.rule === 'none') - (q.rule === 'none') || q.views - p.views),
+  };
+}
+
+/** The cohort rule most of a group's views carried (`mobile` views → `mobile-first-visit`). */
+export function dominantRule(bundles, pick) {
+  const counts = {}; let total = 0;
+  bundles.filter(pick).forEach((b) => {
+    const e = events(b, 'audience')[0]; if (!e) return;
+    total += b.weight || 0; counts[e.source || 'none'] = (counts[e.source || 'none'] || 0) + (b.weight || 0);
+  });
+  const [rule, v] = Object.entries(counts).sort((p, q) => q[1] - p[1])[0] || [];
+  return rule && rule !== 'none' ? { rule, share: ratio(v, total) } : null;
+}
+
+/**
+ * Why a page has no telemetry, for both panels. A homepage-cohorts page (`/new`, metadata
+ * `Cohorts: on`, `Robots: noindex`, `Canonical: /`) is never visited at its own URL once it is
+ * promoted: the experimentation plugin swaps its content into the homepage, so its views are
+ * recorded on `/` with an `audience` checkpoint per rule and arm.
+ */
+export function emptyPageNote(path) {
+  const p = normalizePath(path);
+  const lines = ['No sampled traffic for this page in the last 7 days.'];
+  if (p !== '/') {
+    lines.push('If this is a cohort page (metadata Cohorts: on), its visitors reach it through the homepage experiment and are recorded on /, one audience checkpoint per view naming the rule and the arm. Read / for those numbers; the Cohorts panel shows which sections each cohort gets.');
+    lines.push('Otherwise the live URL may differ from this document path, or the page is new or not linked yet.');
+  } else lines.push('Check that the domain is the host visitors see (the www. one matters).');
+  return lines;
 }
 
 const contentClick = (b, pageUrl) => events(b, 'click').some((e) => classifyClick(e, pageUrl) !== 'consent');
@@ -465,11 +561,15 @@ export function analyze(all, { pageUrl = '', hours = [] } = {}) {
   const dead = areas.filter((a) => a.kind === 'dead' || a.kind === 'unknown');
   const pageHost = pageUrl ? new URL(pageUrl).hostname : '';
   const followed = (b) => contentClicks(b).filter((e) => isNavigation(e, pageUrl)).map((e) => e.target);
-  const navigations = top(groupBy(bundles, followed), 8).map((x) => ({
+  const linkRow = (x) => ({
     ...x,
     label: x.key.replace(/^https?:\/\//, '').replace(new RegExp(`^${pageHost}`), ''),
     internal: !!pageHost && new URL(x.key).hostname === pageHost,
-  }));
+  });
+  const navigations = top(groupBy(bundles, followed), 8).map(linkRow);
+  /* the same, without the header, nav and footer: what the page itself sends people to */
+  const followedInPage = (b) => contentClicks(b).filter((e) => !isChrome(e.source) && isNavigation(e, pageUrl)).map((e) => e.target);
+  const pageNavigations = top(groupBy(bundles, followedInPage), 8).map(linkRow);
 
   /* consent banner display */
   const consent = { shown: 0, hidden: 0, suppressed: 0 };
@@ -511,7 +611,7 @@ export function analyze(all, { pageUrl = '', hours = [] } = {}) {
   };
 
   /* content reach (viewmedia as a scroll-depth proxy) */
-  const reach = mediaReach(bundles, { checkpoint: 'viewmedia', top: 100 }).items.map((x) => ({
+  const reach = mediaReach(bundles, { checkpoint: 'viewmedia', top: 100 }).items.filter((x) => !isChrome(x.key)).map((x) => ({
     source: x.key, views: x.views, share: x.share, image: x.media, label: x.media ? imageName(x.media) : sourceLabel(x.key),
   }));
   let cliff = null;
@@ -520,7 +620,7 @@ export function analyze(all, { pageUrl = '', hours = [] } = {}) {
     const drop = 1 - r.share / reach[i - 1].share;
     if (!cliff || drop > cliff.drop) cliff = { from: reach[i - 1], to: r, drop };
   });
-  const anyMedia = weightOf(bundles.filter((b) => has(b, 'viewmedia')));
+  const anyMedia = weightOf(bundles.filter((b) => events(b, 'viewmedia').some((e) => !isChrome(e.source))));
 
   /* traffic shape */
   const dayViews = daily.map((d) => d.views);
@@ -576,11 +676,16 @@ export function analyze(all, { pageUrl = '', hours = [] } = {}) {
       navigated,
       navigatedShare: ratio(navigated, views),
     },
-    clicks: { areas: areas.slice(0, 12), dead: dead.slice(0, 6), deadViews, deadShare: ratio(deadViews, clickedContent), navigations },
+    clicks: { areas: areas.slice(0, 12), dead: dead.slice(0, 6), deadViews, deadShare: ratio(deadViews, clickedContent), navigations, pageNavigations },
     consent: { ...consent, shownShare: ratio(consent.shown, views), actions: consentActions },
     acquisition,
     reach: { items: reach.slice(0, 12), cliff, anyMedia, anyMediaShare: ratio(anyMedia, views) },
     traffic: { peak, median, spike: median && peak ? peak.views / median : 0 },
+    cohorts: cohortSplit(bundles, { pageUrl }),
+    cohortOf: {
+      phone: dominantRule(bundles, (b) => String(b.userAgent || '').startsWith('mobile')),
+      ads: dominantRule(bundles.filter(isVisit), (b) => ['paid'].includes(acq.get(b)?.type) || acq.get(b)?.channel === 'social'),
+    },
   };
   result.findings = findings(result);
   return result;

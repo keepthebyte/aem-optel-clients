@@ -47,8 +47,11 @@ const ratio = (a, b) => (b > 0 ? a / b : null);
 /* Visitor cohorts the payload can tell apart: where they came from, what they are on. */
 export function cohorts(p) {
   const m = p.metrics || {}; const c = {};
-  if (m.paidOrSocialShare >= 0.5) c.ads = { label: `ad and social visitors, ${fmtPct(m.paidOrSocialShare)} of views`, share: m.paidOrSocialShare };
-  if (m.mobileShare >= 0.6) c.phone = { label: `phone visitors, ${fmtPct(m.mobileShare)} of views`, share: m.mobileShare };
+  /* when the page runs homepage-cohorts rules, name the rule most of the group carried, so a
+     finding points at a cohort the site already has (and its section variants) */
+  const rule = (k) => (m.cohortOf?.[k]?.rule ? ` (mostly cohort ${m.cohortOf[k].rule})` : '');
+  if (m.paidOrSocialShare >= 0.5) c.ads = { label: `ad and social visitors, ${fmtPct(m.paidOrSocialShare)} of views${rule('ads')}`, share: m.paidOrSocialShare, rule: m.cohortOf?.ads?.rule || null };
+  if (m.mobileShare >= 0.6) c.phone = { label: `phone visitors, ${fmtPct(m.mobileShare)} of views${rule('phone')}`, share: m.mobileShare, rule: m.cohortOf?.phone?.rule || null };
   return c;
 }
 /* what the dead taps land on: the fixture names blocks, live telemetry names what was tapped */
@@ -70,6 +73,13 @@ const nextStep = (p) => (p.metrics?.topLink?.label ? `the link visitors follow m
    rethink or another team's workflow. A provisional rule, see README. */
 export function deriveFindings(p) {
   const m = p.metrics || {};
+  /* no sampled views: every share below would be 0 of 0, and "100% never touch" is not a
+     finding. The panel says why there is nothing instead. */
+  if (m.views === 0) {
+    return {
+      actions: [], redesigns: [], talking: [], working: null, context: [], empty: true,
+    };
+  }
   const actions = []; const talking = []; const context = []; const redesigns = []; let working = null;
   const touched = 1 - (m.noTouchShare ?? 1);
   const coh = cohorts(p);
@@ -432,11 +442,14 @@ export function payloadFromInsights(r, { path, title, url, language = 'en-US' } 
       tapRate: ads && search ? { search: search.engagedShare, ads: ads.engagedShare } : null,
       redirect: r.redirects?.redirected ? { share: r.redirects.redirectedShare, addedMs: r.redirects.msMedian, lcpRedirectedMs: r.redirects.lcpP75Redirected, lcpDirectMs: r.redirects.lcpP75Direct, topSource: top?.label || 'ad networks', team: 'paid media' } : null,
       consent: consentClicks != null ? { dismissShareOfClicks: consentClicks, team: 'web engineering' } : null,
-      topLink: r.clicks?.navigations?.[0] ? { label: r.clicks.navigations[0].label, share: e.views ? r.clicks.navigations[0].views / e.views : null } : null,
+      // the page's own most-followed link; header, nav and footer links are site tasks
+      topLink: r.clicks?.pageNavigations?.[0] ? { label: r.clicks.pageNavigations[0].label, share: e.views ? r.clicks.pageNavigations[0].views / e.views : null } : null,
+      cohortOf: r.cohortOf || null,
     },
     blocks: (r.reach?.items || []).slice(0, 6).map((x, i) => ({ id: `block-${i}`, label: x.label, note: `reach ${fmtPct(x.share)}` })),
     deadTapLabels: (r.clicks?.dead || []).slice(0, 3).map((x) => x.label || x.source).filter(Boolean),
     aiSurface: r.aiSurface ? { fetches: r.aiSurface.hits, featuredEstimate: r.aiSurface.est, citationToUseRatio: null, methodologyVersion: 'per-assistant factors (ai-surface.json)', clickThroughs28d: r.aiReferrals?.pageviews28d ?? null, assistants: r.aiSurface.agents } : null,
+    cohorts: r.cohorts || null,
     trafficNote: r.traffic?.spike >= 3 ? `Traffic peaked at ${r.traffic.spike.toFixed(0)}x the median day; the week is shaped by a burst.` : 'A steady week with no campaign burst.',
     details: detailsFromInsights(r),
   };
