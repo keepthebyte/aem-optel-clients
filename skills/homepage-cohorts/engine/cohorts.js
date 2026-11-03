@@ -291,7 +291,7 @@ export function apply(main, keys) {
  * Entry point for scripts.js loadEager(), after runExperimentation() and decorateMain().
  * @returns the context (also on window.cohorts) or null when this page doesn't run cohorts
  */
-export function runCohorts(main, rules, { sampleRUM, getMetadata } = {}) {
+export function runCohorts(main, rules, { sampleRUM, getMetadata, force } = {}) {
   const exp = rules.experiment || 'homepage-cohorts';
   const { body } = document;
   const inExperiment = body.classList.contains(`experiment-${exp}`);
@@ -300,8 +300,18 @@ export function runCohorts(main, rules, { sampleRUM, getMetadata } = {}) {
   const arm = inExperiment ? (body.dataset.variant || 'control') : 'poc';
   let ctx;
   try {
-    ctx = resolve(rules);
-    apply(main, arm === 'control' ? ['default'] : ctx.keys);
+    // force = { rule, experience, intent, keys }: an editor preview showing a picked variation
+    ctx = force
+      ? {
+        rule: force.rule || null,
+        experience: force.experience,
+        intent: force.intent || null,
+        keys: force.keys,
+        label: force.label || '',
+        forced: true,
+      }
+      : resolve(rules);
+    apply(main, arm === 'control' && !force ? ['default'] : ctx.keys);
   } catch (e) {
     // never show every variant at once: fall back to the original sections
     apply(main, ['default']);
@@ -311,7 +321,7 @@ export function runCohorts(main, rules, { sampleRUM, getMetadata } = {}) {
   }
   ctx.arm = arm;
   body.dataset.cohort = ctx.rule || 'none';
-  body.dataset.experience = arm === 'control' ? 'default' : ctx.experience;
+  body.dataset.experience = arm === 'control' && !force ? 'default' : ctx.experience;
   if (sampleRUM) sampleRUM('audience', { source: ctx.rule || 'none', target: arm });
   window.cohorts = ctx;
   return ctx;

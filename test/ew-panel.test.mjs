@@ -70,3 +70,28 @@ test('who sees a section, and preview links', () => {
   assert.equal(previewUrl(o, '/new', { id: 'customer', experience: 'customer', intent: null }, rules), `${o}/new?cohort=from-portal&demo`);
   assert.match(previewUrl(o, '/new', { id: 'prospect:pricing', experience: 'prospect', intent: 'pricing' }, rules), /cohort=campaign&utm_campaign=pricing&demo$/);
 });
+
+test('plain-language names for variations and interests', async () => {
+  const { shortName, intentName } = await import('../skills/homepage-cohorts/engine/ew-panel/model.js');
+  assert.equal(shortName(rules, 'default'), 'Everyone else');
+  assert.equal(shortName(rules, 'prospect'), 'Prospect');
+  assert.equal(shortName(rules, 'prospect:pricing'), 'Prospect · Pricing');
+  assert.equal(intentName('product-a'), 'Product a');
+  assert.equal(intentName(null), 'No interest known');
+});
+
+test('interest sources follow the rules and a variant diff names the swap', async () => {
+  const { interestSources, variantDiff } = await import('../skills/homepage-cohorts/engine/ew-panel/model.js');
+  const src = interestSources(rules, 'prospect');
+  const label = (id) => rules.rules.find((r) => r.id === id).label;
+  assert.ok(src.utm.includes(label('campaign')) && !src.memory.includes(label('campaign')));
+  assert.ok(src.memory.includes(label('returning-interest')) && !src.utm.includes(label('returning-interest')));
+  assert.deepEqual(variantDiff([0, 1, 2], [0, 5, 2]), { added: [5], removed: [1] });
+});
+
+test('audience lists read as words', async () => {
+  const { audienceText } = await import('../skills/homepage-cohorts/engine/ew-panel/model.js');
+  assert.equal(audienceText(rules, ['prospect:pricing', 'prospect', 'mobile']), 'Prospect (Pricing or no interest), Mobile');
+  assert.equal(audienceText(rules, ['prospect:support']), 'Prospect · Support');
+  assert.equal(audienceText(rules, ['default']), 'Everyone else');
+});

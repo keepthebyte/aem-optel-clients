@@ -43,6 +43,7 @@ Copy from this skill's `engine/`:
 | `engine/cohort-rules.js` | `scripts/cohort-rules.js` (then write the site's rules) |
 | `engine/cohort-panel.js` | `scripts/cohort-panel.js` |
 | `engine/cohort-panel.css` | `styles/cohort-panel.css` (theme with the `--cohort-*` properties) |
+| `engine/cohort-preview.js` | `scripts/cohort-preview.js` (Experience Workspace Layout view, §7) |
 
 `cohort-panel.js` imports `./cohorts.js`; keep them side by side.
 
@@ -57,6 +58,7 @@ import {
 import { runExperimentation, runExperimentationLazy } from './experiment-loader.js';
 import cohortRules from './cohort-rules.js';
 import { runCohorts, rememberVisit, watchSignIn } from './cohorts.js';
+import { previewForce, listenForPicks } from './cohort-preview.js';
 
 const experimentationConfig = {
   prodHost: 'www.example.com', // the production host
@@ -72,7 +74,10 @@ async function loadEager(doc) {
   if (main) {
     decorateMain(main);
     // 2. after decoration (sections carry their metadata), before the first section shows
-    runCohorts(main, cohortRules, { sampleRUM, getMetadata });
+    // in the Experience Workspace Layout view: the variation picked in the Cohorts panel (§7)
+    const force = previewForce();
+    const cohort = runCohorts(main, cohortRules, { sampleRUM, getMetadata, force });
+    if (cohort) listenForPicks(force?.id || 'default');
     document.body.classList.add('appear');
     await loadSection(main.querySelector('.section'), waitForFirstImage);
   }
@@ -163,9 +168,10 @@ test('portal visitors are customers', () => assert.equal(matchRule(rules, s({ re
 
 ## 7. Experience Workspace panel: who sees which section
 
-`engine/ew-panel/` is a tool panel for the cohort page: pick an experience and see the sections
-that visitor gets, in their order; put the cursor in a section to see who it is for; a matrix of
-every section by every experience; and checks for what the canvas cannot show (a `Cohorts` value
+`engine/ew-panel/` is a tool panel for the cohort page: pick a page variation (most visitors
+first) and see the sections that visitor gets, in their order, with the interest variants
+explained (where an interest comes from, what it swaps); put the cursor in a section to see who
+it is for; a matrix of every section by every variation; and checks for what the canvas cannot show (a `Cohorts` value
 no rule produces, a slot with no default, a key the engine ignores, and the holdout check: the
 default view of the page against the homepage, section for section).
 
@@ -194,6 +200,17 @@ panel can be tried before it reaches `main`.
 - **Shares** per experience come from `cohorts.json` when it is published at
   `/cohorts/cohorts.json` (size.js output). That file is aggregated Optel data on a public
   host: publish it only where that is fine, otherwise the panel just leaves shares out.
+- **Layout view follows the panel**: picking a variation (or an interest) reloads the canvas
+  Layout view as that variation; Content view keeps showing every section. The canvas serves the
+  panel and the Layout page from the same `{ref}--{site}--{org}.preview.da.live` origin, so
+  `scripts/cohort-preview.js` passes the pick over `localStorage` + `BroadcastChannel` and the
+  page hands it to `runCohorts({ force })`. It only runs inside that preview iframe: visitors on
+  `*.aem.page` / `*.aem.live` never read it, and a pick expires after 2 hours. Needs the §3
+  wiring; without it the panel works and the Layout view stays on what the author's own visit
+  matches.
+- **Page metadata in the live document**: the editor's document has no page Metadata block
+  (Experience Workspace edits it in its Page panel), so `Cohorts: on` / `Experiment` come from
+  the published page head; a change there shows in the panel after publishing.
 - **Jumping** to a section uses `actions.scrollTo` when the host has it (not in production
   `da.live` yet); rows stay clickable and highlight the section in the panel either way.
 - **Standalone**: `/tools/cohorts/index.html?path=/new` works outside Experience Workspace.

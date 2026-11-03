@@ -10,6 +10,21 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### homepage-cohorts: Cohorts panel
+- The canvas Layout view follows the page variation picked in the panel: it reloads as that
+  variation (or interest), so an author can switch between them while editing. New
+  `engine/cohort-preview.js` and a `force` option on `runCohorts()`; only inside the
+  Experience Workspace preview iframe, never for visitors. Wiring in `references/install.md`
+  §3 and §7.
+- "Page variations", ordered by share of visitors; the largest is picked first, and the matrix
+  and the "Shown to" chips follow the same order.
+- Interest variants explained: where an interest comes from (the link they came in on, or pages
+  from an earlier visit, with the rules behind each) and what each one swaps on the page.
+- A section dot means one thing: made for this variation (legend under the heading). Audience
+  tags read as words ("Prospect (Pricing or no interest), Mobile").
+- In live mode, page metadata (`Cohorts: on`, `Experiment`) comes from the published page head:
+  the editor's document has none, so the panel warned "no Cohorts: on" on a page that has it.
+
 ### Experience Workspace panels
 - Header, nav and footer are not page content: they are left out of reach (a header logo made
   the reach cliff on a large homepage, "87% see the first image" was the logo) and out of the

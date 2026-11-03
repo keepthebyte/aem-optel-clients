@@ -253,3 +253,61 @@ export function previewUrl(origin, path, exp, rules) {
   u.searchParams.set('demo', '');
   return u.toString().replace(/demo=$/, 'demo').replace(/demo=&/, 'demo&');
 }
+
+/* ---------- plain-language names ---------- */
+
+const INTENT_NAMES = { iphone: 'iPhone', 'home-internet': 'Home internet', switch: 'Switching' };
+
+/** 'home-internet' → 'Home internet', 'iphone' → 'iPhone'. */
+export function intentName(id) {
+  if (!id) return 'No interest known';
+  return INTENT_NAMES[id] || `${id[0].toUpperCase()}${id.slice(1).replace(/-/g, ' ')}`;
+}
+
+/** Short name of a variation key: 'default' → 'Everyone else', 'switcher' → 'Prospect',
+ * 'switcher:iphone' → 'Prospect · iPhone' (the part of the label before ':'). */
+export function shortName(rules, key) {
+  const [exp, intent] = String(key || '').split(':');
+  if (exp === 'default') return 'Everyone else';
+  const label = rules.experiences?.[exp]?.label || exp;
+  const base = label.split(':')[0].trim();
+  return intent ? `${base} · ${intentName(intent)}` : base;
+}
+
+/** Where a variation's interest comes from, given its rules:
+ * { utm: [rule labels], memory: [rule labels] } (a rule with no `intent` reads both). */
+export function interestSources(rules, experience) {
+  const out = { utm: [], memory: [] };
+  const own = (rules.rules || []).filter((r) => r.experience === experience && r.intent !== false);
+  own.forEach((r) => {
+    const label = r.label || r.id;
+    if (r.intent !== 'memory') out.utm.push(label);
+    if (r.intent !== 'utm') out.memory.push(label);
+  });
+  return out;
+}
+
+/** What an interest variant changes against its parent: { added: [i], removed: [i] }. */
+export function variantDiff(parentOrder, order) {
+  return {
+    added: order.filter((i) => !parentOrder.includes(i)),
+    removed: parentOrder.filter((i) => !order.includes(i)),
+  };
+}
+
+/** A Cohorts / Hide For list in words, grouped by variation:
+ * 'switcher:iphone, switcher, mobile' → 'Prospect (iPhone or no interest), Mobile'. */
+export function audienceText(rules, keys) {
+  const groups = new Map();
+  keys.forEach((k) => {
+    const [exp, intent] = k.split(':');
+    if (!groups.has(exp)) groups.set(exp, { base: false, intents: [] });
+    if (intent) groups.get(exp).intents.push(intentName(intent)); else groups.get(exp).base = true;
+  });
+  return [...groups].map(([exp, g]) => {
+    const name = shortName(rules, exp);
+    if (!g.intents.length) return name;
+    const ints = g.intents.join(', ');
+    return g.base ? `${name} (${ints} or no interest)` : `${name} · ${ints}`;
+  }).join(', ');
+}
