@@ -384,3 +384,37 @@ ol.secs li[style*="--c"] .what::before {
   vertical-align: 1px;
   background: var(--c);
 }
+
+/* interest explainer */
+.interest { margin-top: 8px; }
+.interest .sub { margin-top: 4px; }
+
+.interest ul.how {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+}
+
+.interest ul.how li + li { margin-top: 3px; }
+.interest ul.how .sub { font-size: 11px; }
+
+.interest .change {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* what the section-row dot means */
+.legend {
+  font-size: 11px;
+  color: var(--ink-2);
+  margin: 4px 0 6px;
+}
+
+.legend .dot {
+  width: 8px;
+  height: 8px;
+  vertical-align: 0;
+}
+
+.layout-note { margin-top: 6px; }

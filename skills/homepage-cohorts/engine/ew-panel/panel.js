@@ -16,14 +16,15 @@
 /* eslint-disable no-use-before-define */
 import { apply } from '../../scripts/cohorts.js';
 import rules from '../../scripts/cohort-rules.js';
+import { sendPick, readPick } from '../../scripts/cohort-preview.js';
 import {
   COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, audienceOf, lint, holdout,
-  previewUrl, list,
+  previewUrl, list, shortName, audienceText, intentName, interestSources, variantDiff,
 } from './model.js';
 
 const params = new URLSearchParams(window.location.search);
 const app = document.getElementById('app');
-const COLORS = ['#6b7280', '#2563eb', '#e20074', '#0d9488', '#d97706', '#7c3aed', '#0891b2'];
+const COLORS = ['#6b7280', '#2563eb', '#db2777', '#0d9488', '#d97706', '#7c3aed', '#0891b2'];
 
 const state = {
   path: params.get('path') || null,
@@ -54,6 +55,14 @@ const colorOf = (id) => {
   return COLORS[(i < 0 ? COLORS.length - 1 : i) % COLORS.length];
 };
 const expById = (id) => state.exps.find((e) => e.id === id);
+/** The page variations (no interest variants), most visitors first; unknown shares last. */
+const byShare = () => state.exps.filter((e) => !e.intent)
+  .sort((a, b) => (b.share ?? -1) - (a.share ?? -1));
+/** Every variation in display order: most visitors first, interest variants after their parent. */
+const ordered = () => byShare()
+  .flatMap((p) => [p, ...state.exps.filter((e) => e.intent && e.experience === p.id)]);
+const rank = (id) => ordered().findIndex((e) => e.id === id);
+const names = (keys) => audienceText(rules, keys);
 const visible = (s) => s.blocks.length || s.heading;
 
 /** The engine's view of the page for one experience: section order after apply(). */
@@ -84,16 +93,41 @@ function compute() {
   const { sections } = state.doc;
   state.exps = experiencesOf(rules, sections, state.cohortsJson);
   state.views = state.exps.map((e) => viewOf(sections, e));
-  if (!state.pick || !expById(state.pick)) state.pick = state.exps[1]?.id || 'default';
+  if (!state.pick || !expById(state.pick)) {
+    const shown = state.live && readPick();
+    if (shown && expById(shown.id)) {
+      state.pick = shown.id;
+    } else {
+      state.pick = byShare()[0]?.id || 'default';
+      if (state.live) state.syncLayout = true; // tell the Layout view once the page is read
+    }
+  }
 }
 
 /* ---------- rendering ---------- */
 
 function chip(id, off = false) {
   const e = expById(id);
-  const c = h('span', `chip${off ? ' off' : ''}`, e ? e.label.replace(/^(\w+):.*/, '$1') : id);
+  const c = h('span', `chip${off ? ' off' : ''}`, e ? shortName(rules, e.id) : id);
   c.style.setProperty('--c', colorOf(id));
   return c;
+}
+
+/** Pick a variation; in Experience Workspace the Layout view follows. */
+function choose(id) {
+  state.pick = id;
+  if (state.live) {
+    const e = expById(id);
+    sendPick({
+      id: e.id,
+      experience: e.experience,
+      intent: e.intent,
+      keys: e.keys,
+      rule: e.id === 'default' ? null : e.rules[0] || null,
+      label: e.label,
+    });
+  }
+  render();
 }
 
 function jump(i) {
@@ -106,10 +140,10 @@ function jump(i) {
 
 function tagsOf(s, exp, view) {
   const t = h('div', 'tags');
-  if (s.meta.slot) t.append(h('span', 'tag', `slot ${s.meta.slot}`));
+  if (s.meta.slot) t.append(h('span', 'tag', `${s.meta.slot} slot: one of several`));
   if (exp && view?.promoted.includes(s.i)) t.append(h('span', 'tag promo', 'moved up'));
-  if (s.meta.cohorts) t.append(h('span', 'tag', `only ${list(s.meta.cohorts).join(', ')}`));
-  if (s.meta.hideFor) t.append(h('span', 'tag', `hidden for ${list(s.meta.hideFor).join(', ')}`));
+  if (s.meta.cohorts) t.append(h('span', 'tag', `only for ${names(list(s.meta.cohorts))}`));
+  if (s.meta.hideFor) t.append(h('span', 'tag', `hidden for ${names(list(s.meta.hideFor))}`));
   if (s.meta.style) t.append(h('span', 'tag', s.meta.style));
   return t;
 }
@@ -122,8 +156,9 @@ function sectionRow(s, n, exp, view, hidden = false) {
     h('span', 'num', n),
     h('div', '', h('div', 'what', what), heading ? h('div', 'heading', heading) : null, tagsOf(s, exp, view)),
   );
-  const only = list(s.meta.cohorts);
-  if (only.length && !only.includes('default')) li.style.setProperty('--c', colorOf(only[0]));
+  // the dot means one thing: this section was made for the variation you are looking at
+  // (it has a Cohorts list). No dot: the section is on the page for everyone.
+  if (exp && list(s.meta.cohorts).length) li.style.setProperty('--c', colorOf(exp.id));
   li.title = `Section ${s.i + 1} in the document${typeof state.actions?.scrollTo === 'function' ? ' · click to go there' : ''}`;
   li.addEventListener('click', () => jump(s.i));
   return li;
@@ -139,6 +174,7 @@ function renderNow(root) {
     return;
   }
   const who = audienceOf(s.i, state.views);
+  Object.values(who).forEach((ids) => ids.sort((a, b) => rank(a) - rank(b)));
   const { what, heading } = sectionLabel(s);
   const card = h('div', 'card now', h('div', 'what', `Section ${s.i + 1} · ${what}`), heading ? h('div', 'heading', heading) : null);
   const row = (lbl, ids, off) => h('div', 'who', h('span', 'lbl', lbl), ids.length ? ids.map((id) => chip(id, off)) : h('span', 'sub', 'nobody'));
@@ -153,36 +189,84 @@ function renderNow(root) {
 }
 
 function renderPicker(root) {
-  const sections = (id) => state.views.find((x) => x.id === id).order
+  const count = (id) => state.views.find((x) => x.id === id).order
     .filter((i) => visible(state.doc.sections[i])).length;
   const picked = expById(state.pick);
   const grid = h('div', 'exps');
-  state.exps.filter((e) => !e.intent).forEach((e) => {
+  byShare().forEach((e) => {
     const b = h(
       'button',
       'exp',
       h('span', 'n', e.label),
-      h('span', 's', [e.share != null ? `${pct(e.share)} of views · ` : '', `${sections(e.id)} sections`].join('')),
+      h('span', 's', [e.share != null ? `${pct(e.share)} of visitors · ` : '', `${count(e.id)} sections`].join('')),
     );
     b.style.setProperty('--c', colorOf(e.id));
     b.setAttribute('aria-pressed', String(picked?.experience === e.id));
     b.title = e.sub || '';
-    b.addEventListener('click', () => { state.pick = e.id; render(); });
+    b.addEventListener('click', () => choose(e.id));
     grid.append(b);
   });
   root.append(grid);
-  const intents = state.exps.filter((e) => e.intent && e.experience === picked?.experience);
-  if (!intents.length) return;
-  const row = h('div', 'intents', h('span', 'lbl', 'Interest'));
-  [expById(picked.experience), ...intents].forEach((e) => {
-    const b = h('button', 'ichip', e.intent || 'any');
+  if (state.live) {
+    root.append(h('p', 'sub layout-note', `Layout view shows this page variation: ${shortName(rules, state.pick)}. Content view shows every section.`));
+  }
+  renderInterest(root, picked);
+}
+
+/** Interest variants of the picked variation, explained: what an interest is, where it comes
+ * from, and what it changes on the page. */
+function renderInterest(root, picked) {
+  const parent = picked && expById(picked.experience);
+  const variants = state.exps.filter((e) => e.intent && e.experience === picked?.experience);
+  if (!parent || !variants.length) return;
+  const who = shortName(rules, parent.id);
+  const src = interestSources(rules, parent.id);
+  const first = rules.intents?.[0]?.[0] || variants[0]?.intent;
+  const example = first ? `an ${intentName(first)} ad`.replace(/^an ([^aeiouAEIOU])/, 'a $1') : '';
+  const box = h('div', 'card interest');
+  box.append(
+    h('div', 'what', `${who} visitors also get content for what they shop for`),
+    h('p', 'sub', `When we know a visitor's interest, ${who.toLowerCase()} sections made for that interest replace the general ones. We know it from:`),
+  );
+  const how = h('ul', 'how');
+  if (src.utm.length) how.append(h('li', '', h('b', '', 'the link they came in on'), `: an ad or campaign link that names it${example ? `, e.g. ${example}` : ''}`, h('span', 'sub', ` (${src.utm.join(' · ')})`)));
+  if (src.memory.length) how.append(h('li', '', h('b', '', 'pages they looked at before'), ': on an earlier visit, e.g. several pages about one product', h('span', 'sub', ` (${src.memory.join(' · ')})`)));
+  box.append(how);
+  const row = h('div', 'intents', h('span', 'lbl', 'See the page for'));
+  [parent, ...variants].forEach((e) => {
+    const b = h('button', 'ichip', intentName(e.intent));
     b.setAttribute('aria-pressed', String(state.pick === e.id));
-    b.title = e.intent ? `${e.sub} · ${sections(e.id)} sections` : 'No interest known: the generic sections';
     b.style.setProperty('--c', colorOf(e.id));
-    b.addEventListener('click', () => { state.pick = e.id; render(); });
+    b.addEventListener('click', () => choose(e.id));
     row.append(b);
   });
-  root.append(row);
+  box.append(row);
+  const label = (i) => {
+    const { what, heading } = sectionLabel(state.doc.sections[i]);
+    return `"${heading || what}"`;
+  };
+  if (picked.intent) {
+    const pv = state.views.find((v) => v.id === parent.id);
+    const v = state.views.find((x) => x.id === picked.id);
+    const d = variantDiff(pv.order, v.order);
+    const own = v.order.filter((i) => list(state.doc.sections[i].meta.cohorts).includes(picked.id));
+    let text;
+    if (d.added.length) {
+      const instead = d.removed.length ? ` instead of ${d.removed.map(label).join(', ')}` : '';
+      text = `${intentName(picked.intent)}: shows ${d.added.map(label).join(', ')}${instead}`;
+    } else if (own.length) {
+      text = `${intentName(picked.intent)}: ${own.map(label).join(', ')} is made for this interest and is also what ${who.toLowerCase()} visitors with no interest get, so the page is the same.`;
+    } else {
+      text = `${intentName(picked.intent)}: same page as without an interest.`;
+    }
+    box.append(h('p', 'change', text));
+  } else {
+    box.append(h('p', 'change', 'No interest known: the general version, listed below.'));
+  }
+  const known = new Set(variants.map((e) => e.intent));
+  const rest = (rules.intents || []).map(([id]) => id).filter((id) => !known.has(id));
+  if (rest.length) box.append(h('p', 'sub', `Interests with no section of their own (${rest.map(intentName).join(', ')}) get the general version.`));
+  root.append(box);
 }
 
 function renderView(root) {
@@ -190,30 +274,37 @@ function renderView(root) {
   const view = state.views.find((v) => v.id === state.pick);
   const { sections } = state.doc;
   const shown = view.order.map((i) => sections[i]).filter(visible);
-  root.append(h('h2', '', `What ${exp.label} sees`));
-  if (exp.rules.length && exp.id !== 'default') {
-    const names = exp.rules.map((id) => (rules.rules || []).find((r) => r.id === id)?.label || id);
-    root.append(h('p', 'sub', `Rules: ${names.join(' · ')}`));
+  root.append(h('h2', '', `The page for ${shortName(rules, exp.id)}`));
+  if (exp.id === 'default') {
+    root.append(h('p', 'sub', 'Who gets it: visitors no rule matches. They see the original homepage.'));
+  } else if (exp.rules.length) {
+    const why = exp.rules.map((id) => (rules.rules || []).find((r) => r.id === id)?.label || id);
+    root.append(h('p', 'sub', `Who gets it: ${why.join(' · ')}`));
+  }
+  if (shown.some((s) => list(s.meta.cohorts).length)) {
+    const key = h('p', 'legend', h('span', 'dot'), ` made for ${shortName(rules, exp.experience)} · no dot: on the page for everyone`);
+    key.style.setProperty('--c', colorOf(exp.id));
+    root.append(key);
   }
   const ol = h('ol', 'secs');
   shown.forEach((s, k) => ol.append(sectionRow(s, k + 1, exp, view)));
   root.append(ol);
   const hidden = sections.filter((s) => visible(s) && !view.order.includes(s.i));
   if (hidden.length) {
-    const d = h('details', '', h('summary', '', `Not shown to ${exp.label} (${hidden.length})`));
+    const d = h('details', '', h('summary', '', `Not on this page (${hidden.length})`));
     const ol2 = h('ol', 'secs');
     hidden.forEach((s) => ol2.append(sectionRow(s, '–', null, null, true)));
     d.append(ol2);
     root.append(d);
   }
   const actions = h('div', 'actions');
-  const a = h('a', 'btn primary', exp.id === 'default' ? 'Open the original' : `Preview as ${exp.label}`);
+  const a = h('a', 'btn primary', exp.id === 'default' ? 'Open the original' : `Preview as ${shortName(rules, exp.id)}`);
   a.href = previewUrl(window.location.origin, state.path, exp, rules);
   a.target = '_blank';
   a.rel = 'noopener';
   actions.append(a);
   if (state.actions?.sendHTML && exp.id !== 'default') {
-    const ins = h('button', 'btn', `Insert a section for ${exp.label.split(':')[0]}`);
+    const ins = h('button', 'btn', `Insert a section for ${shortName(rules, exp.id)}`);
     ins.addEventListener('click', () => {
       state.actions.sendHTML(`<hr><p>New section for ${exp.label}</p><table><tr><td>section metadata</td></tr><tr><td>Cohorts</td><td>${exp.id}</td></tr></table>`);
     });
@@ -224,10 +315,11 @@ function renderView(root) {
 
 function renderMatrix(root) {
   const { sections } = state.doc;
-  const d = h('details', '', h('summary', '', 'Who sees what (all experiences)'));
+  const d = h('details', '', h('summary', '', 'Who sees what (all page variations)'));
   const table = h('table');
   const head = h('tr', '', h('th', '', ''));
-  state.exps.forEach((e) => { const th = h('th', '', e.label); th.title = e.sub || ''; head.append(th); });
+  const cols = ordered();
+  cols.forEach((e) => { const th = h('th', '', shortName(rules, e.id)); th.title = e.label; head.append(th); });
   table.append(h('thead', '', head));
   const body = h('tbody');
   sections.filter(visible).forEach((s) => {
@@ -235,7 +327,7 @@ function renderMatrix(root) {
     const th = h('th', '', `${s.i + 1} ${heading || what}`);
     th.title = `${what}${heading ? ` · ${heading}` : ''}`;
     const tr = h('tr', `hit${state.selected === s.i ? ' sel' : ''}`, th);
-    state.views.forEach((v) => {
+    cols.map((e) => state.views.find((x) => x.id === e.id)).forEach((v) => {
       const td = h('td');
       if (v.order.includes(s.i)) {
         const dot = h('span', `dot${v.promoted.includes(s.i) ? ' top' : ''}`);
@@ -292,12 +384,12 @@ function render() {
       'div',
       'card',
       h('p', '', 'This page has no cohort sections, so every visitor sees all of it.'),
-      home ? h('p', 'sub', `The homepage's cohort experiences live on ${rules.pocPath || '/new'}: open that page to edit them.`) : null,
+      home ? h('p', 'sub', `The homepage's page variations live on ${rules.pocPath || '/new'}: open that page to edit them.`) : null,
     ));
     return;
   }
   renderNow(app);
-  app.append(h('h2', '', 'Experiences'));
+  app.append(h('h2', '', 'Page variations'));
   renderPicker(app);
   renderView(app);
   renderMatrix(app);
@@ -325,6 +417,7 @@ function setDocument(html, selection, pageMeta = null) {
     state.selected = sectionOfBlock(state.doc.sections, selection.blockIndex);
   }
   compute();
+  if (state.syncLayout) { state.syncLayout = false; choose(state.pick); return; }
   render();
 }
 
@@ -375,12 +468,14 @@ async function startInWorkspace(sdk) {
   state.actions = sdk.actions;
   const ctx = sdk.context || sdk.project || {};
   state.path = ctx.path || '/';
-  await loadSide();
+  // the editor's live HTML carries no page Metadata block (EW edits it in its Page panel):
+  // page-level keys (Cohorts: on, Experiment) come from the published page, the document wins
+  const [, pubMeta] = await Promise.all([loadSide(), readPageMeta(state.path)]);
   try {
     if (typeof sdk.actions.subscribeLiveDocument !== 'function') throw new Error('no live document');
     sdk.actions.subscribeLiveDocument(({ html, selection }) => {
       state.live = true;
-      setDocument(html, selection);
+      setDocument(html, selection, pubMeta);
     });
     // the first callback arrives once the host has the document; until then show the published one
     setTimeout(() => { if (!state.doc) showPublished(state.path); }, 2500);
