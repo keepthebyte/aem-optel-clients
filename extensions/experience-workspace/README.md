@@ -8,6 +8,13 @@ Optel telemetry. They work for any site whose domain key you have.
 | **Page Insights** | [`page-insights/`](page-insights/) | A week of the page's telemetry told as a story: views and devices, the engagement funnel, taps and dead taps, where visitors came from and how much they wanted the page, redirect cost, language, scroll reach, the consent dialog. |
 | **Improve Impact** | [`improve-impact/`](improve-impact/) | What to do about it. **Fix in Experience Workspace**: ranked changes an author can make with what the page already has (text, images, links, anchors, block order), each tagged with the visitor cohort it affects most, with "Ask chat to resolve". **Redesign with Stardust**: changes to a block's design that the editor cannot make yet, each with a brief to paste into Claude Code for the [Stardust skill](https://github.com/adobe/skills/tree/main/plugins/stardust). Plus talking points for other teams and context. |
 
+A third panel, **Cohorts** (which section each visitor cohort sees, while you edit a cohort
+page), ships with the `homepage-cohorts` skill in
+[`skills/homepage-cohorts/engine/ew-panel/`](../../skills/homepage-cohorts/engine/ew-panel/). It
+runs the site's own cohort engine and rules, so it is installed into the site
+(`tools/cohorts/`) rather than served from here: see
+[`install.md` §7](../../skills/homepage-cohorts/references/install.md).
+
 `shared/analyze.js` is the analysis both panels use (labels, intent ladder,
 findings) over [`optel-client.js`](../../optel-client.js) at the repo root;
 `shared/site.js` resolves the per-site settings below.

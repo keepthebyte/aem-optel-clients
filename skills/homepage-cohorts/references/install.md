@@ -160,3 +160,42 @@ import rules from '../scripts/cohort-rules.js';
 const s = (o) => ({ refHost: '', source: 'direct', utm: {}, paid: [], device: 'desktop', bot: false, memory: {}, ...o });
 test('portal visitors are customers', () => assert.equal(matchRule(rules, s({ refHost: 'portal.example.com' })).experience, 'customer'));
 ```
+
+## 7. Experience Workspace panel: who sees which section
+
+`engine/ew-panel/` is a tool panel for the cohort page: pick an experience and see the sections
+that visitor gets, in their order; put the cursor in a section to see who it is for; a matrix of
+every section by every experience; and checks for what the canvas cannot show (a `Cohorts` value
+no rule produces, a slot with no default, a key the engine ignores, and the holdout check: the
+default view of the page against the homepage, section for section).
+
+It runs the site's own `apply()` from `scripts/cohorts.js` with the site's
+`scripts/cohort-rules.js`, so it shows what visitors get rather than a second copy of the
+logic. That is also why it is installed **into the site** and not served from elsewhere: it
+imports those two files, and `*.aem.page` / `*.aem.live` send no CORS headers for scripts.
+
+| From | To |
+| --- | --- |
+| `engine/ew-panel/index.html`, `panel.js`, `model.js`, `cohorts.css` | `tools/cohorts/` |
+
+Register it with a `library` row in the site's Experience Workspace config
+(`https://da.live/config#/{org}/{site}/`):
+
+| title | path |
+| --- | --- |
+| Cohorts | `/tools/cohorts/index.html` |
+
+A relative path follows the branch the canvas is opened on (`?ref=`), so a branch build of the
+panel can be tried before it reaches `main`.
+
+- **Live while editing**: it subscribes to the editor's document (SDK `subscribeLiveDocument`)
+  and maps `selection.blockIndex` to its section. Without that action it reads the published
+  page (`{path}.plain.html`, page metadata from the page head) and says "published".
+- **Shares** per experience come from `cohorts.json` when it is published at
+  `/cohorts/cohorts.json` (size.js output). That file is aggregated Optel data on a public
+  host: publish it only where that is fine, otherwise the panel just leaves shares out.
+- **Jumping** to a section uses `actions.scrollTo` when the host has it (not in production
+  `da.live` yet); rows stay clickable and highlight the section in the panel either way.
+- **Standalone**: `/tools/cohorts/index.html?path=/new` works outside Experience Workspace.
+- Its model has tests (`test/ew-panel.test.mjs` in this repo); copy them next to the site's rule
+  tests if the site changes the panel.
