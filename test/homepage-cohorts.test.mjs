@@ -8,10 +8,10 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import * as optel from '../optel-client.js';
 import {
-  matchRule, matches, sourceOf, intentFrom,
+  matchRule, matches, sourceOf, intentFrom, refHostOf, SIGNALS,
 } from '../skills/homepage-cohorts/engine/cohorts.js';
 import {
-  signalsFromBundle, goalHit, entryOf, ruleOf,
+  signalsFromBundle, goalHit, entryOf, ruleOf, assumesFirstVisit,
 } from '../skills/homepage-cohorts/scripts/lib.js';
 import { defaultView, originalView } from '../skills/homepage-cohorts/scripts/verify.js';
 import rules from '../skills/homepage-cohorts/engine/cohort-rules.js';
@@ -147,7 +147,9 @@ test('size.js → cohorts.json → sankey.js', () => {
   const bundles = [
     ...Array.from({ length: 4 }, () => B([{ checkpoint: 'enter', source: 'https://portal.example.com/' }, { checkpoint: 'click', source: 'a', target: 'https://www.example.com/login' }])),
     ...Array.from({ length: 3 }, () => B([{ checkpoint: 'enter', source: 'https://chatgpt.com/' }])),
-    ...Array.from({ length: 2 }, () => B([{ checkpoint: 'enter', source: '' }], { ua: 'mobile:ios' })),
+    B([{ checkpoint: 'enter', source: '' }], { ua: 'mobile:ios' }),
+    // a click without a target: it opened something (a menu), it is not a destination
+    B([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: 'header button' }], { ua: 'mobile:ios' }),
     B([{ checkpoint: 'enter', source: '' }]),
     B([{ checkpoint: 'enter', source: '' }], { url: 'https://www.example.com/other' }),
   ];
@@ -165,6 +167,13 @@ test('size.js → cohorts.json → sankey.js', () => {
   c.rules.filter((r) => r.modelled).forEach((r) => assert.equal(r.today.goalRate, null));
   // external click targets keep their host
   assert.ok(c.rules.find((r) => r.id === 'from-portal').today.topClicks.some((t) => t.click === '/login'));
+  // clicks that opened something on the page are marked, links are not
+  const mob = c.rules.find((r) => r.id === 'mobile-first-visit');
+  assert.ok(mob.today.topClicks.some((t) => t.click === 'header button' && t.link === false));
+  assert.ok(c.rules.find((r) => r.id === 'from-portal').today.topClicks.every((t) => t.link === true));
+  // Optel cannot see visit counts: a first-visit rule is an upper bound
+  assert.equal(mob.firstVisitAssumed, true);
+  assert.equal(c.rules.find((r) => r.id === 'ai-referred').firstVisitAssumed, false);
   // --path takes a comma list
   run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'b.jsonl'), '--path', '/,/other', '--out', path.join(tmp, 'c2.json')]);
   assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'c2.json'), 'utf8')).meta.bundles, 11);
@@ -216,4 +225,42 @@ test('verify: section metadata as a block or as data-* attributes', () => {
   assert.deepEqual(defaultView(asAttrs), originalView(orig));
   // a new section without Cohorts breaks the holdout
   assert.notDeepEqual(defaultView(`${asAttrs}<div><p>Extra</p></div>`), originalView(orig));
+});
+
+test('in-app referrers: the same app table as optel-client.js', () => {
+  const www = (h) => h.replace(/^www\./, '');
+  assert.deepEqual(
+    Object.fromEntries(Object.entries(SIGNALS.apps).map(([k, v]) => [k, www(v)])),
+    Object.fromEntries(Object.entries(optel.RULES.androidApps).map(([k, v]) => [k, www(v)])),
+  );
+});
+
+test('in-app referrers become the app site, unknown packages are not hosts', () => {
+  assert.equal(refHostOf('android-app://com.facebook.katana/'), 'facebook.com');
+  assert.equal(refHostOf('android-app://com.google.android.youtube/'), 'youtube.com');
+  assert.equal(refHostOf('android-app://com.google.android.googlequicksearchbox/'), 'google.com');
+  assert.equal(refHostOf('android-app://com.google.android.apps.messaging/'), '');
+  assert.equal(refHostOf('https://m.facebook.com/story'), 'facebook.com');
+  assert.equal(refHostOf(''), '');
+  // social apps are social, the YouTube app is not search (google.android.youtube looked like google.*)
+  assert.equal(sourceOf(refHostOf('android-app://com.instagram.android/'), 'example.com'), 'social');
+  assert.equal(sourceOf(refHostOf('android-app://com.google.android.youtube/'), 'example.com'), 'social');
+  assert.equal(sourceOf(refHostOf('android-app://com.google.android.googlequicksearchbox/'), 'example.com'), 'search');
+  assert.equal(sourceOf(refHostOf('android-app://com.openai.chatgpt/'), 'example.com'), 'ai');
+  // callers that still pass a raw package
+  assert.equal(sourceOf('com.google.android.youtube', 'example.com'), 'social');
+  assert.equal(sourceOf('com.google.android.apps.messaging', 'example.com'), 'direct');
+  // and the Node side builds the same signals from a bundle
+  const fb = signalsFromBundle(optel, rules, B([{ checkpoint: 'enter', source: 'android-app://com.facebook.katana/' }], { ua: 'mobile:android' }));
+  assert.equal(fb.refHost, 'facebook.com');
+  assert.equal(fb.source, 'social');
+  assert.equal(matches({ referrer: ['facebook.com'] }, fb, rules), true);
+});
+
+test('first-visit rules without a model are flagged as an upper bound', () => {
+  assert.equal(assumesFirstVisit({ when: { device: 'mobile', visits: { max: 1 } } }), true);
+  assert.equal(assumesFirstVisit({ when: { any: [{ source: 'ai' }, { visits: { max: 1 } }] } }), true);
+  assert.equal(assumesFirstVisit({ when: { visits: { min: 2 }, interest: true }, model: { clickIntent: true } }), false);
+  assert.equal(assumesFirstVisit({ when: { source: 'ai' } }), false);
+  assert.equal(assumesFirstVisit(null), false);
 });

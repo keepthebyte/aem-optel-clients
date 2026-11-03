@@ -6,7 +6,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { matchRule, sourceOf, intentFrom } from '../engine/cohorts.js';
+import {
+  matchRule, sourceOf, intentFrom, refHostOf,
+} from '../engine/cohorts.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -61,8 +63,7 @@ export function signalsFromBundle(o, rules, b, { modelled = true } = {}) {
   const utm = Object.fromEntries(['source', 'medium', 'campaign', 'content', 'term'].map((k) => [k, (utmRaw[`utm_${k}`] || '').toLowerCase()]));
   const siteHost = (o.hostOf(b) || '').replace(/^www\./, '');
   const ref = o.referrerOf(b);
-  let refHost = '';
-  try { refHost = ref ? new URL(ref).hostname.replace(/^(www|m)\./, '') : ''; } catch { refHost = ''; }
+  const refHost = refHostOf(ref);
   const visit = o.isVisit(b);
   const memory = { visits: 1, interests: {} };
   const cl = clicks(o, b);
@@ -118,8 +119,7 @@ export function goalHit(o, goal, b) {
 /** Entry column of the Sankey: a named source from rules.sources, else Optel's acquisition channel. */
 export function entryOf(o, rules, b) {
   const ref = o.referrerOf(b) || '';
-  let host = '';
-  try { host = ref ? new URL(ref).hostname.replace(/^(www|m)\./, '') : ''; } catch { host = ''; }
+  const host = refHostOf(ref);
   const named = (rules.sources || []).find((s) => (s.referrer || []).some((h) => host === h || host.endsWith(`.${h}`)));
   if (named) return named.id;
   if (!o.isVisit(b)) return 'internal';
@@ -137,6 +137,16 @@ export function entryOf(o, rules, b) {
 export const ENTRY_LABELS = {
   direct: 'Direct', search: 'Search', internal: 'Internal navigation', paid: 'Paid', social: 'Social', ai: 'AI assistants', owned: 'Email & owned campaigns', referral: 'Other referrers',
 };
+
+/**
+ * A rule that asks for a first visit (`visits: { max }`) without a `model`. Optel cannot see
+ * visit counts, so size.js counts every view as a first visit: the rule's share is an upper bound
+ * (returning visitors would fall through to later rules or to the original page).
+ */
+export function assumesFirstVisit(rule) {
+  const walk = (w) => !!w && (w.visits?.max != null || [].concat(w.any || []).some(walk));
+  return !!rule && !rule.model && walk(rule.when);
+}
 
 /** Which kind of signal decides a rule (Sankey flow colour). */
 export function signalOf(rule) {

@@ -26,8 +26,22 @@ export const SIGNALS = {
   aiUtm: /chatgpt|openai|perplexity|(?<![a-z0-9])(copilot|gemini(forbusiness)?|claude|anthropic)(?![a-z0-9])|deepseek|mistral|grok/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|search\.brave\.com|qwant\.com|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|threads\.net|bsky\.app)$/i,
-  // in-app referrers (android-app://com.openai.chatgpt/ has the host com.openai.chatgpt)
-  apps: { 'com.openai.chatgpt': 'chatgpt.com' },
+  // in-app referrers: android-app://com.facebook.katana/ → facebook.com. Same table as
+  // RULES.androidApps in optel-client.js (a test keeps them equal), so the browser and size.js
+  // classify an app the way Optel's reports do.
+  apps: {
+    'com.google.android.gm': 'mail.google.com',
+    'com.google.android.googlequicksearchbox': 'google.com',
+    'com.google.android.youtube': 'youtube.com',
+    'com.facebook.katana': 'facebook.com',
+    'com.instagram.android': 'instagram.com',
+    'com.linkedin.android': 'linkedin.com',
+    'com.pinterest': 'pinterest.com',
+    'com.reddit.frontpage': 'reddit.com',
+    'com.twitter.android': 'x.com',
+    'jp.naver.line.android': 'line.me',
+    'com.openai.chatgpt': 'chatgpt.com',
+  },
   bot: /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|prerender|preview/i,
   mobileUa: /Mobi|Android|iPhone|iPad/i,
   // ad click ids on the landing URL → network (same names as Optel's `paid` checkpoint)
@@ -41,7 +55,19 @@ const rx = (s) => (s instanceof RegExp ? s : new RegExp(s, 'i'));
 const arr = (v) => (v == null ? [] : [].concat(v));
 const list = (v) => (v || '').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
 
-function hostOf(url) {
+/**
+ * The referrer host the rules see. In-app referrers (android-app://<package>/) become the app's
+ * site (SIGNALS.apps); an unknown package is not a host (com.google.android.apps.x would read as
+ * google.* = search), so it becomes '' and the view counts as `direct`, as in optel-client.js.
+ */
+export function refHostOf(url) {
+  if (!url) return '';
+  const app = /^android-app:\/\/([^/]+)/i.exec(url);
+  if (app) {
+    const pkg = app[1].toLowerCase();
+    if (SIGNALS.apps[pkg]) return SIGNALS.apps[pkg];
+    return /\.[a-z]{2,}$/.test(pkg) && !/^(com|org|net|io)\./.test(pkg) ? pkg : '';
+  }
   try { return new URL(url).hostname.toLowerCase().replace(/^(www|m)\./, ''); } catch (e) { return ''; }
 }
 
@@ -59,7 +85,7 @@ function sameSite(host, siteHost) {
  * and an ad click (`paid`, e.g. ChatGPT ads `['openai']`) is paid, not an AI citation.
  */
 export function sourceOf(refHost, siteHost, utm = {}, paid = []) {
-  const host = SIGNALS.apps[refHost] || refHost;
+  const host = SIGNALS.apps[refHost] || (/^(com|org|net|io)\.[^.]+\./.test(refHost) ? '' : refHost);
   const ai = !paid.length && (SIGNALS.aiUtm.test(utm.source || '') || SIGNALS.ai.test(host));
   if (host && SIGNALS.search.test(host)) return 'search';
   if (ai) return 'ai';
@@ -189,11 +215,14 @@ export function browserSignals(rules) {
   const u = new URL(window.location.href);
   const q = u.searchParams;
   const utm = Object.fromEntries(UTM.map((k) => [k, (q.get(`utm_${k}`) || '').toLowerCase()]));
-  const refHost = (q.get('ref') || hostOf(document.referrer)).replace(/^(www|m)\./, '');
+  // ?ref= takes a host (portal.example.com) or a full referrer (android-app://com.facebook.katana/)
+  let ref = q.get('ref') || document.referrer;
+  if (ref && !ref.includes('://')) ref = `https://${ref}/`;
+  const refHost = refHostOf(ref);
   const siteHost = u.hostname.replace(/^www\./, '');
   const paid = [...new Set(Object.entries(SIGNALS.paidParams)
-      .filter(([p]) => q.has(p))
-      .map(([, n]) => n))];
+    .filter(([p]) => q.has(p))
+    .map(([, n]) => n))];
   const ua = navigator.userAgent;
   const mobile = (navigator.userAgentData && navigator.userAgentData.mobile)
     || SIGNALS.mobileUa.test(ua) || window.matchMedia('(max-width: 599px)').matches;
