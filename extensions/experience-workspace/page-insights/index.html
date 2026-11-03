@@ -260,7 +260,7 @@ input { font: inherit; padding: 6px 8px; border: 1px solid var(--line-2); border
 <body>
 <div id="app"><p class="stamp">Connecting to Experience Workspace…</p></div>
 <script type="module">
-import { loadWeek, analyze, hourList, normalizePath, fmtNum, langName, fmtMs, aiPlatformLabel, configure } from '../shared/analyze.js';
+import { loadWeek, analyze, hourList, normalizePath, fmtNum, langName, fmtMs, aiPlatformLabel, configure, emptyPageNote, partialPacer } from '../shared/analyze.js';
 import { siteSettings, projectKey, rememberDomain, rememberKey, forgetKey, normalizeDomain } from '../shared/site.js';
 
 const params = new URLSearchParams(location.search);
@@ -846,6 +846,29 @@ function consentChapter(r) {
   return chapter(title, `${n(total)} views interacted with the dialog; ${n(r.engagement.clickedContent)} touched the page's content. It was shown in ${pc(c.shownShare)} of views.`, h('div', '', stack, leg), more('consent', ['The consent checkpoint records whether the dialog was shown or already hidden. Clicks on its controls are recognised by their selectors (OneTrust and the other vendors the distiller knows) and split by what the control does: close, accept, reject, open settings.'], drill));
 }
 
+/* ---------- cohorts ----------
+   Only when the page's views carry the homepage-cohorts `audience` checkpoint: each rule
+   against its own holdout (control arm), with the sample behind every number. */
+const COHORTS_PANEL = params.get('cohorts-panel') || 'cohorts';
+function openCohortsPanel() {
+  if (typeof state.sdk?.actions?.showPanel === 'function') { try { state.sdk.actions.showPanel(COHORTS_PANEL); return true; } catch { /* not in this host */ } }
+  return false;
+}
+function cohortChapter(r) {
+  const c = r.cohorts; if (!c) return null;
+  const cell = (a) => (a ? `${pc(a.engagedShare)} · ${a.bundles.toLocaleString()}${a.lowSample ? ' (low sample)' : ''}` : '–');
+  const rows = c.rules.map((x) => {
+    const control = x.arms.find((a) => a.arm === 'control'); const served = x.arms.find((a) => a.arm !== 'control');
+    return [x.rule === 'none' ? 'No rule matched' : x.rule, pc(x.share), cell(served), cell(control)];
+  });
+  const exp = c.experiments[0];
+  const sub = `${pc(c.coverage)} of this page's views carry a cohort tag.${exp ? ` Experiment ${exp.id}: ${exp.arms.map((a) => `${a.arm} ${pc(a.share)}`).join(', ')}.` : ''} Touched the content, with the sampled views behind each number, for the cohort's own page and for its holdout.`;
+  const drill = table([{ label: 'Rule' }, { label: 'Share', num: true }, { label: 'Cohort page', num: true }, { label: 'Holdout', num: true }], rows);
+  const go = h('button', 'link', 'Which sections each cohort gets: open the Cohorts panel'); go.type = 'button';
+  go.addEventListener('click', () => { if (!openCohortsPanel()) go.replaceWith(h('p', 'cap', `Add a library row titled "Cohorts" (or pass ?cohorts-panel=) to open it from here.`)); });
+  return chapter(['This page is personalized: ', h('span', 'hi', `${c.rules.filter((x) => x.rule !== 'none').length} cohort rules`), ' measured'], sub, h('div', '', drill, go), more('cohorts', ['The homepage-cohorts engine fires one audience checkpoint per view: the first rule that matched (or none) and the arm. Holdout views are classified with the same rules but see the original page, so each rule is compared with itself. Under 30 sampled views per arm a difference cannot be judged yet.']));
+}
+
 /* ---------- frame ---------- */
 /* ---------- share ---------- */
 /* Standalone address of this panel for the same page: same origin as the iframe, so the stored
@@ -977,10 +1000,20 @@ function render() {
 
   const r = state.result;
   if (!r) { if (prev && state.loading) { prev.classList.add('stale'); app.append(prev); } return; }
-  if (!r.sample.views && !state.loading) { app.append(h('p', 'cap', 'No telemetry for this page in the last 7 days: either the path differs on the live site, or the page had no sampled traffic.')); return; }
+  if (!r.sample.views && !state.loading) {
+    const box = h('div', 'cap'); emptyPageNote(state.path).forEach((line) => box.append(h('p', '', line)));
+    if (normalizePath(state.path) !== '/') {
+      const home = h('button', 'link', 'Read / instead'); home.type = 'button';
+      home.addEventListener('click', () => { state.path = '/'; run(); });
+      const coh = h('button', 'link', 'Open the Cohorts panel'); coh.type = 'button';
+      coh.addEventListener('click', () => { if (!openCohortsPanel()) coh.replaceWith(h('span', '', ' (no Cohorts panel in this workspace)')); });
+      box.append(h('p', '', home, ' · ', coh));
+    }
+    app.append(box); return;
+  }
   const body = h('div', 'body');
   const sections = [
-    ['story', storyChapter(r)], ['funnel', funnelChapter(r)], ['week', weekChapter(r)], ['taps', tapsChapter(r)], ['intent', intentChapter(r)],
+    ['story', storyChapter(r)], ['cohorts', cohortChapter(r)], ['funnel', funnelChapter(r)], ['week', weekChapter(r)], ['taps', tapsChapter(r)], ['intent', intentChapter(r)],
     ['redirects', redirectChapter(r)], ['language', languageChapter(r)], ['reach', reachChapter(r)], ['consent', consentChapter(r)],
   ].filter(([, el]) => el);
   sections.forEach(([id, el]) => { el.id = `sec-${id}`; });
@@ -1015,15 +1048,21 @@ async function run() {
     ])
     : Promise.resolve();
   let loaded;
+  /* partial results while the week loads, paced by what an analysis costs: a large page
+     (30k+ sampled views) re-analysed every 12 hours froze the panel for seconds in total */
+  const pace = partialPacer();
   try {
     loaded = await loadWeek({
       domain: S.domain, domainKey: state.domainKey, path: state.path, now,
       onProgress: (done, total, got) => {
         state.done = done; state.total = total;
-        if (done % 12 === 0 || done === total) {
+        if (done < total && pace.due()) {
           cancelAnimationFrame(raf);
-          raf = requestAnimationFrame(() => { state.result = attachAiReferrals(attachAiSurface(analyze(got, { pageUrl, hours: state.hours }))); render(); });
-        } else { const s = app.querySelector('.progress i'); if (s) s.style.width = pc(done / total); }
+          raf = requestAnimationFrame(() => pace.run(() => { state.result = attachAiReferrals(attachAiSurface(analyze(got, { pageUrl, hours: state.hours }))); render(); }));
+        } else {
+          const s = app.querySelector('.progress i'); if (s) s.style.width = pc(done / total);
+          const st = app.querySelector('.stamp'); if (st && st.firstChild?.nodeType === 3) st.firstChild.textContent = `Loading the last 7 days, hour ${done} of ${total}${state.result ? ` · ${n(state.result.sample.views)} views so far` : ''}`;
+        }
       },
     });
   } catch (err) {
@@ -1060,7 +1099,7 @@ if (params.get('path')) {
     app.replaceChildren(h('p', 'stamp', 'No handshake from DA after 8s. Open this from the Experience Workspace tool panel, or append ?path=/some/page to try it standalone.'));
   }, 8000);
   import(`${NX}/nx/utils/sdk.js`).then(({ default: DA_SDK }) => DA_SDK).then((sdk) => {
-    clearTimeout(bootTimer);
+    clearTimeout(bootTimer); state.sdk = sdk;
     const ctx = sdk.context || sdk.project || {};
     S = siteSettings(params, projectKey(sdk)); state.domainKey = S.domainKey;
     state.path = normalizePath(ctx.path || '/');

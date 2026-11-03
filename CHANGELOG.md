@@ -10,6 +10,22 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Experience Workspace panels
+- Header, nav and footer are not page content: they are left out of reach (a header logo made
+  the reach cliff on a large homepage, "87% see the first image" was the logo) and out of the
+  link Improve Impact names as the next step (`clicks.pageNavigations`).
+- Improve Impact on a page with no sampled views shows why instead of "100% never touch" and
+  "100% of visits start as search or a direct visit".
+- A cohort page (`/new`) explains that its views are recorded on `/`, with buttons to read `/`
+  and to open the Cohorts panel (`?cohorts-panel=`).
+- Cohort-aware: `cohortSplit()` (rule × arm from the `audience` checkpoint, engagement against
+  the holdout, low-sample flags) as a Page Insights chapter; Improve Impact's cohort tags name
+  the dominant rule (`dominantRule()`).
+- Page Insights paces partial results by the cost of an analysis (`partialPacer()`): on a page
+  with 32k sampled views a week, load went from 16 s to under 5 s and main-thread blocking from
+  3.5 s to 1.1 s. Improve Impact shows the hour being loaded.
+- README: the `?ref=local` canvas dev loop and the SDK source, per the current EW docs.
+
 ### Changed
 - AI attribution matches Optel / `@adobe/rum-distiller` after
   [adobe/rum-distiller#145](https://github.com/adobe/rum-distiller/pull/145):

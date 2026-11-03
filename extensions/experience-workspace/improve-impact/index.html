@@ -361,6 +361,27 @@ function accordion(id, title, count, body, { open = false } = {}) {
   return d;
 }
 
+/* No sampled views: say why (often a cohort page, whose views are recorded on /) instead of
+   ranking "100% never touch" findings computed from 0 of 0. */
+const COHORTS_PANEL = params.get('cohorts-panel') || 'cohorts';
+function renderEmpty(p) {
+  const box = h('section'); box.append(h('h2', '', 'Nothing to improve from yet'));
+  (p.emptyNote || []).forEach((line) => box.append(h('p', 'intro', line)));
+  const row = h('div', 'row');
+  if ((p.page.path || '/') !== '/') {
+    const home = h('button', 'btn secondary', 'Read / instead'); home.type = 'button';
+    home.addEventListener('click', () => { log('empty-home', {}, { action: true }); start('/'); });
+    row.append(home);
+    if (typeof state.sdk?.actions?.showPanel === 'function') {
+      const coh = h('button', 'btn secondary', 'Open the Cohorts panel'); coh.type = 'button';
+      coh.addEventListener('click', () => { log('empty-cohorts', {}, { action: true }); try { state.sdk.actions.showPanel(COHORTS_PANEL); } catch { /* not in this host */ } });
+      row.append(coh);
+    }
+  }
+  box.append(row);
+  app.append(box);
+}
+
 function render() {
   const p = state.payload; const d = state.derived;
   app.replaceChildren();
@@ -368,6 +389,7 @@ function render() {
      canvas moves to another document. Reloading the panel fires the iframe's load event
      again, so the host redoes the handshake with the page that is open now. */
   if (state.note) app.append(h('p', 'stamp', state.note));
+  if (d.empty) { renderEmpty(p); return; }
 
   /* 1. header metrics */
   const tiles = h('div', 'tiles');
@@ -445,12 +467,22 @@ async function loadPayload(path) {
   if (!S.domain || !S.domainKey || !path) return null;
   const analyzer = await loadAnalyzer();
   if (!analyzer) throw new Error('the telemetry analyzer did not load');
-  const { loadWeek, analyze, hourList, normalizePath, configure } = analyzer;
+  const {
+    loadWeek, analyze, hourList, normalizePath, configure, emptyPageNote,
+  } = analyzer;
   configure({ paidMedium: S.paidMedium });
   const now = new Date(); const hours = hourList(now);
   const pageUrl = S.pageUrl(normalizePath(path));
-  const { bundles } = await loadWeek({ domain: S.domain, domainKey: S.domainKey, path, now });
-  return payloadFromInsights(analyze(bundles, { pageUrl, hours }), { path, url: pageUrl });
+  const { bundles } = await loadWeek({
+    domain: S.domain,
+    domainKey: S.domainKey,
+    path,
+    now,
+    onProgress: (done, total) => { const st = app.querySelector('.stamp'); if (st) st.textContent = `Loading the last 7 days, hour ${done} of ${total}…`; },
+  });
+  const payload = payloadFromInsights(analyze(bundles, { pageUrl, hours }), { path, url: pageUrl });
+  if (!payload.metrics.views) payload.emptyNote = emptyPageNote(path);
+  return payload;
 }
 
 /* Asks for what the row URL left out: the host (remembered per project) and its key

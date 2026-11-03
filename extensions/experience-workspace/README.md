@@ -35,11 +35,42 @@ link switches to.
 | `ai` | Optional, off by default. `on` shows the AI-surface section (Adobe Brand Visibility); needs `site-id` and the workspace token. Work in progress. |
 | `insights-panel` | Optional, Improve Impact only. The Page Insights panel name when its row has another title. |
 | `autosend` | Optional, Improve Impact only. `0` leaves the chat prompt for review instead of sending it. |
+| `cohorts-panel` | Optional. The name of the site's cohort panel (default `cohorts`, a row titled "Cohorts"), opened from a cohort page with no traffic and from Page Insights' cohort chapter. |
 
 Whatever the URL leaves out the panel asks for once: the domain is remembered
 per project, the key per host, both in this browser. A key in the row URL is
 visible to everyone who can read the site's config; leave it out to have
 each author enter it.
+
+## Pages with cohorts
+
+On a site running the `homepage-cohorts` skill, the homepage's views carry an `audience`
+checkpoint (rule id × arm). Page Insights then adds a chapter that reads each rule against its
+own holdout, with the sampled views behind every number, and Improve Impact names the rule
+most of a finding's group carried ("phone visitors, 62% of views (mostly cohort
+mobile-first-visit)").
+
+The cohort page itself (`/new`, metadata `Cohorts: on`) has no traffic at its own URL once it
+is promoted: the experimentation plugin serves it on `/`. Both panels say so instead of
+reporting empty numbers, with a button to read `/` and one to open the Cohorts panel.
+
+Header, nav and footer (selectors starting `header`, `nav`, `footer`) are left out of reach
+and of "the link visitors follow most": a header logo is the first image on every view and an
+account link is a site task, not the page's next step.
+
+## Develop against a canvas
+
+The panels import the Experience Workspace SDK from `https://da.live/nx/utils/sdk.js`
+([Developing apps & plugins](https://www.aem.live/docs/ew/developing/apps-plugins)); `?nx=<branch>`
+imports it from a da-nx branch instead. To work on a panel inside the canvas:
+
+- point the library row at your fork's GitHub Pages URL, or
+- keep the row's path relative to the site (`/tools/...`), run `aem up`, and open the canvas
+  with `?ref=local`: Experience Workspace then iframes the panel from `http://localhost:3000`.
+
+The panels read telemetry from `bundles.aem.page` with the domain key; they make no DA calls,
+so they do not need the SDK's token (`actions.daFetch` is for panels that read or write DA
+content, like the cohort panel).
 
 ## Try them standalone
 
