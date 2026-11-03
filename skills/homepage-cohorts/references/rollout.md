@@ -2,6 +2,16 @@
 
 Each step is reversible on its own, and none of them edits the homepage's content.
 
+## Writing `/new`
+
+Copy the homepage document the way the site's content is authored. For DA sites that is the
+DA admin API (`admin.da.live/source/{org}/{site}/new.html`). For a **Source Bus site**
+(Experience Workspace; `content.source.type: "sourcebus"` in
+`admin.hlx.page/config/{org}/sites/{site}.json`) `admin.da.live` writes do not reach the site
+(preview answers "No handler found"): write to `api.aem.live/{org}/sites/{site}/source/new.html`,
+with `POST` when the page references external images so they are copied in, then preview and
+publish as usual.
+
 ## Stage 1: POC (no effect on the homepage)
 
 Pick one, with the user:

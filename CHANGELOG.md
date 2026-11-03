@@ -43,6 +43,15 @@ change report shapes or classification results; read **Changed** before upgradin
 - `homepage-cohorts` `size.js`: `today.topClicks[].link`. `false` marks a click with no target (a
   menu, search box or carousel control); its `click` is the element selector, not a destination.
 
+### Documentation
+- `homepage-cohorts`, from a large-brand homepage POC: read a paid rule's top clicks before
+  calling it a prospect (brand search ads behave like customers); count tagged views before
+  designing per-intent heroes; weak and first-visit rules are upper bounds; in-app referrers
+  (`rules.md`). Block variants before new blocks, cohort changes to the shared header through
+  `body[data-experience]`, cohort designs from Stardust in their own workspace
+  (`content-model.md`). Boilerplate setup and loader lint fixes, rule tests on `.rule`
+  (`install.md`). Writing `/new` on a Source Bus site (`rollout.md`).
+
 ## [0.4.0] - 2026-10-29
 
 ### Changed

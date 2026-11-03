@@ -87,7 +87,10 @@ node scripts/sankey.js --in cohorts.json --out sankey
 ```
 
 Read `cohorts.json`: share and `lowSample` per rule, `today.topClicks` and `didNothing`
-per cohort (design input), `modelled` rules (estimates). Iterate on order and conditions.
+per cohort (design input), `modelled` and `firstVisitAssumed` rules (estimates and upper
+bounds). Iterate on order and conditions. Before agreeing an experience for a paid rule, look
+at its top clicks: brand search ads on a known brand behave like customers
+(`references/rules.md`, items 7-9).
 Show the user the Sankey and the table, and agree the experiences before building anything:
 which cohorts, what each gets first, what goes away for it.
 
@@ -97,6 +100,8 @@ which cohorts, what each gets first, what goes away for it.
 2. Create `/new` as an unchanged copy of the homepage, then add the cohort sections
    (`references/content-model.md`). Build new blocks with the `aem-edge-delivery-services`
    skills (`content-driven-development`, `building-blocks`), reusing blocks where possible.
+   For designs proposed by Stardust, and for cohort changes to the shared header, see
+   `references/content-model.md`.
 3. Page metadata of `/new`: `Cohorts: on`, `Robots: noindex`, `Canonical: /`.
 4. `node scripts/verify.js --original https://{branch}--{repo}--{org}.aem.page/ --cohort https://{branch}--{repo}--{org}.aem.page/new` must pass.
 5. Fill `scenarios` in the rules with the cohorts that matter most, and check each one with
