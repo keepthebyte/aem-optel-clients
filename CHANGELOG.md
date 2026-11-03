@@ -25,6 +25,24 @@ change report shapes or classification results; read **Changed** before upgradin
     Facebook, Google and DV360 ads tagged `utm_source=chatgpt.com` exist (about 0.25% of AI-tagged
     visits, Oct 22–28 2026).
 
+### Fixed
+- `homepage-cohorts` engine: in-app referrers are classified like Optel's reports. `SIGNALS.apps`
+  is now the same table as `RULES.androidApps` (a test keeps them equal), and the new `refHostOf()`
+  turns `android-app://<package>/` into the app's site for the browser and for `size.js` /
+  `review.js`. Before, the Facebook, Instagram and LinkedIn apps were `other` instead of `social`,
+  the YouTube app was `search` (`com.google.android.youtube` matched `google.*`), and `referrer`
+  conditions never matched an app. An unknown package is not a host (`direct`), as in the client.
+- `homepage-cohorts` engine passes the boilerplate's airbnb lint as `install.md` says (indent in
+  `browserSignals`).
+
+### Added
+- `homepage-cohorts` `size.js`: `firstVisitAssumed: true` on rules with `visits: { max }` and no
+  `model`. Optel cannot see visit counts, so every view counts as a first visit and the share is an
+  upper bound (a "first visit on a phone" rule took 52% of a large homepage, returning phones
+  included). Printed in the summary, explained in `meta.note`.
+- `homepage-cohorts` `size.js`: `today.topClicks[].link`. `false` marks a click with no target (a
+  menu, search box or carousel control); its `click` is the element selector, not a destination.
+
 ## [0.4.0] - 2026-10-29
 
 ### Changed

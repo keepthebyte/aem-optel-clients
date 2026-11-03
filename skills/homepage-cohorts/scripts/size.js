@@ -10,7 +10,7 @@
  */
 import fs from 'node:fs';
 import {
-  loadOptel, loadRules, readBundles, parseArgs, ruleOf, goalHit, entryOf, ENTRY_LABELS, signalOf, clicks,
+  loadOptel, loadRules, readBundles, parseArgs, ruleOf, goalHit, entryOf, ENTRY_LABELS, signalOf, clicks, assumesFirstVisit,
 } from './lib.js';
 
 const args = parseArgs(process.argv.slice(2));
@@ -76,15 +76,23 @@ const columns = [
   },
 ];
 
+// a click without a target opened something on the page (a menu, a search box, a carousel): its
+// key is the element's selector, marked so a reader does not take it for a destination
+const NO_LINK = '\u0000';
 const clickKey = (b, c) => {
-  if (!c.target) return c.source;
+  if (!c.target) return `${NO_LINK}${c.source}`;
   try {
     const u = new URL(c.target, b.url);
     return u.host === new URL(b.url).host ? o.normalizePath(u.pathname) : `${u.host}${o.normalizePath(u.pathname)}`;
   } catch { return c.target; }
 };
 const topClicks = (bs) => o.groupBy(bs, (b) => clicks(o, b).map((c) => clickKey(b, c)), { top: 5, total: o.weightOf(bs) })
-  .map((g) => ({ click: g.key, share: g.share, bundles: g.bundles }));
+  .map((g) => {
+    const link = !String(g.key).startsWith(NO_LINK);
+    return {
+      click: link ? g.key : g.key.slice(1), link, share: g.share, bundles: g.bundles,
+    };
+  });
 
 const ruleRows = ruleList.map((r) => {
   const bs = rows.filter((x) => x.rule === r.id).map((x) => x.b);
@@ -95,6 +103,8 @@ const ruleRows = ruleList.map((r) => {
     experience: r.experience,
     signal: signalOf(r.id === 'none' ? null : r),
     modelled: !!r.model,
+    // visits.max without a model: every view counted as a first visit, the share is an upper bound
+    firstVisitAssumed: assumesFirstVisit(r),
     views: w,
     share: share(w),
     bundles: bs.length,
@@ -117,7 +127,7 @@ const out = {
     end: times[times.length - 1],
     views: total,
     bundles: views.length,
-    note: 'Sampled page views, bots and prerenders excluded. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today.',
+    note: 'Sampled page views, bots and prerenders excluded. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today. Rules with `firstVisitAssumed: true` ask for a first visit, which Optel cannot see either: every view counts as one, so their share is an upper bound. `topClicks[].link: false` is a click that opened something on the page (menu, search, carousel) rather than a link: its `click` is the element selector.',
   },
   columns,
   links: [...linkMap.values()].map((l) => ({ ...l, rules: [...l.rules] })),
@@ -134,4 +144,4 @@ const json = JSON.stringify(out, null, 1);
 if (args.out) fs.writeFileSync(args.out, json); else process.stdout.write(`${json}\n`);
 const pct = (x) => `${(x * 100).toFixed(1)}%`;
 console.error(`${out.meta.domain}${pagePath}: ${views.length} bundles, ~${Math.round(total).toLocaleString()} views`);
-ruleRows.forEach((r) => console.error(`  ${r.id.padEnd(22)} ${pct(r.share).padStart(6)}  ${String(r.bundles).padStart(5)} bundles${r.lowSample ? '  (low sample)' : ''}${r.modelled ? '  (modelled)' : ''}`));
+ruleRows.forEach((r) => console.error(`  ${r.id.padEnd(22)} ${pct(r.share).padStart(6)}  ${String(r.bundles).padStart(5)} bundles${r.lowSample ? '  (low sample)' : ''}${r.modelled ? '  (modelled)' : ''}${r.firstVisitAssumed ? '  (upper bound: every view counted as a first visit)' : ''}`));
