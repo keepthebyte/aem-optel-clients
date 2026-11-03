@@ -20,7 +20,14 @@ blocks it:
 ```
 
 The README's loader can fail the site's lint in a few places; fix them in the site's
-copy. The engine files below pass the boilerplate's airbnb lint as they are.
+copy. The usual one is `import/no-relative-packages` on both `import('../plugins/experimentation/src/index.js')`
+(the plugin has its own `package.json`): add `// eslint-disable-next-line import/no-relative-packages`
+above each, and `plugins/` to `.eslintignore`. The engine files below pass the boilerplate's
+airbnb lint as they are.
+
+On a fresh aem-boilerplate checkout, `npm i` needs `--legacy-peer-deps` (its pinned `eslint@8`),
+and if eslint then fails with `Cannot find module '@babel/core/package.json'`, add it:
+`npm i -D @babel/core --legacy-peer-deps`.
 Register the Sidekick "Experimentation" button (README, "Enabling the simulation panel").
 
 If the plugin is already installed, keep it; check `VERSION` in
@@ -138,7 +145,11 @@ with experiment metadata. Weights in the bundles adjust, so the review stays cor
 
 ## 6. Tests
 
-Add the site's rules to the site's tests, so a rules change cannot silently reorder cohorts:
+Add the site's rules to the site's tests, so a rules change cannot silently reorder cohorts.
+`matchRule()` returns `{ rule, experience, intent, keys, label }`: assert on `.rule` (the id) or
+`.experience`, and `.rule === null` for the original page. The boilerplate's `package.json` is not
+`type: module`, so name the test `*.test.mjs`; Node prints a harmless "Reparsing as ES module"
+warning when the test (or `size.js`) imports `scripts/cohort-rules.js`.
 
 ```js
 import { test } from 'node:test';

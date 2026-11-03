@@ -79,6 +79,25 @@ cookie banner.
    a click pattern as well as from `clickIntent`.
 6. **One goal per rule, the cohort's own job**: sign-in for customers, quote or contact for
    prospects, any navigation for mobile explorers. Not "any click" everywhere.
+7. **Read `today.topClicks` before you pick a rule's experience.** "Clicked an ad" is not
+   "prospect" on a well-known brand: brand search ads (`gclid` with no product or offer tag) are
+   largely customers typing the brand to sign in. On one telco homepage the brand-search
+   cohort's top clicks were the account menu and the login link, like the portal cohort's. Split
+   paid rules by what the tags say (an offer or product campaign → prospect; no tag → look at the
+   clicks), and give a customer-shaped paid rule a goal that counts both sign-in and shopping.
+8. **Check how many views carry the tags an intent rule needs.** Large advertisers often land
+   paid traffic on deep pages and send the homepage only untagged brand clicks: a
+   `utm: { any: 'phone|plan|switch' }` rule sized at 0.1% on a homepage with 12% ad clicks. Before
+   you design per-intent heroes (`experience:intent` sections), count the views with tags
+   (`--report checkpoint:utm`). When few do, get the intent from on-device interest instead.
+9. **Weak signals last, and read their size as an upper bound.** A `device` or first-visit rule
+   catches everything that is left; `size.js` marks first-visit rules `firstVisitAssumed` (Optel
+   cannot see visit counts, so every view is a first visit). A rule that takes half the page is
+   "the rest of mobile", not a cohort: say so, or split it by what those views click.
+10. **In-app referrers** (`android-app://com.google.android.googlequicksearchbox/` is the Google
+   app, not your own app) are mapped to the app's site by `refHostOf()`, so write
+   `referrer: ['facebook.com']`, not the package name. Look at the raw `enter` sources before
+   naming a referrer after a guess.
 
 ## Privacy
 
