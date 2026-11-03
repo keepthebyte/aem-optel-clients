@@ -58,6 +58,10 @@ change report shapes or classification results; read **Changed** before upgradin
   included). Printed in the summary, explained in `meta.note`.
 - `homepage-cohorts` `size.js`: `today.topClicks[].link`. `false` marks a click with no target (a
   menu, search box or carousel control); its `click` is the element selector, not a destination.
+- `homepage-cohorts` Experience Workspace panel (`engine/ew-panel/`, install into `tools/cohorts/`):
+  which section each experience sees, live while editing (SDK `subscribeLiveDocument`), who the
+  section under the cursor is for, a section × experience matrix, metadata checks and the holdout
+  check (default view = the homepage). Runs the site's own `apply()` and rules (`install.md` §7).
 
 ### Documentation
 - `homepage-cohorts`, from a large-brand homepage POC: read a paid rule's top clicks before

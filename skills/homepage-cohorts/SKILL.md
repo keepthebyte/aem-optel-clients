@@ -101,7 +101,8 @@ which cohorts, what each gets first, what goes away for it.
    (`references/content-model.md`). Build new blocks with the `aem-edge-delivery-services`
    skills (`content-driven-development`, `building-blocks`), reusing blocks where possible.
    For designs proposed by Stardust, and for cohort changes to the shared header, see
-   `references/content-model.md`.
+   `references/content-model.md`. Install the Cohorts panel (`references/install.md` §7) so
+   authors see who gets which section while they edit `/new`.
 3. Page metadata of `/new`: `Cohorts: on`, `Robots: noindex`, `Canonical: /`.
 4. `node scripts/verify.js --original https://{branch}--{repo}--{org}.aem.page/ --cohort https://{branch}--{repo}--{org}.aem.page/new` must pass.
 5. Fill `scenarios` in the rules with the cohorts that matter most, and check each one with
