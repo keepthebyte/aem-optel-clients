@@ -94,6 +94,12 @@ for (const pg of cfg.pages) {
     });
     if (collapsed) { console.error(`${pg.id}: collapsed ${collapsed} scroll-driven sticky section(s); keepSticky: true to keep them`); await page.waitForTimeout(300); }
   }
+  // a text response (a page's .md for agents, a .txt) is one <pre>: its longest line would set the
+  // page width (7,000 px for a markdown table) and the shot shrinks to nothing on stage. Keep it
+  // a window wide, unwrapped and readable, the way a browser tab shows it.
+  if (await page.evaluate(() => /^text\/(plain|markdown)/.test(document.contentType))) {
+    await page.addStyleTag({ content: `html,body{overflow:hidden!important;width:${page.viewportSize().width}px!important;margin:0}pre{font-size:17px;line-height:1.5;padding:28px 36px;margin:0;white-space:pre!important;word-wrap:normal!important;overflow:hidden;width:${page.viewportSize().width - 72}px}` });
+  }
   if (pg.css) await page.addStyleTag({ content: pg.css });
   if (!pg.keepPanel && !pg.click?.includes('cohort')) await page.evaluate(() => document.querySelector('.cohort-panel')?.remove());
   if (pg.click) { await page.click(pg.click); await page.waitForTimeout(700); }

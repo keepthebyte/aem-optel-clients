@@ -10,6 +10,28 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### homepage-cohorts
+- `size.js`: per rule, views per 7-day window (`weeks`, plus `meta.weeks` / `meta.fullWeeks`),
+  `growth` (last full week over the first, null without two full weeks of 10+ bundles),
+  `today.navigated` and `today.vsAll` (engagement against all views), and `standsOut`: a rule
+  under 5% of views that is clearly more engaged or growing 2× or more. The log marks them.
+  Small, valuable audiences (AI-referred visits) no longer get lost in a share-sized Sankey.
+- `references/rules.md` item 11: the site's own app (app → web tags and deep-link hosts,
+  web → app clicks, and account tasks on phones as the size of an app prompt).
+- `references/content-model.md`: reused images on new backgrounds (transparent brand graphics
+  vanish on a brand-colour card); size media by aspect ratio, not `height: 100%`, which
+  stretches in the Experience Workspace preview; every page is also served as `{path}.md`.
+- `references/install.md` §7: hard-reload the canvas after a code push.
+
+### homepage-cohorts-video
+- `stage.html`: a page `url` that starts with a host is shown as it is, so rebuilt and cohort
+  pages can show their delivery host while live-site captures keep the brand's.
+- `capture.js`: text responses (`.md`, `.txt`) are captured a window wide, unwrapped and
+  readable; the longest line no longer sets the page width.
+- Pitch template: optional `standout` (audience call-out from `standsOut`) and `agents`
+  (the page, then its `.md`) scenes. SKILL.md: Experience Workspace frames as full-resolution
+  screenshots, and no lines about the platform a team is leaving.
+
 ## [0.5.0] - 2026-11-03
 
 ### homepage-cohorts: Cohorts panel

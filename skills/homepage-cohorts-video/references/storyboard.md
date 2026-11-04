@@ -21,7 +21,10 @@ reaches `{stat1}`, `"stat1+1.5"` is 1.5 s later, a number is seconds from the sc
 light to read on white, e.g. a yellow).
 
 `sankey` and `review` are paths relative to the storyboard. `host` is shown in the browser
-address bar.
+address bar before each page's `url`; a `url` that starts with a host
+(`main--site--org.aem.live/`) is shown as it is. Show the brand's host on captures of the
+live site and the delivery host on the rebuilt or cohort pages, so the address bar never
+claims a page is something it is not.
 
 ## Every scene
 
@@ -40,7 +43,15 @@ Scenes crossfade into each other (0.5 s).
 **`title`**: `kicker`, `title` (HTML: `<em>` is the accent colour, `<br>`), `sub`.
 
 **`stats`**: big numbers on the background. `title`, `stats: [{ at, until, n, t, muted }]`
-(`n` the number as shown, `t` the label, `muted` greys a card).
+(`n` the number as shown, `t` the label, `muted` greys a card). Also the audience call-out for
+a rule with `standsOut`: growth (`growth`), and its engagement against all views with both
+numbers in the label (`"28% vs 52% for all visits"`).
+
+An **agents** scene is a `browser` scene with two pages: the cohort page, then the same
+document as markdown (capture `path: "/new.md"` or `"/index.md"`; Edge Delivery serves every
+page as `.md`), `url` ending in `.md`, scrolled to the offer the page leads with. The markdown
+carries every variation with its `Cohorts` section metadata: say "the same content", not "the
+page this visitor sees".
 
 **`browser`**: full-page captures in a browser frame.
 

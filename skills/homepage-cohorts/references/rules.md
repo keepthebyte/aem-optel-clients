@@ -98,6 +98,14 @@ cookie banner.
    app, not your own app) are mapped to the app's site by `refHostOf()`, so write
    `referrer: ['facebook.com']`, not the package name. Look at the raw `enter` sources before
    naming a referrer after a guess.
+11. **The site's own app** shows up three ways. App → web: the app tags its links
+   (`utm_medium=<app name>` or `utm_source`) or opens them through a deep-link host
+   (`*.app.link`, `*.page.link`); count both (`--report checkpoint:utm`, raw `enter` sources)
+   before writing an app rule. Web → app: clicks to the app stores or the site's `/apps` page,
+   a goal for a rule that promotes the app. And the opportunity: phone views whose clicks go to
+   sign-in, bill pay or the account dashboard are the tasks an account app does better; their
+   share sizes an app prompt on the customer experience on phones. Present it as a proposal
+   with that number until the holdout has measured it.
 
 ## Privacy
 
