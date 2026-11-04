@@ -7,6 +7,10 @@
  *   node size.js --rules scripts/cohort-rules.js --bundles home.jsonl --out cohorts.json
  *
  * Output: cohorts.json { meta, columns, links, rules, experiences } (read by sankey.js, review.js and the video skill).
+ * Per rule: share, what its views do today (against all views in `vsAll`), views per 7-day
+ * window (`weeks`, growth from the first to the last full week) and `standsOut`: a small rule
+ * whose views are clearly more engaged than the page, or growing fast. Those are the
+ * audiences to call out by name: in a share-sized Sankey they are a sliver.
  */
 import fs from 'node:fs';
 import {
@@ -94,9 +98,40 @@ const topClicks = (bs) => o.groupBy(bs, (b) => clicks(o, b).map((c) => clickKey(
     };
   });
 
+const times = views.map((b) => b.time || b.timeSlot).sort();
+const WEEK = 7 * 24 * 3600 * 1000;
+const t0 = Date.parse(times[0]);
+const nWeeks = Math.max(1, Math.ceil((Date.parse(times[times.length - 1]) - t0 + 1) / WEEK));
+const fullWeeks = Math.floor((Date.parse(times[times.length - 1]) - t0 + 1) / WEEK);
+const weeksOf = (bs) => {
+  const w = Array(nWeeks).fill(0);
+  bs.forEach((b) => { w[Math.min(nWeeks - 1, Math.floor((Date.parse(b.time || b.timeSlot) - t0) / WEEK))] += b.weight || 0; });
+  return w;
+};
+const rateOf = (bs, level) => {
+  const w = o.weightOf(bs);
+  return w ? o.weightOf(bs.filter((b) => o.activityOf(b) === level)) / w : 0;
+};
+const allNothing = rateOf(views, 'nothing');
+const allNavigated = rateOf(views, 'navigated');
+
 const ruleRows = ruleList.map((r) => {
   const bs = rows.filter((x) => x.rule === r.id).map((x) => x.b);
   const w = o.weightOf(bs);
+  const weeks = weeksOf(bs);
+  // growth needs two full weeks with enough views in each; the last window is often partial
+  const firstW = bs.filter((b) => Date.parse(b.time || b.timeSlot) - t0 < WEEK).length;
+  const lastW = bs.filter((b) => Math.floor((Date.parse(b.time || b.timeSlot) - t0) / WEEK) === fullWeeks - 1).length;
+  const growth = fullWeeks >= 2 && firstW >= 10 && lastW >= 10 ? weeks[fullWeeks - 1] / weeks[0] : null;
+  const navigated = rateOf(bs, 'navigated');
+  const nothing = rateOf(bs, 'nothing');
+  const vsAll = {
+    navigated: allNavigated ? navigated / allNavigated : null,
+    didNothing: allNothing ? nothing / allNothing : null,
+  };
+  // modelled rules are picked by what views click: their engagement is circular
+  const standsOut = r.id !== 'none' && !r.model && bs.length >= o.LOW_SAMPLE && share(w) < 0.05
+    && ((vsAll.navigated ?? 0) >= 1.5 || (vsAll.didNothing ?? 1) <= 0.6 || (growth ?? 0) >= 2);
   return {
     id: r.id,
     label: r.label || r.id,
@@ -112,13 +147,17 @@ const ruleRows = ruleList.map((r) => {
     today: {
       // a modelled rule's views are picked by the clicks that model its memory: its goal rate today is circular
       goalRate: r.model ? null : (bs.length ? bs.filter((b) => goalHit(o, r.goal, b)).length / bs.length : 0),
-      didNothing: bs.length ? o.weightOf(bs.filter((b) => o.activityOf(b) === 'nothing')) / w : 0,
+      didNothing: bs.length ? nothing : 0,
+      navigated,
+      vsAll,
       topClicks: topClicks(bs),
     },
+    weeks,
+    growth,
+    standsOut,
   };
 });
 
-const times = views.map((b) => b.time || b.timeSlot).sort();
 const out = {
   meta: {
     domain: o.hostOf(views[0]),
@@ -127,15 +166,19 @@ const out = {
     end: times[times.length - 1],
     views: total,
     bundles: views.length,
-    note: 'Sampled page views, bots and prerenders excluded. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today. Rules with `firstVisitAssumed: true` ask for a first visit, which Optel cannot see either: every view counts as one, so their share is an upper bound. `topClicks[].link: false` is a click that opened something on the page (menu, search, carousel) rather than a link: its `click` is the element selector.',
+    weeks: nWeeks,
+    fullWeeks,
+    note: 'Sampled page views, bots and prerenders excluded. `weeks[]` are 7-day windows from `start`; the last one is partial when `weeks > fullWeeks`. `growth` is the last full week over the first, null without two full weeks of 10+ bundles each. `today.vsAll` compares a rule with all views (1 = the same; `didNothing` below 1 is better). `standsOut` marks a small rule (under 5% of views) that is clearly more engaged or growing 2x or more: call it out by name. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today. Rules with `firstVisitAssumed: true` ask for a first visit, which Optel cannot see either: every view counts as one, so their share is an upper bound. `topClicks[].link: false` is a click that opened something on the page (menu, search, carousel) rather than a link: its `click` is the element selector.',
   },
   columns,
   links: [...linkMap.values()].map((l) => ({ ...l, rules: [...l.rules] })),
   rules: ruleRows,
   experiences: columns[3].nodes.map((n) => ({ id: n.id.slice(2), label: n.label, views: n.views, share: share(n.views) })),
   today: {
-    didNothing: o.weightOf(views.filter((b) => o.activityOf(b) === 'nothing')) / total,
+    didNothing: allNothing,
+    navigated: allNavigated,
     topClicks: topClicks(views),
+    weeks: weeksOf(views),
     devices: o.groupBy(views, o.device),
   },
 };
@@ -144,4 +187,4 @@ const json = JSON.stringify(out, null, 1);
 if (args.out) fs.writeFileSync(args.out, json); else process.stdout.write(`${json}\n`);
 const pct = (x) => `${(x * 100).toFixed(1)}%`;
 console.error(`${out.meta.domain}${pagePath}: ${views.length} bundles, ~${Math.round(total).toLocaleString()} views`);
-ruleRows.forEach((r) => console.error(`  ${r.id.padEnd(22)} ${pct(r.share).padStart(6)}  ${String(r.bundles).padStart(5)} bundles${r.lowSample ? '  (low sample)' : ''}${r.modelled ? '  (modelled)' : ''}${r.firstVisitAssumed ? '  (upper bound: every view counted as a first visit)' : ''}`));
+ruleRows.forEach((r) => console.error(`  ${r.id.padEnd(22)} ${pct(r.share).padStart(6)}  ${String(r.bundles).padStart(5)} bundles${r.lowSample ? '  (low sample)' : ''}${r.modelled ? '  (modelled)' : ''}${r.firstVisitAssumed ? '  (upper bound: every view counted as a first visit)' : ''}${r.growth ? `  ${r.growth.toFixed(1)}x week 1 → ${fullWeeks}` : ''}${r.standsOut ? `  ← stands out: ${(r.today.vsAll.navigated ?? 0).toFixed(1)}x as likely to go on to another page, ${(r.today.vsAll.didNothing ?? 0).toFixed(2)}x the no-click rate` : ''}`));

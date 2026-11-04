@@ -38,6 +38,10 @@ From the `homepage-cohorts` skill: `cohorts.json`, `sankey.svg` (run `sankey.js`
 them first and write down the numbers the story will use: total views and weeks, the share
 that clicks nothing, the device split, the 3–4 rules to feature (largest share × value; a
 small cohort with a high-value goal beats a big one with none), each one's goal rate today.
+Rules with `standsOut: true` (small, but clearly more engaged than the page or growing 2× or
+more; `today.vsAll`, `growth`) get a scene of their own: in the Sankey they are a sliver and the
+audience misses them. AI-referred visits are the usual one. Say the sample size in the
+narration ("a small group, an early signal") and never call engagement a conversion.
 
 Modelled rules (`rules[].modelled`, memory rules sized from proxies) are said as modelled,
 in the narration and on screen, the way the Sankey footnote does.
@@ -69,6 +73,16 @@ never headless shell), and `MISSING marks` must be empty. Scroll-driven sections
 stage inside a box several screens tall) are collapsed so the shot is not screens of
 background; `"keepSticky": true` keeps them. Look at every capture before using it.
 
+A text response (the page as markdown, `/index.md`, for the agents scene) is captured a window
+wide, unwrapped, at a readable size; the longest line would otherwise set the width and the
+shot would shrink to nothing on stage.
+
+**Experience Workspace frames** (the authoring scene) are screenshots of the canvas, not
+captures: take each one at full resolution (the browser's own screenshot, 1504×812 or larger),
+not frames of a screen recording, which come out soft next to the page captures. Register them
+in `work/captures/index.json` with their `width`, `height` and the `marks` the rings use. After
+pushing code, hard-reload the canvas before shooting: the preview iframe keeps the old CSS.
+
 ## 3. Storyboard and voice
 
 Copy a template and fill it from step 1. Write the narration first, scene by scene, short
@@ -88,6 +102,9 @@ Voice (`storyboard.voice`):
 ```bash
 node tts.js --storyboard storyboard.json --out work/audio             # cached per scene: re-voices only edited scenes
 ```
+
+For a pitch to a team that is leaving, show what changed and let the page make the case:
+no lines about how old or slow the platform they run today is.
 
 Spell numbers the way they should be spoken ("forty-eight percent"); the screen shows the
 digits. Brand the stage with `storyboard.brand` (CSS variables `dark`, `dark2`, `accent`,

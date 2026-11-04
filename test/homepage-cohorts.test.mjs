@@ -188,6 +188,32 @@ test('size.js → cohorts.json → sankey.js', () => {
   assert.match(svg, /data-n="x:customer"/);
 });
 
+test('size.js: weeks, growth, engagement against all views, standsOut', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cohorts-weeks-'));
+  const at = (b, day) => ({ ...b, time: `2026-10-${String(1 + day).padStart(2, '0')}T10:00:00.000Z`, timeSlot: `2026-10-${String(1 + day).padStart(2, '0')}T10:00:00.000Z` });
+  const quiet = (day) => at(B([{ checkpoint: 'enter', source: '' }]), day);
+  const ai = (day) => at(B([{ checkpoint: 'enter', source: 'https://chatgpt.com/' }, { checkpoint: 'click', source: 'a', target: 'https://www.example.com/pricing' }]), day);
+  const bundles = [
+    ...Array.from({ length: 400 }, () => quiet(1)), ...Array.from({ length: 10 }, () => ai(2)),
+    ...Array.from({ length: 400 }, () => quiet(8)), ...Array.from({ length: 25 }, () => ai(9)),
+    quiet(15), // a third, partial window
+  ];
+  fs.writeFileSync(path.join(tmp, 'b.jsonl'), bundles.map((b) => JSON.stringify(b)).join('\n'));
+  run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'b.jsonl'), '--out', path.join(tmp, 'c.json')]);
+  const c = JSON.parse(fs.readFileSync(path.join(tmp, 'c.json'), 'utf8'));
+  assert.equal(c.meta.weeks, 3);
+  assert.equal(c.meta.fullWeeks, 2);
+  const r = c.rules.find((x) => x.id === 'ai-referred');
+  assert.deepEqual(r.weeks, [1000, 2500, 0]);
+  assert.equal(r.growth, 2.5);
+  assert.equal(r.today.navigated, 1);
+  assert.ok(r.today.vsAll.navigated > 1.5);
+  assert.equal(r.standsOut, true);
+  // the big, quiet rest never stands out
+  assert.equal(c.rules.find((x) => x.id === 'none').standsOut, false);
+  assert.equal(c.today.weeks.reduce((a, w) => a + w, 0), c.meta.views);
+});
+
 test('review.js: lift per rule against the holdout, A/A on unmatched', () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'review-'));
   const view = (rule, arm, converted) => B([

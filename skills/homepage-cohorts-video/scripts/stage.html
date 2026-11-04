@@ -188,7 +188,7 @@ TYPES.browser = {
     const label = $('.chip.label', el); label.innerHTML = html(p.label || ''); label.style.display = p.label ? 'flex' : 'none';
     const sig = $('.chip.sig', el); sig.textContent = p.sig || ''; sig.style.display = p.sig ? 'flex' : 'none';
     sig.style.opacity = p.sigAt ? ramp(t, at(sc, p.sigAt), 0.5) : 1;
-    $('.url', el).textContent = `${SB.host || ''}${p.url || ''}`;
+    $('.url', el).textContent = /^[a-z0-9.-]+\.[a-z]{2,}\//i.test(p.url || '') ? p.url : `${SB.host || ''}${p.url || ''}`;
     $('.browser', el).style.transform = `scale(${lerp(0.97, 1, ramp(t, 0, 1.2))})`;
     // stat cards over a dimmed page
     const stats = sc.stats || [];

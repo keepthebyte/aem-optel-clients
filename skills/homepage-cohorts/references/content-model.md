@@ -56,6 +56,18 @@ Design each experience from the evidence in `cohorts.json` (`rules[].today.topCl
 `topClicks[].link: false` is a control that opened something (a menu, the search box), not a
 destination: on a large homepage the account menu toggle can be the top "click" of most cohorts.
 
+**Reused images on new backgrounds.** A cohort design often puts an existing image on a
+background the original never had (a brand-colour poster, a dark ledger). Product photos come
+with their own backdrop; brand graphics (a price lockup, a logo, type on transparency) often do
+not, and brand-colour type on a brand-colour card disappears. Look at each reused image on its
+new background; give the media a neutral panel in the block CSS rather than editing the asset.
+
+**Size media by its aspect ratio** (`height: auto; aspect-ratio: …`), never `height: 100%`
+on an image or a single card. Experience Workspace's preview gives the page's ancestors a
+definite height, so `100%` resolves there and stretches the image or card to the full section,
+while on `*.aem.live` it resolves to `auto` and looks right. Keep `height: 100%` for cards that
+sit side by side (equal heights in a row) and check the cohort page in the canvas Layout view.
+
 ## Header, nav and other shared chrome
 
 Sections only cover `<main>`. The header and footer are fragments shared with the original
@@ -82,3 +94,8 @@ from the capture; new copy is functional labels only.
 The cohort page is not a second homepage: give it `Robots: noindex` and
 `Canonical: /` in its page metadata. Crawlers get the original sections anyway (bots never
 match a rule), and on the promoted homepage the URL stays `/`.
+
+**For agents**: Edge Delivery serves every page as markdown at `{path}.md` (`/new.md`,
+`/index.md`). The cohort page's markdown holds every variation, each with its `Cohorts` section
+metadata, since no rule runs for an agent; that is the full content and offer set, worth
+saying in a pitch. Keep copy in the sections (not in images or scripts) so it is there.

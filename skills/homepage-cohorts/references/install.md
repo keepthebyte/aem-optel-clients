@@ -211,6 +211,8 @@ panel can be tried before it reaches `main`.
 - **Page metadata in the live document**: the editor's document has no page Metadata block
   (Experience Workspace edits it in its Page panel), so `Cohorts: on` / `Experiment` come from
   the published page head; a change there shows in the panel after publishing.
+- **After a code push**, hard-reload the canvas: the preview iframe keeps the block CSS it
+  loaded, so a fix can look missing in Layout view while `*.aem.live` already has it.
 - **Jumping** to a section uses `actions.scrollTo` when the host has it (not in production
   `da.live` yet); rows stay clickable and highlight the section in the panel either way.
 - **Standalone**: `/tools/cohorts/index.html?path=/new` works outside Experience Workspace.
