@@ -106,7 +106,9 @@ which cohorts, what each gets first, what goes away for it.
 3. Page metadata of `/new`: `Cohorts: on`, `Robots: noindex`, `Canonical: /`.
 4. `node scripts/verify.js --original https://{branch}--{repo}--{org}.aem.page/ --cohort https://{branch}--{repo}--{org}.aem.page/new` must pass.
 5. Fill `scenarios` in the rules with the cohorts that matter most, and check each one with
-   `/new?demo` (panel: "Why am I seeing this?", "Try a visitor", Original/New, Insights).
+   `/new?demo`: the presenter dock (bottom centre) has **Visitor** (opens a sheet: switch visitor,
+   what Optel shows for the group, how it was detected, compare with the original page) and
+   **Explain sections**. It is sized for a shared screen.
    Give every cohort section an `Insight` (Section Metadata: the Optel finding behind it) and,
    where the owner agrees, publish `cohorts.json` at `/cohorts/cohorts.json`: Insights mode then
    explains each section and each visitor with the data (`references/content-model.md`).

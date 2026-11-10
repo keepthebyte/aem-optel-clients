@@ -90,3 +90,21 @@ test('insightText restores the comma spacing the pipeline drops', async () => {
   const { insightText } = await import('../skills/homepage-cohorts/engine/cohort-insights.js');
   assert.equal(insightText('homepage,~15% (2,800 views),then claims'), 'homepage, ~15% (2,800 views), then claims');
 });
+
+test('large-display stats carry the same numbers, goal first', () => {
+  const f = ruleFacts(data, 'paid-social', rules);
+  assert.deepEqual(f.stats.map((x) => x.value), ['14.6%', '9.2%', '64%', '+66%']);
+  assert.match(f.stats[1].text, /reach the goal: starts a quote/);
+  assert.deepEqual(ruleFacts(data, 'from-account', rules).stats, []);
+  assert.equal(ruleFacts(data, null, rules).stats[0].value, '34.5%');
+});
+
+test('a list that includes default says who is left out', () => {
+  const r = { experiences: { express: { label: 'Express' }, proof: { label: 'Comparing' }, member: { label: 'Customer' } } };
+  assert.deepEqual(sectionReasons({ cohorts: 'default, express, member:jewelry' }, { keys: ['proof', 'default'] }, r), ['Hidden for Comparing, Customer (except jewelry)']);
+});
+
+test('numbers in a finding are bolded, ordinals and words are not', async () => {
+  const { markNumbers } = await import('../skills/homepage-cohorts/engine/cohort-insights.js');
+  assert.equal(markNumbers('2nd-order: 2.8k in 8 weeks, ~15% of views'), '2nd-order: <b>2.8k</b> in <b>8</b> weeks, <b>~15%</b> of views');
+});

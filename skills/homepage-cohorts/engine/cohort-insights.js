@@ -51,6 +51,14 @@ export function sectionReasons(meta, ctx, rules) {
     out.push(won === 'default'
       ? `${slot}: the original, for visitors no ${meta.slot} is made for`
       : `${slot} made for ${keyLabel(rules, won)}`);
+  } else if (only.length && only.includes('default') && rules.experiences) {
+    // "default, express, proof" = everyone but the experiences left out: say who is left out
+    const named = only.filter((c) => c !== 'default');
+    const out2 = Object.keys(rules.experiences).filter((e) => !named.includes(e)).map((e) => {
+      const part = named.filter((c) => c.startsWith(`${e}:`)).map((c) => c.split(':')[1]);
+      return part.length ? `${keyLabel(rules, e)} (except ${part.join(', ')})` : keyLabel(rules, e);
+    });
+    if (out2.length) out.push(`Hidden for ${out2.join(', ')}`);
   } else if (only.length) {
     const mine = only.filter((c) => own.includes(c) || (c === 'default' && own[0] === 'default'));
     const names = only.map((c) => keyLabel(rules, c));
@@ -66,7 +74,8 @@ export function sectionReasons(meta, ctx, rules) {
 
 /**
  * What cohorts.json says about a rule (or about unmatched visitors when id is null).
- * @returns {{ headline, lines: string[], caveats: string[], source }} or null without data
+ * @returns {{ headline, lines: string[], stats: {value, text}[], caveats: string[], source }}
+ *   or null without data. `stats` is the same data as value + words, for large display.
  */
 export function ruleFacts(data, id, rules = {}) {
   if (!data?.rules) return null;
@@ -76,10 +85,16 @@ export function ruleFacts(data, id, rules = {}) {
   if (!id) {
     const d = (data.experiences || []).find((e) => e.id === 'default');
     const lines = [];
-    if (data.today?.didNothing != null) lines.push(`Across all homepage views, ${pct(data.today.didNothing)} do nothing today`);
+    const stats = [];
+    if (d) stats.push({ value: pct(d.share, true), text: `of homepage views match no rule and see the original page · ${weeks} weeks` });
+    if (data.today?.didNothing != null) {
+      lines.push(`Across all homepage views, ${pct(data.today.didNothing)} do nothing today`);
+      stats.push({ value: pct(data.today.didNothing), text: 'of all homepage views do nothing today' });
+    }
     return {
       headline: d ? `${pct(d.share, true)} of homepage views match no rule and get the original page` : 'No rule matched: the original page',
       lines,
+      stats,
       caveats: [],
       source,
     };
@@ -92,27 +107,39 @@ export function ruleFacts(data, id, rules = {}) {
   const caveats = [];
   if (!r.views) {
     return {
-      headline: `${r.label}: not seen on the homepage in these ${weeks} weeks`, lines, caveats: ['Kept for visitors the data cannot see yet.'], source,
+      headline: `${r.label}: not seen on the homepage in these ${weeks} weeks`, lines, stats: [], caveats: ['Kept for visitors the data cannot see yet.'], source,
     };
   }
-  const headline = `${pct(r.share, true)} of homepage views${r.modelled || r.firstVisitAssumed ? ' at most' : ''} · ${weeks} weeks`;
+  const atMost = r.modelled || r.firstVisitAssumed ? ' at most' : '';
+  const headline = `${pct(r.share, true)} of homepage views${atMost} · ${weeks} weeks`;
+  const stats = [{ value: pct(r.share, true), text: `of homepage views${atMost} · ${weeks} weeks` }];
   if (t.didNothing != null) {
     const ratio = t.vsAll?.didNothing;
     const vs = ratio && Math.abs(ratio - 1) >= 0.15 ? ` (${ratio.toFixed(1)}× the page average)` : '';
     lines.push(`${pct(t.didNothing)} do nothing today${vs}`);
   }
   if (t.goalRate) lines.push(`${pct(t.goalRate)} reach the goal${rule.goalLabel ? ` (${rule.goalLabel})` : ''}`);
+  // goal first in the large display: it is what the experience is built to move
+  if (t.goalRate) stats.push({ value: pct(t.goalRate), text: `reach the goal${rule.goalLabel ? `: ${rule.goalLabel}` : ''}` });
+  if (t.didNothing != null) {
+    const ratio = t.vsAll?.didNothing;
+    stats.push({
+      value: pct(t.didNothing),
+      text: `do nothing today${ratio && Math.abs(ratio - 1) >= 0.15 ? `, ${ratio.toFixed(1)}× the page average` : ''}`,
+    });
+  }
   const link = (t.topClicks || []).find((c) => c.link);
   if (link) lines.push(`Most clicked link: ${link.click} (${pct(link.share)})`);
   if (r.growth != null && Math.abs(r.growth) >= 0.2) {
     lines.push(`${r.growth > 0 ? 'Up' : 'Down'} ${pct(Math.abs(r.growth))} from the first full week to the last`);
+    stats.push({ value: `${r.growth > 0 ? '+' : '−'}${pct(Math.abs(r.growth))}`, text: 'first full week to the last' });
   }
   if (r.standsOut) lines.push('Small, but stands out: more engaged or growing fast');
   if (r.modelled) caveats.push('Modelled: depends on on-device memory, which Optel cannot see, so it is estimated from what views do today.');
   if (r.firstVisitAssumed) caveats.push('Upper bound: Optel cannot tell first visits from repeat ones.');
   if (r.lowSample) caveats.push(`Only ${r.bundles} sampled views: read it as directional.`);
   return {
-    headline, lines, caveats, source,
+    headline, lines, stats, caveats, source,
   };
 }
 
@@ -141,7 +168,14 @@ export function hideInsights(main = document.querySelector('main')) {
   document.body.classList.remove('cohort-insights');
 }
 
-/** One note at the top of every visible section; the first section also gets the cohort's facts. */
+/** numbers in an authored finding, bolded so they read first (on already-escaped text) */
+export const markNumbers = (html) => html.replace(/(~?\d(?:[\d,.]*\d)?(?:k\b|%|×)?)(?![a-z\d])/gi, '<b>$1</b>');
+
+const ICON = '<svg class="cohort-insight-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>';
+
+export const statsHTML = (stats, cls) => `<ul class="${cls}">${stats.map((x) => `<li><b>${esc(x.value)}</b> <span>${esc(x.text)}</span></li>`).join('')}</ul>`;
+
+/** A note at the top of every visible section; the first one also gets the cohort's numbers. */
 export function showInsights(rules, data, ctx = window.cohorts, main = document.querySelector('main')) {
   if (!main) return;
   hideInsights(main);
@@ -149,14 +183,18 @@ export function showInsights(rules, data, ctx = window.cohorts, main = document.
   const tag = rules.insights?.label || 'Optel';
   const facts = ruleFacts(data, ctx?.rule || null, rules);
   [...main.querySelectorAll(':scope > .section')].forEach((s, i) => {
-    const note = document.createElement('div');
-    note.className = 'cohort-insight';
     const reasons = sectionReasons(s.dataset, ctx, rules);
-    const insight = s.dataset.insight ? `<p class="cohort-insight-text">${esc(insightText(s.dataset.insight))}</p>` : '';
-    const who = i === 0 && facts
-      ? `<p class="cohort-insight-facts"><b>${esc(ctx?.label && ctx.rule ? `${ctx.label}: ` : '')}${esc(facts.headline)}.</b> ${esc(facts.lines.join(' · '))}</p>`
-      : '';
-    note.innerHTML = `<span class="cohort-insight-tag">${esc(tag)}</span><div><p class="cohort-insight-why">${esc(reasons.join(' · '))}</p>${who}${insight}</div>`;
+    const text = s.dataset.insight ? insightText(s.dataset.insight) : '';
+    const first = i === 0 && facts;
+    const note = document.createElement('aside');
+    note.className = `cohort-insight${!text && !first && reasons[0] === 'Everyone sees this section' ? ' is-quiet' : ''}`;
+    note.setAttribute('aria-label', 'Why this section is here');
+    note.innerHTML = `${ICON}<div class="cohort-insight-body">
+      <p class="cohort-insight-why">${reasons.map(esc).join('<span aria-hidden="true"> · </span>')}</p>
+      ${first && facts.stats.length ? statsHTML(facts.stats, 'cohort-insight-stats') : ''}
+      ${text ? `<p class="cohort-insight-text">${markNumbers(esc(text))}</p>` : ''}
+      ${first || text ? `<p class="cohort-insight-src">${esc(first ? facts.source : `${tag} data`)}</p>` : ''}
+    </div>`;
     s.prepend(note);
   });
 }

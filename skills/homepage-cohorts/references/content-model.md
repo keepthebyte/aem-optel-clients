@@ -39,7 +39,7 @@ while sizing, with the number and the period, in the visitor's terms:
 | Coverage details, promoted for ad visitors | `After a product page the #1 next step is coverage & exclusions (2.8k in 8 weeks).` |
 | Comparison table | `Comparison-site visitors are 4.1% of views and 58% start a quote: give them the comparison.` |
 
-`/new?demo&insights` (or **Insights** in the panel) puts a note on top of every visible section:
+`/new?demo&insights` (or **Explain sections** in the demo dock) puts a note on top of every visible section:
 a reason computed from its metadata and the visitor's match ("Hero made for Express · dog",
 "Moved up for Comparing", "Everyone sees this section"), then the `Insight`. The first note and
 the panel's "What the data shows" add the visitor's cohort from `cohorts.json`: share, what it

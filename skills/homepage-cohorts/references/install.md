@@ -48,12 +48,15 @@ Copy from this skill's `engine/`:
 
 `cohort-panel.js` imports `./cohorts.js` and `./cohort-insights.js`; keep them side by side.
 
-Insights mode (panel button **Insights**, or `?demo&insights`) reads `insights.src` from the
+"Explain sections" (the dock switch, or `?demo&insights`) reads `insights.src` from the
 rules (default `/cohorts/cohorts.json`): copy `size.js` output there (`cohorts/cohorts.json` in
 the repo; Code Sync serves it). It is aggregated Optel data on a public host: publish it only
 where that is fine (a demo or POC branch, never without the site owner's OK). Without it the
 section notes still show their reasons and `Insight` text; only the numbers are left out. Theme
-the notes with `--cohort-insight-max`, `--cohort-insight-gutter` and `--cohort-insight-gap`.
+the notes with `--cohort-insight-max`, `--cohort-insight-gutter` and `--cohort-insight-gap`, and the
+whole layer with `--cohort-font`, `--cohort-dark`, `--cohort-accent`, `--cohort-tint`, `--cohort-ink`,
+`--cohort-radius` and `--cohort-bottom` on the site's `:root` (the panel's defaults sit in
+`:where(:root)`, so the site wins although cohort-panel.css loads last).
 
 ## 3. `scripts/scripts.js`
 
