@@ -1,166 +1,588 @@
 /* stylelint-disable no-descending-specificity */
 
-/* demo-only panel (?demo): fixed, loaded late, never shifts layout. Theme it with the --cohort-* properties. */
-:root {
-  --cohort-dark: #1f1a3d;
-  --cohort-accent: #ff7a59;
-  --cohort-link: #4b3fb0;
-  --cohort-tint: #f1effa;
+/*
+ * Demo-only presenter controls (?demo) and the section notes of "Explain sections".
+ * Sized for a shared screen: read from the back of the room. Fixed, loaded late, never shifts
+ * the site's layout. Theme with the --cohort-* properties; nothing here reads the site's tokens.
+ */
+
+/* :where() = zero specificity: the site's own :root values win even though this file loads last */
+:where(:root) {
+  --cohort-font: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  --cohort-dark: #1f1a3d;         /* dock */
+  --cohort-on-dark: #fff;
+  --cohort-on-dark-2: #c9c3e8;
+  --cohort-accent: #4b3fb0;       /* switch on, current visitor, note icon */
+  --cohort-surface: #fff;         /* visitor sheet */
+  --cohort-tint: #f1effa;         /* section notes */
   --cohort-ink: #1a1a1a;
-  --cohort-ink-2: #555;
+  --cohort-ink-2: #55536a;
   --cohort-rule: #e3e1ea;
+  --cohort-radius: 14px;
+  --cohort-bottom: 20px;
+  --cohort-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+body.cohort-demo {
+  padding-bottom: calc(var(--cohort-bottom) + 88px);
+}
+
+/* ---------- dock ---------- */
 
 .cohort-panel {
   position: fixed;
-  left: 16px;
-  bottom: 16px;
+  left: 50%;
+  bottom: var(--cohort-bottom);
   z-index: 1000;
+  translate: -50% 0;
   display: flex;
-  flex-direction: column-reverse;
-  gap: 8px;
-  max-width: min(400px, calc(100vw - 32px));
-  font-family: var(--cohort-font, var(--body-font-family, system-ui, sans-serif));
-  font-size: 14px;
-  line-height: 20px;
-}
-
-.cohort-bar {
-  display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  font-family: var(--cohort-font);
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--cohort-ink);
+  text-align: left;
 }
 
-.cohort-compare {
-  display: inline-flex;
-  padding: 3px;
-  background: var(--cohort-dark);
-  box-shadow: 0 6px 20px rgb(20 12 60 / 30%);
+.cohort-panel *,
+.cohort-insight * {
+  box-sizing: border-box;
 }
 
-.cohort-compare a:any-link {
-  padding: 7px 14px;
-  color: #cfc8ef;
-  font-weight: 600;
+.cohort-panel svg,
+.cohort-insight svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.cohort-compare a[aria-current] {
-  background: #fff;
-  color: var(--cohort-dark);
-}
-
-.cohort-compare a:hover {
-  color: #fff;
-  text-decoration: none;
-}
-
-.cohort-compare a[aria-current]:hover {
-  color: var(--cohort-dark);
-}
-
-.cohort-same {
-  padding: 7px 12px;
-  background: #fff;
-  color: var(--cohort-ink-2);
-  box-shadow: 0 6px 20px rgb(20 12 60 / 18%);
-}
-
-.cohort-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.cohort-panel button {
+  margin: 0;
   border: 0;
-  padding: 10px 16px;
-  background: var(--cohort-accent);
-  color: var(--cohort-dark);
   font: inherit;
-  box-shadow: 0 6px 20px rgb(20 12 60 / 30%);
+  color: inherit;
   cursor: pointer;
 }
 
-.cohort-pill b {
-  font-weight: 600;
+.cohort-panel :focus-visible {
+  outline: 3px solid var(--cohort-accent);
+  outline-offset: 3px;
 }
 
-.cohort-pill span {
-  font-weight: 400;
+.cohort-dock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  background: var(--cohort-dark);
+  color: var(--cohort-on-dark);
+  border-radius: calc(var(--cohort-radius) + 6px);
+  box-shadow: 0 12px 32px rgb(15 10 40 / 32%), 0 2px 6px rgb(15 10 40 / 20%);
 }
 
-.cohort-pill:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
+.cohort-dock :focus-visible {
+  outline-color: var(--cohort-on-dark);
 }
 
-.cohort-switch button:focus-visible {
-  outline: 2px solid var(--cohort-link);
-  outline-offset: 2px;
+.cohort-visitor {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 14px 8px 18px;
+  background: rgb(255 255 255 / 10%);
+  border-radius: var(--cohort-radius);
+  transition: background-color 0.2s;
 }
 
-.cohort-body {
-  padding: 20px;
-  border: 1px solid #d9d3f0;
-  border-top: 4px solid var(--cohort-accent);
-  background: #fff;
-  color: var(--cohort-ink);
-  box-shadow: 0 16px 48px rgb(20 12 60 / 45%);
+.cohort-visitor:hover {
+  background: rgb(255 255 255 / 18%);
 }
 
-.cohort-why {
+.cohort-visitor-k {
   font-size: 15px;
-  line-height: 22px;
+  color: var(--cohort-on-dark-2);
 }
 
-.cohort-body dl {
+.cohort-visitor-name {
+  max-width: 34ch;
+  overflow: hidden;
+  font-size: 19px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cohort-visitor svg {
+  transition: rotate 0.25s var(--cohort-ease);
+}
+
+.cohort-visitor[aria-expanded='false'] svg {
+  rotate: 180deg;
+}
+
+.cohort-explain {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 18px 8px 14px;
+  background: transparent;
+  border-radius: var(--cohort-radius);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.cohort-explain:hover {
+  background: rgb(255 255 255 / 10%);
+}
+
+.cohort-track {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  border-radius: 13px;
+  background: rgb(255 255 255 / 25%);
+  transition: background-color 0.2s;
+}
+
+.cohort-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+  transition: translate 0.25s var(--cohort-ease);
+}
+
+.cohort-explain[aria-checked='true'] .cohort-track {
+  background: var(--cohort-accent);
+}
+
+.cohort-explain[aria-checked='true'] .cohort-track::after {
+  translate: 18px 0;
+}
+
+/* the original page: say so, and offer the way back */
+.cohort-state {
+  margin: 0;
+  padding: 0 12px 0 14px;
+}
+
+.cohort-state span {
+  color: var(--cohort-on-dark-2);
+}
+
+.cohort-cta:any-link {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 20px;
+  background: var(--cohort-on-dark);
+  color: var(--cohort-dark);
+  border-radius: var(--cohort-radius);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* ---------- visitor sheet ---------- */
+
+.cohort-sheet {
+  width: min(920px, calc(100vw - 32px));
+  max-height: calc(100vh - var(--cohort-bottom) - 120px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 24px 28px 28px;
+  background: var(--cohort-surface);
+  border-radius: calc(var(--cohort-radius) + 6px);
+  box-shadow: 0 24px 64px rgb(15 10 40 / 28%), 0 4px 12px rgb(15 10 40 / 12%);
+  animation: cohort-rise 0.32s var(--cohort-ease);
+}
+
+.cohort-cols {
+  display: grid;
+  gap: 0 40px;
+}
+
+@media (width >= 900px) {
+  .cohort-cols {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  }
+
+  .cohort-side {
+    padding-left: 40px;
+    border-left: 1px solid var(--cohort-rule);
+  }
+}
+
+.cohort-sheet[hidden] {
+  display: none;
+}
+
+@keyframes cohort-rise {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+    filter: blur(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cohort-sheet { animation: none; }
+}
+
+.cohort-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.cohort-sheet h2 {
+  margin: 0;
+  font-family: inherit;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  color: var(--cohort-ink);
+}
+
+.cohort-close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: -4px -8px 0 0;
+  background: transparent;
+  border-radius: 50%;
+  color: var(--cohort-ink-2);
+}
+
+.cohort-close:hover {
+  background: var(--cohort-tint);
+  color: var(--cohort-ink);
+}
+
+.cohort-about {
+  margin: 8px 0 0;
+  color: var(--cohort-ink-2);
+  max-width: 60ch;
+}
+
+.cohort-sheet h3 {
+  margin: 28px 0 12px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--cohort-ink-2);
+}
+
+.cohort-sheet p {
+  margin: 0;
+}
+
+/* numbers: value large, words beside it */
+.cohort-stats,
+.cohort-insight-stats {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cohort-stats li,
+.cohort-insight-stats li {
+  display: grid;
+  grid-template-columns: 4.2em 1fr;
+  align-items: baseline;
+  gap: 14px;
+  margin: 0;
+}
+
+.cohort-stats b,
+.cohort-insight-stats b {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  text-align: right;
+  color: var(--cohort-ink);
+}
+
+.cohort-caveat {
+  margin-top: 14px !important;
+  padding: 10px 14px;
+  background: var(--cohort-tint);
+  border-radius: calc(var(--cohort-radius) - 4px);
+  font-size: 15px;
+}
+
+.cohort-muted {
+  margin-top: 12px !important;
+  font-size: 14px;
+  color: var(--cohort-ink-2);
+}
+
+.cohort-pick ul {
+  margin: 0 -10px;
+  padding: 0;
+  list-style: none;
+}
+
+.cohort-pick li {
+  margin: 0;
+}
+
+.cohort-pick button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 10px;
+  background: transparent;
+  border-radius: calc(var(--cohort-radius) - 4px);
+  font-size: 18px;
+  text-align: left;
+}
+
+.cohort-pick button:hover {
+  background: var(--cohort-tint);
+}
+
+.cohort-pick button[aria-current] {
+  background: var(--cohort-tint);
+  color: var(--cohort-accent);
+  font-weight: 700;
+}
+
+.cohort-more {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--cohort-rule);
+}
+
+.cohort-more summary {
+  min-height: 32px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--cohort-ink);
+}
+
+.cohort-signals {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 4px 12px;
-  margin: 16px 0;
-  padding: 12px 0;
-  border-top: 1px solid var(--cohort-rule);
-  border-bottom: 1px solid var(--cohort-rule);
+  gap: 6px 16px;
+  margin: 12px 0 0;
+  font-size: 15px;
 }
 
-.cohort-body dt {
-  color: var(--cohort-link);
+.cohort-signals dt {
+  color: var(--cohort-ink-2);
 }
 
-.cohort-body dd {
+.cohort-signals dd {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.cohort-note {
-  color: var(--cohort-ink-2);
-  font-size: 13px;
-  line-height: 18px;
+.cohort-link:any-link {
+  display: inline-block;
+  margin-top: 16px;
+  color: var(--cohort-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
-.cohort-try {
-  margin-top: 16px;
-  color: var(--cohort-link);
+/* ---------- section notes (Explain sections). Theme: --cohort-insight-max / -gutter / -gap.
+   main > .section > … outranks the boilerplate's main > .section > … container rules ---------- */
+
+main > .section > .cohort-insight {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  width: calc(100% - 2 * var(--cohort-insight-gutter, 16px));
+  max-width: var(--cohort-insight-max, 1200px);
+  margin: 0 auto var(--cohort-insight-gap, 32px);
+  padding: 20px 24px;
+  background: var(--cohort-tint);
+  border: 1px solid color-mix(in srgb, var(--cohort-accent) 22%, transparent);
+  border-radius: var(--cohort-radius);
+  color: var(--cohort-ink);
+  font-family: var(--cohort-font);
+  font-size: 17px;
+  line-height: 1.5;
+  text-align: left;
+  animation: cohort-fade 0.4s var(--cohort-ease);
+}
+
+@keyframes cohort-fade {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main > .section > .cohort-insight { animation: none; }
+}
+
+main > .section > .cohort-insight > svg {
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  border-radius: 50%;
+  background: var(--cohort-accent);
+  color: #fff;
+  stroke-width: 2.25;
+}
+
+.cohort-insight-body {
+  display: grid;
+  flex: 1;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cohort-insight p {
+  max-width: 72ch;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
+
+main > .section > .cohort-insight .cohort-insight-why {
+  padding-top: 4px;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+
+.cohort-insight-text b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+main > .section > .cohort-insight .cohort-insight-src {
+  font-size: 14px;
+  color: var(--cohort-ink-2);
+}
+
+/* the cohort's numbers on the first note: one row, value over words, so every number shares a
+   baseline and every label starts on the same line */
+.cohort-insight-stats {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px 32px;
+  max-width: 960px;
+  margin: 6px 0 4px;
+}
+
+.cohort-insight-stats li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cohort-insight-stats b {
+  font-size: 34px;
+  line-height: 1;
+  text-align: left;
+}
+
+.cohort-insight-stats span {
+  max-width: 24ch;
+  font-size: 16px;
+  line-height: 1.35;
+  color: var(--cohort-ink-2);
+}
+
+/* a section everyone sees and nobody wrote a finding for: one quiet line */
+main > .section > .cohort-insight.is-quiet {
+  align-items: center;
+  padding: 10px 20px;
+  background: transparent;
+  border-style: dashed;
+  color: var(--cohort-ink-2);
+}
+
+main > .section > .cohort-insight.is-quiet > svg {
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  background: var(--cohort-rule);
+  color: var(--cohort-ink-2);
+}
+
+main > .section > .cohort-insight.is-quiet .cohort-insight-why {
+  padding: 0;
+  font-size: 16px;
   font-weight: 600;
 }
 
-.cohort-switch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
+@media (width < 600px) {
+  .cohort-panel {
+    font-size: 16px;
+  }
 
-.cohort-switch button {
-  border: 1px solid #c9c1ea;
-  padding: 6px 10px;
-  background: var(--cohort-tint);
-  color: var(--cohort-dark);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
+  .cohort-dock {
+    width: calc(100vw - 24px);
+  }
 
-.cohort-switch button:hover {
-  border-color: var(--cohort-link);
-  background: var(--cohort-link);
-  color: #fff;
+  .cohort-visitor {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cohort-visitor-k {
+    display: none;
+  }
+
+  .cohort-visitor-name {
+    flex: 1;
+    font-size: 17px;
+  }
+
+  .cohort-wide {
+    display: none;
+  }
+
+  .cohort-sheet {
+    padding: 20px;
+  }
+
+  .cohort-sheet h2 {
+    font-size: 24px;
+  }
+
+  main > .section > .cohort-insight {
+    padding: 16px;
+    font-size: 16px;
+  }
+
+  main > .section > .cohort-insight > svg {
+    display: none;
+  }
+
+  main > .section > .cohort-insight .cohort-insight-why {
+    font-size: 17px;
+  }
 }

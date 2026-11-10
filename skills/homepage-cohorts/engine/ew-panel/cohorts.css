@@ -418,3 +418,18 @@ ol.secs li[style*="--c"] .what::before {
 }
 
 .layout-note { margin-top: 6px; }
+
+.card .insight {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--focus);
+  background: var(--hover);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.card .insight .lbl {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
