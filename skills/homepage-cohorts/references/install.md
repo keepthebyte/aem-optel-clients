@@ -42,10 +42,18 @@ Copy from this skill's `engine/`:
 | `engine/cohorts.js` | `scripts/cohorts.js` |
 | `engine/cohort-rules.js` | `scripts/cohort-rules.js` (then write the site's rules) |
 | `engine/cohort-panel.js` | `scripts/cohort-panel.js` |
+| `engine/cohort-insights.js` | `scripts/cohort-insights.js` (Insights mode of the panel) |
 | `engine/cohort-panel.css` | `styles/cohort-panel.css` (theme with the `--cohort-*` properties) |
 | `engine/cohort-preview.js` | `scripts/cohort-preview.js` (Experience Workspace Layout view, §7) |
 
-`cohort-panel.js` imports `./cohorts.js`; keep them side by side.
+`cohort-panel.js` imports `./cohorts.js` and `./cohort-insights.js`; keep them side by side.
+
+Insights mode (panel button **Insights**, or `?demo&insights`) reads `insights.src` from the
+rules (default `/cohorts/cohorts.json`): copy `size.js` output there (`cohorts/cohorts.json` in
+the repo; Code Sync serves it). It is aggregated Optel data on a public host: publish it only
+where that is fine (a demo or POC branch, never without the site owner's OK). Without it the
+section notes still show their reasons and `Insight` text; only the numbers are left out. Theme
+the notes with `--cohort-insight-max`, `--cohort-insight-gutter` and `--cohort-insight-gap`.
 
 ## 3. `scripts/scripts.js`
 

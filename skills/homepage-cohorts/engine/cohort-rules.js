@@ -21,6 +21,10 @@ export default {
     ['support', 'support|help|contact'],
   ],
 
+  // demo panel Insights mode (cohort-insights.js): where size.js output is published, and the
+  // tag on each section note. A rule's optional `goalLabel` names its goal in plain words.
+  insights: { src: '/cohorts/cohorts.json', label: 'Optel' },
+
   memory: {
     storeKey: 'cohorts-v1',
     sessionGapMs: 30 * 60 * 1000,

@@ -3,14 +3,60 @@
  * Loaded from loadDelayed() when the URL has ?demo. Copy to scripts/cohort-panel.js
  * (and styles/cohort-panel.css). Scenarios come from cohort-rules.js `scenarios`:
  * each one sets real signals (ref, utm_*, memory), so detection does the rest.
+ * "Insights" (or ?insights) puts a note on every section saying why it is there, and the
+ * panel shows what cohorts.json says about this visitor's cohort (cohort-insights.js).
  */
 import { forgetVisitor, readMemory } from './cohorts.js';
+import {
+  loadInsightData, showInsights, hideInsights, ruleFacts,
+} from './cohort-insights.js';
 
+const INSIGHTS_KEY = 'cohort-insights';
+
+function insightsOn() {
+  if (new URLSearchParams(window.location.search).has('insights')) return true;
+  try { return sessionStorage.getItem(INSIGHTS_KEY) === '1'; } catch (e) { return false; }
+}
+
+/* the Insights toggle: same on the original and the cohort page */
+function insightsToggle(el, rules) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'cohort-toggle';
+  b.textContent = 'Insights';
+  b.title = 'Show why each section is on this page, from Optel data';
+  const set = async (on) => {
+    b.setAttribute('aria-pressed', String(on));
+    try { sessionStorage.setItem(INSIGHTS_KEY, on ? '1' : '0'); } catch (e) { /* noop */ }
+    if (on) showInsights(rules, await loadInsightData(rules));
+    else hideInsights();
+  };
+  b.addEventListener('click', () => set(b.getAttribute('aria-pressed') !== 'true'));
+  el.querySelector('.cohort-bar').append(b);
+  set(insightsOn());
+}
+
+/* "What the data shows" in the panel body, filled when cohorts.json arrives */
 const PARAMS = ['cohort', 'ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'experiment', 'gclid', 'fbclid'];
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
 }[c]));
+
+async function dataBlock(el, rules, ctx) {
+  const box = el.querySelector('.cohort-data');
+  if (!box) return;
+  const f = ruleFacts(await loadInsightData(rules), ctx.rule || null, rules);
+  if (!f) {
+    box.innerHTML = '<p class="cohort-note">Publish size.js output at /cohorts/cohorts.json to see the numbers behind this cohort.</p>';
+    return;
+  }
+  box.innerHTML = `<p class="cohort-try">What the data shows</p>
+    <p class="cohort-fact"><b>${esc(f.headline)}</b></p>
+    ${f.lines.length ? `<ul>${f.lines.map((l) => `<li>${esc(l)}</li>`).join('')}</ul>` : ''}
+    ${f.caveats.map((c) => `<p class="cohort-note">${esc(c)}</p>`).join('')}
+    <p class="cohort-note cohort-source">${esc(f.source)}</p>`;
+}
 
 function go(params, path = window.location.pathname) {
   const u = new URL(path, window.location.origin);
@@ -44,6 +90,7 @@ export default function initPanel(rules) {
   if (!ctx || ctx.arm === 'control') {
     el.innerHTML = `<div class="cohort-bar">${switcher(rules)}<span class="cohort-same">Original page: the same for every visitor</span></div>`;
     document.body.append(el);
+    insightsToggle(el, rules);
     return;
   }
 
@@ -68,6 +115,7 @@ export default function initPanel(rules) {
         <dt>Device</dt><dd>${esc(s.device || '')}</dd>
         <dt>Memory</dt><dd>${esc(mem.visits || 0)} visits · signed in before: ${mem.signedIn ? 'yes' : 'no'} · ${esc(Object.entries(mem.interests || {}).map(([k, v]) => `${k} ${v}`).join(', ') || 'no interests')}</dd>
       </dl>
+      <div class="cohort-data"></div>
       <p class="cohort-note">On-device only. No personal information, no third-party calls. Decided before the page paints.</p>
       <p class="cohort-try">Try a visitor</p>
       <div class="cohort-switch">
@@ -98,5 +146,7 @@ export default function initPanel(rules) {
     if (e.key === 'Escape' && !body.hidden) toggle(false);
   });
   document.body.append(el);
+  insightsToggle(el, rules);
+  dataBlock(el, rules, ctx);
   try { if (sessionStorage.getItem('cohort-panel') === '1') toggle(true); } catch (e) { /* noop */ }
 }

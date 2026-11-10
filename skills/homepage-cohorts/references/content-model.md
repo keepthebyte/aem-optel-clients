@@ -21,10 +21,31 @@ Authors keep editing it like any page; the engine removes what a visitor should 
 | `Cohorts` | `customer, prospect:pricing` | Section only for these experiences. `experience:intent` is more specific than `experience`. No `Cohorts` = everyone. |
 | `Hide For` | `customer, mobile` | Section removed for these experiences (use `default` to hide it from unmatched visitors and keep the default identical to the homepage). |
 | `Promote` | `customer` | Section moved right under the first section for these experiences. |
+| `Insight` | `Coverage & exclusions is the #1 next step from product pages (2.8k in 8 weeks).` | Not read by the engine. The Optel finding behind the section, shown on the page in the demo panel's Insights mode and in the Experience Workspace panel. One or two sentences with the number and the period. |
 
 Keys a visitor matches, most specific first: `<experience>:<intent>`, `<experience>`, `default`.
 `<experience>` comes from the rule (`experience: 'prospect'`), `<intent>` from the campaign
 tags or the top on-device interest (`intents` in the rules).
+
+## Insights: say why each section is there
+
+Every cohort section exists because of something in the data: who arrives, what they do
+today, where they go next (the second-order paths). Write that down in the section's `Insight`
+while sizing, with the number and the period, in the visitor's terms:
+
+| Section | Insight |
+| --- | --- |
+| Account tasks | `~15% of homepage views click Log in; customers get their tasks first.` |
+| Coverage details, promoted for ad visitors | `After a product page the #1 next step is coverage & exclusions (2.8k in 8 weeks).` |
+| Comparison table | `Comparison-site visitors are 4.1% of views and 58% start a quote: give them the comparison.` |
+
+`/new?demo&insights` (or **Insights** in the panel) puts a note on top of every visible section:
+a reason computed from its metadata and the visitor's match ("Hero made for Express · dog",
+"Moved up for Comparing", "Everyone sees this section"), then the `Insight`. The first note and
+the panel's "What the data shows" add the visitor's cohort from `cohorts.json`: share, what it
+does today against the page average, goal rate, growth and caveats (modelled, low sample),
+generated from the numbers, so they follow next month's `size.js` run. Keep numbers out of the
+visible copy; they belong in `Insight` and `cohorts.json`.
 
 ## Example
 

@@ -179,6 +179,8 @@ function renderNow(root) {
   const card = h('div', 'card now', h('div', 'what', `Section ${s.i + 1} · ${what}`), heading ? h('div', 'heading', heading) : null);
   const row = (lbl, ids, off) => h('div', 'who', h('span', 'lbl', lbl), ids.length ? ids.map((id) => chip(id, off)) : h('span', 'sub', 'nobody'));
   card.append(row('Shown to', who.shown));
+  // Section Metadata `Insight`: the Optel finding behind the section (Insights mode on the page)
+  if (s.meta.insight) card.append(h('p', 'insight', h('span', 'lbl', 'Why it is here'), String(s.meta.insight).replace(/,(?=[^\s\d])|(?<=\D),(?=\d)/g, ', ')));
   if (who.hidden.length) card.append(row('Not shown', who.hidden, true));
   if (who.promoted.length) card.append(row('Moved up', who.promoted));
   if (s.meta.slot) {

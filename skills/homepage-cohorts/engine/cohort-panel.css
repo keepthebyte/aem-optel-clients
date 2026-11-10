@@ -164,3 +164,110 @@
   background: var(--cohort-link);
   color: #fff;
 }
+
+/* Insights toggle (bar) */
+.cohort-toggle {
+  border: 0;
+  padding: 10px 14px;
+  background: #fff;
+  color: var(--cohort-dark);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 6px 20px rgb(20 12 60 / 30%);
+  cursor: pointer;
+}
+
+.cohort-toggle::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 8px;
+  border: 1px solid var(--cohort-dark);
+  border-radius: 50%;
+  vertical-align: 1px;
+}
+
+.cohort-toggle[aria-pressed='true'] {
+  background: var(--cohort-dark);
+  color: #fff;
+}
+
+.cohort-toggle[aria-pressed='true']::before {
+  border-color: var(--cohort-accent);
+  background: var(--cohort-accent);
+}
+
+.cohort-toggle:focus-visible {
+  outline: 2px solid var(--cohort-link);
+  outline-offset: 2px;
+}
+
+/* "What the data shows" (panel body) */
+.cohort-data ul {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+}
+
+.cohort-data li {
+  margin: 2px 0;
+}
+
+.cohort-fact {
+  margin: 6px 0 0;
+}
+
+.cohort-source {
+  margin-top: 8px;
+}
+
+/* the note on each section (Insights on). Theme: --cohort-insight-max / -gutter / -gap.
+   main > .section > … outranks the boilerplate's main > .section > div container rule */
+main > .section > .cohort-insight {
+  box-sizing: border-box;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: calc(100% - 2 * var(--cohort-insight-gutter, 16px));
+  max-width: var(--cohort-insight-max, 1200px);
+  margin: 0 auto var(--cohort-insight-gap, 24px);
+  padding: 10px 14px;
+  border-left: 3px solid var(--cohort-accent);
+  background: var(--cohort-tint);
+  color: var(--cohort-ink);
+  font-family: var(--cohort-font, var(--body-font-family, system-ui, sans-serif));
+  font-size: 13px;
+  line-height: 19px;
+  text-align: left;
+}
+
+.cohort-insight p {
+  margin: 0;
+  max-width: none;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.cohort-insight p + p {
+  margin-top: 4px;
+}
+
+.cohort-insight-tag {
+  flex: none;
+  padding-top: 1px;
+  color: var(--cohort-link);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.cohort-insight-why {
+  color: var(--cohort-link);
+  font-weight: 600;
+}
+
+.cohort-insight-text {
+  color: var(--cohort-ink-2);
+}
