@@ -45,10 +45,14 @@ const rows = ruleList.map((r) => {
   const nothing = (g) => (g.length ? g.filter((b) => o.activityOf(b) === 'nothing').length / g.length : 0);
   const cmp = o.compareProportions(hit(ctl), ctl.length, hit(trt), trt.length);
   const enough = ctl.length >= o.LOW_SAMPLE && trt.length >= o.LOW_SAMPLE;
+  // the secondary action: the convincing content the experience points to (coverage, reviews)
+  const sup = (g) => g.filter((b) => goalHit(o, r.support, b)).length;
+  const scmp = r.support ? o.compareProportions(sup(ctl), ctl.length, sup(trt), trt.length) : null;
   let verdict = 'not enough data yet';
   if (enough) {
     if (r.id === 'none') verdict = cmp.significant ? 'A/A FAILED: check the split and tagging' : 'A/A ok';
     else if (cmp.significant) verdict = cmp.lift > 0 ? 'keep: beats the holdout' : 'fix or drop: worse than the holdout';
+    else if (scmp?.significant && scmp.lift > 0) verdict = 'promising: more take the supporting step, goal not clear yet';
     else verdict = 'no clear difference yet';
   }
   return {
@@ -63,6 +67,9 @@ const rows = ruleList.map((r) => {
     lift: cmp.lift,
     p: cmp.p,
     significant: cmp.significant,
+    support: scmp ? {
+      action: r.support, label: r.supportLabel || null, control: scmp.rateA, cohort: scmp.rateB, lift: scmp.lift, p: scmp.p, significant: scmp.significant,
+    } : null,
     lowSample: !enough,
     verdict,
   };
@@ -97,7 +104,7 @@ const out = {
     untaggedShare: human.length ? 1 - tagged.length / human.length : 0,
     experiment: exp,
     controlShare,
-    note: 'Goal rates are per sampled view (bundle counts, as experimentReport does). Rules under 30 bundles per arm are reported but not judged.',
+    note: 'Goal rates are per sampled view (bundle counts, as experimentReport does). Rules under 30 bundles per arm are reported but not judged. `support` is the rule\'s secondary action (the convincing content it points to), tested the same way.',
   },
   rules: rows,
   unmatched: { share: tagged.length ? none.length / tagged.length : 0, ...candidates },
@@ -108,15 +115,18 @@ if (args.out) fs.writeFileSync(args.out, json); else process.stdout.write(`${jso
 
 const cell = (v) => String(v).replace(/\|/g, '\\|');
 const pct = (x, d = 1) => (x == null ? 'n/a' : `${(x * 100).toFixed(d)}%`);
+const supportCell = (r) => (r.support
+  ? `${cell(r.support.label || r.support.action.click || r.support.action.path)}: ${pct(r.support.control)} → ${pct(r.support.cohort)}`
+  : '–');
 if (args.md) {
   const lines = [
     `# Homepage cohorts: review ${out.meta.start?.slice(0, 10)} to ${out.meta.end?.slice(0, 10)}`,
     '',
     `${out.meta.domain}${pagePath} · ${out.meta.bundles.toLocaleString()} sampled views (~${Math.round(out.meta.views).toLocaleString()} views) · ${pct(1 - out.meta.untaggedShare)} tagged · holdout ${pct(controlShare)}`,
     '',
-    '| Rule | Share | Goal | Holdout | Cohort | Lift | p | Verdict |',
-    '| --- | --- | --- | --- | --- | --- | --- | --- |',
-    ...rows.map((r) => `| ${cell(r.label)} | ${pct(r.share)} | ${cell(r.goal.click || (r.goal.navigate ? 'navigated' : r.goal.checkpoint))} | ${pct(r.control.goalRate)} (${r.control.bundles}) | ${pct(r.cohort.goalRate)} (${r.cohort.bundles}) | ${r.lowSample ? '–' : pct(r.lift, 0)} | ${r.lowSample ? '–' : r.p.toFixed(3)} | ${r.verdict} |`),
+    '| Rule | Share | Goal | Holdout | Cohort | Lift | p | Supporting step | Verdict |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+    ...rows.map((r) => `| ${cell(r.label)} | ${pct(r.share)} | ${cell(r.goal.click || (r.goal.navigate ? 'navigated' : r.goal.checkpoint))} | ${pct(r.control.goalRate)} (${r.control.bundles}) | ${pct(r.cohort.goalRate)} (${r.cohort.bundles}) | ${r.lowSample ? '–' : pct(r.lift, 0)} | ${r.lowSample ? '–' : r.p.toFixed(3)} | ${supportCell(r)} | ${r.verdict} |`),
     '',
     `## Not caught by any rule (${pct(out.unmatched.share)} of views)`,
     '',

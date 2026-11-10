@@ -5,6 +5,9 @@
  *
  *   node optel-client.js --domain www.example.com --path / --last 30d --granularity hour --report raw --out home.jsonl
  *   node size.js --rules scripts/cohort-rules.js --bundles home.jsonl --out cohorts.json
+ *   [--site site.jsonl]   the whole site over the same weeks (optel-client.js without --path):
+ *                         adds `secondOrder`, where people go after the homepage and what they do
+ *                         there, and which pages come right before the conversion (rules.conversion)
  *
  * Output: cohorts.json { meta, columns, links, rules, experiences } (read by sankey.js, review.js and the video skill).
  * Per rule: share, what its views do today (against all views in `vsAll`), views per 7-day
@@ -19,7 +22,7 @@ import {
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.rules || !args.bundles) {
-  console.error('usage: node size.js --rules cohort-rules.js --bundles home.jsonl [--path /] [--out cohorts.json]');
+  console.error('usage: node size.js --rules cohort-rules.js --bundles home.jsonl [--site site.jsonl] [--path /] [--out cohorts.json]');
   process.exit(1);
 }
 const o = await loadOptel();
@@ -147,6 +150,8 @@ const ruleRows = ruleList.map((r) => {
     today: {
       // a modelled rule's views are picked by the clicks that model its memory: its goal rate today is circular
       goalRate: r.model ? null : (bs.length ? bs.filter((b) => goalHit(o, r.goal, b)).length / bs.length : 0),
+      // the secondary action on the homepage: a click to the convincing content (coverage, reviews)
+      supportRate: r.model || !r.support ? null : (bs.length ? bs.filter((b) => goalHit(o, r.support, b)).length / bs.length : 0),
       didNothing: bs.length ? nothing : 0,
       navigated,
       vsAll,
@@ -158,6 +163,35 @@ const ruleRows = ruleList.map((r) => {
   };
 });
 
+/* Second order: the page after the homepage and the click after that, measured on that page's own
+   view (optel-client paths); the pages right before the conversion (assists). Site-wide: a cohort
+   detected by referrer or campaign is not on the next view, so only device can be split out. */
+let secondOrder = null;
+if (args.site) {
+  const site = readBundles(args.site);
+  const from = [...paths][0];
+  const st = o.realViews(site).map((b) => b.time || b.timeSlot).sort();
+  const deviceOf = (b) => (o.device(b) === 'mobile' ? 'mobile' : 'desktop');
+  // rules.pathStrip: a regex removed from every path, so /content/<site>/en/x.html and /x.html are one page
+  const strip = rules.pathStrip ? new RegExp(rules.pathStrip, 'i') : null;
+  const pathFn = strip ? (p) => o.normalizePath(p.replace(strip, '') || '/') : undefined;
+  const conv = rules.conversion;
+  secondOrder = {
+    scope: 'site',
+    start: st[0],
+    end: st[st.length - 1],
+    weeks: Math.max(1, Math.round((Date.parse(st[st.length - 1]) - Date.parse(st[0])) / WEEK)),
+    ...o.paths(site, {
+      from, top: 10, topNext: 5, pathFn,
+    }),
+    byDevice: Object.fromEntries(['mobile', 'desktop'].map((d) => [d, o.paths(site, {
+      from, top: 5, topNext: 3, filter: (b) => deviceOf(b) === d, pathFn,
+    }).first])),
+    conversion: conv ? { ...conv, label: conv.label || null } : null,
+    assists: conv ? o.assists(site, { goal: (b) => goalHit(o, conv, b), top: 10, pathFn }) : null,
+  };
+}
+
 const out = {
   meta: {
     domain: o.hostOf(views[0]),
@@ -168,11 +202,12 @@ const out = {
     bundles: views.length,
     weeks: nWeeks,
     fullWeeks,
-    note: 'Sampled page views, bots and prerenders excluded. `weeks[]` are 7-day windows from `start`; the last one is partial when `weeks > fullWeeks`. `growth` is the last full week over the first, null without two full weeks of 10+ bundles each. `today.vsAll` compares a rule with all views (1 = the same; `didNothing` below 1 is better). `standsOut` marks a small rule (under 5% of views) that is clearly more engaged or growing 2x or more: call it out by name. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today. Rules with `firstVisitAssumed: true` ask for a first visit, which Optel cannot see either: every view counts as one, so their share is an upper bound. `topClicks[].link: false` is a click that opened something on the page (menu, search, carousel) rather than a link: its `click` is the element selector.',
+    note: 'Sampled page views, bots and prerenders excluded. `weeks[]` are 7-day windows from `start`; the last one is partial when `weeks > fullWeeks`. `growth` is the last full week over the first, null without two full weeks of 10+ bundles each. `today.vsAll` compares a rule with all views (1 = the same; `didNothing` below 1 is better). `standsOut` marks a small rule (under 5% of views) that is clearly more engaged or growing 2x or more: call it out by name. `today.supportRate` is the rule\'s secondary action (`support`) on the homepage. `secondOrder` (with --site) is site-wide: `first[]` = pages people open right after the homepage (share of those arrivals), each with `next[]` = what they click on there; `assists.pages[]` = pages viewed right before the conversion, `lift` against the site rate. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today. Rules with `firstVisitAssumed: true` ask for a first visit, which Optel cannot see either: every view counts as one, so their share is an upper bound. `topClicks[].link: false` is a click that opened something on the page (menu, search, carousel) rather than a link: its `click` is the element selector.',
   },
   columns,
   links: [...linkMap.values()].map((l) => ({ ...l, rules: [...l.rules] })),
   rules: ruleRows,
+  secondOrder,
   experiences: columns[3].nodes.map((n) => ({ id: n.id.slice(2), label: n.label, views: n.views, share: share(n.views) })),
   today: {
     didNothing: allNothing,
@@ -184,6 +219,10 @@ const out = {
 };
 
 const json = JSON.stringify(out, null, 1);
+if (secondOrder) {
+  const top = secondOrder.first.slice(0, 3).map((f) => `${f.path} ${(f.share * 100).toFixed(0)}%${f.next[0] ? ` → ${f.next[0].key}` : ''}`).join(', ');
+  console.error(`second order (${secondOrder.bundles} views arriving from ${secondOrder.from}): ${top}`);
+}
 if (args.out) fs.writeFileSync(args.out, json); else process.stdout.write(`${json}\n`);
 const pct = (x) => `${(x * 100).toFixed(1)}%`;
 console.error(`${out.meta.domain}${pagePath}: ${views.length} bundles, ~${Math.round(total).toLocaleString()} views`);

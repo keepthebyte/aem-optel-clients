@@ -417,3 +417,52 @@ test('small-site fixes: text clicks, click resolution, messaging/dev referrers, 
   assert.equal(d.deadViewShare, 1);
   assert.ok(optel.errorReport([bundle([{ checkpoint: 'error', source: 'undefined error' }])]).jsErrors[0].key.startsWith('(no message) @'));
 });
+
+test('paths: first page after the homepage, then the second action on that page', () => {
+  const S = 'https://www.example.com';
+  const arrive = (page, clicks = [], src = `${S}/`) => bundle([{ checkpoint: 'navigate', source: src },
+    ...clicks.map((t) => ({ checkpoint: 'click', source: 'main a', target: `${S}${t}` }))], { url: `${S}${page}` });
+  const b = [
+    arrive('/dog', ['/coverage']), arrive('/dog', ['/coverage']), arrive('/dog', ['/dental']), arrive('/dog'),
+    arrive('/claims'),
+    arrive('/dog', ['/coverage'], `${S}/faq`), // came from the FAQ, not the homepage
+    arrive('/cat', [], 'https://portal.example.com/'), // another host's '/' is not our homepage
+    bundle([{ checkpoint: 'enter', source: '' }], { url: `${S}/dog` }), // entered directly
+  ];
+  const p = optel.paths(b, { from: '/' });
+  assert.equal(p.bundles, 5);
+  assert.deepEqual(p.first.map((x) => [x.path, x.share]), [['/dog', 0.8], ['/claims', 0.2]]);
+  const dog = p.first[0];
+  assert.equal(dog.onward, 0.75);
+  assert.deepEqual(dog.next.map((x) => [x.key, x.share]), [['/coverage', 0.5], ['/dental', 0.25]]);
+  assert.equal(optel.previousPage(b[6]), null);
+  assert.equal(optel.paths(b, { from: '/', filter: () => false }).first.length, 0);
+  assert.equal(dog.lowSample, true);
+  // nextAll: views whose previous page was /dog (none in this fixture) over all 6 views of /dog
+  assert.deepEqual(dog.nextAll, []);
+  const onward = [...b, arrive('/coverage', [], `${S}/dog`), arrive('/coverage', [], `${S}/dog`), arrive('/dental', [], `${S}/dog`)];
+  assert.deepEqual(optel.paths(onward).first[0].nextAll.map((x) => [x.key, x.share]), [['/coverage', 2 / 6], ['/dental', 1 / 6]]);
+  // pathFn folds an AEM content path into the short one
+  const long = [arrive('/content/site/en/dog'), arrive('/dog')];
+  assert.deepEqual(optel.paths(long, { pathFn: (x) => x.replace(/^\/content\/site\/en/, '') }).first.map((x) => [x.path, x.bundles]), [['/dog', 2]]);
+});
+
+test('assists: pages right before a goal, with lift against the site rate', () => {
+  const S = 'https://www.example.com';
+  const v = (from, quoted) => bundle([{ checkpoint: 'navigate', source: `${S}${from}` },
+    ...(quoted ? [{ checkpoint: 'click', source: 'form button', target: `${S}/quote` }] : [])], { url: `${S}/dog` });
+  const b = [
+    ...Array.from({ length: 10 }, (_, i) => v('/coverage', i < 6)),
+    ...Array.from({ length: 30 }, (_, i) => v('/blog', i < 3)),
+    bundle([{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: 'form button', target: `${S}/quote` }], { url: `${S}/dog` }),
+  ];
+  const a = optel.assists(b, { goal: (x) => optel.events(x, 'click').some((e) => /quote/.test(e.target)) });
+  assert.equal(a.rate, 9 / 40); // the direct entry is left out of both sides
+  const cov = a.pages[0];
+  assert.equal(cov.path, '/coverage');
+  assert.equal(cov.rate, 0.6);
+  assert.ok(Math.abs(cov.lift - 0.6 / (9 / 40)) < 1e-9);
+  assert.equal(cov.lowSample, true);
+  assert.equal(a.pages[1].path, '/blog');
+  assert.throws(() => optel.assists(b, {}), /goal/);
+});

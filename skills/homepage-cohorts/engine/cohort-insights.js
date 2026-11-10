@@ -119,8 +119,10 @@ export function ruleFacts(data, id, rules = {}) {
     lines.push(`${pct(t.didNothing)} do nothing today${vs}`);
   }
   if (t.goalRate) lines.push(`${pct(t.goalRate)} reach the goal${rule.goalLabel ? ` (${rule.goalLabel})` : ''}`);
+  if (t.supportRate) lines.push(`${pct(t.supportRate)} take the supporting step${rule.supportLabel ? ` (${rule.supportLabel})` : ''}`);
   // goal first in the large display: it is what the experience is built to move
   if (t.goalRate) stats.push({ value: pct(t.goalRate), text: `reach the goal${rule.goalLabel ? `: ${rule.goalLabel}` : ''}` });
+  if (t.supportRate) stats.push({ value: pct(t.supportRate), text: `take the supporting step${rule.supportLabel ? `: ${rule.supportLabel}` : ''}` });
   if (t.didNothing != null) {
     const ratio = t.vsAll?.didNothing;
     stats.push({
@@ -142,6 +144,72 @@ export function ruleFacts(data, id, rules = {}) {
     headline, lines, stats, caveats, source,
   };
 }
+
+/**
+ * Generated findings for a section about a page (Section Metadata `Insight Path`), from the
+ * site-wide second order in cohorts.json (size.js --site): is it a first step after the
+ * homepage, a next step after one, content that comes right before the conversion?
+ * Numbers follow each size.js run, so nobody types them.
+ * @param paths string or comma list ('/coverage, /how-to-cancel')
+ * @returns string[] at most three sentences, most telling first; [] without data
+ */
+// a second step under MIN_STEP sampled views is not said at all; under 30 it is said with a hedge
+const MIN_STEP = 5;
+const small = (row) => (row.lowSample ? ' (small sample)' : '');
+
+export function pathFacts(data, paths, rules = {}) {
+  const so = data?.secondOrder;
+  if (!so?.first) return [];
+  const name = (p) => rules.insights?.pages?.[p] || p;
+  const weeks = so.weeks ? ` in ${so.weeks} weeks` : '';
+  const out = [];
+  list(paths).forEach((raw) => {
+    const p = raw.startsWith('/') ? raw : `/${raw}`;
+    // a next step from the homepage's own arrivals when the sample holds, else from all the
+    // page's visitors (said so); under MIN_STEP sampled views it is not said at all
+    const step = (f, key) => {
+      const is = (n) => !key || n.key === key;
+      const own = (f.next || []).find((n) => is(n) && !n.lowSample);
+      if (own) return { n: own, k: f.next.indexOf(own), who: 'of its visitors from the homepage' };
+      const all = (f.nextAll || []).find((n) => is(n) && n.bundles >= MIN_STEP);
+      if (all) return { n: all, k: f.nextAll.indexOf(all), who: 'of all its visitors' };
+      const thin = (f.next || []).find((n) => is(n) && n.bundles >= MIN_STEP);
+      return thin ? { n: thin, k: f.next.indexOf(thin), who: 'of its visitors from the homepage' } : null;
+    };
+    const i = so.first.findIndex((f) => f.path === p);
+    if (i >= 0) {
+      const f = so.first[i];
+      const s0 = step(f);
+      const then = s0 ? `; then ${pct(s0.n.share)} ${s0.who} go on to ${name(s0.n.key)}${small(s0.n)}` : '';
+      out.push(`${i === 0 ? 'The #1' : `#${i + 1}`} next stop after the homepage: ${pct(f.share)} of the visitors who go on land on ${name(p)} (~${num(f.views)} views${weeks})${small(f)}${then}`);
+    }
+    let best = null;
+    so.first.forEach((f) => {
+      const st = step(f, p);
+      if (st && (!best || st.n.views > best.n.views)) best = { f, ...st };
+    });
+    if (best) {
+      out.push(`${best.k === 0 ? 'The #1' : `#${best.k + 1}`} next step from ${name(best.f.path)}: ${pct(best.n.share)} ${best.who} go on to ${name(p)} (~${num(best.n.views)} views${weeks})${small(best.n)}`);
+    }
+    const a = (so.assists?.pages || []).find((x) => x.path === p);
+    if (a && !a.lowSample && a.lift >= 1.2) {
+      const goal = so.conversion?.label || 'convert';
+      out.push(`Visitors coming from ${name(p)} ${goal} ${a.lift.toFixed(1)}× as often as the site average (${pct(a.rate)} vs ${pct(so.assists.rate)})`);
+    }
+  });
+  // most telling first: a finding without a sample hedge, then a #1
+  const weight = (t) => (t.includes('(small sample)') ? 2 : 0) + (t.startsWith('The #1') ? 0 : 1);
+  return out.map((t, i) => ({ t, i }))
+    .sort((a, b) => weight(a.t) - weight(b.t) || a.i - b.i)
+    .map((x) => x.t)
+    .slice(0, 3);
+}
+
+/** "Optel · site journeys · Sep 14 – Nov 9" for generated findings */
+export const pathSource = (data, tag = 'Optel') => {
+  const so = data?.secondOrder;
+  return so?.start ? `${tag} · site journeys · ${day(so.start)} – ${day(so.end)}` : `${tag} data`;
+};
 
 /* ---------- DOM ---------- */
 
@@ -185,15 +253,18 @@ export function showInsights(rules, data, ctx = window.cohorts, main = document.
   [...main.querySelectorAll(':scope > .section')].forEach((s, i) => {
     const reasons = sectionReasons(s.dataset, ctx, rules);
     const text = s.dataset.insight ? insightText(s.dataset.insight) : '';
+    const generated = s.dataset.insightPath ? pathFacts(data, s.dataset.insightPath, rules) : [];
     const first = i === 0 && facts;
     const note = document.createElement('aside');
-    note.className = `cohort-insight${!text && !first && reasons[0] === 'Everyone sees this section' ? ' is-quiet' : ''}`;
+    const quiet = !text && !generated.length && !first && reasons[0] === 'Everyone sees this section';
+    note.className = `cohort-insight${quiet ? ' is-quiet' : ''}`;
     note.setAttribute('aria-label', 'Why this section is here');
     note.innerHTML = `${ICON}<div class="cohort-insight-body">
       <p class="cohort-insight-why">${reasons.map(esc).join('<span aria-hidden="true"> · </span>')}</p>
       ${first && facts.stats.length ? statsHTML(facts.stats, 'cohort-insight-stats') : ''}
+      ${generated.map((g) => `<p class="cohort-insight-text">${markNumbers(esc(g))}.</p>`).join('')}
       ${text ? `<p class="cohort-insight-text">${markNumbers(esc(text))}</p>` : ''}
-      ${first || text ? `<p class="cohort-insight-src">${esc(first ? facts.source : `${tag} data`)}</p>` : ''}
+      ${first || text || generated.length ? `<p class="cohort-insight-src">${esc(first ? facts.source : pathSource(generated.length ? data : null, tag))}</p>` : ''}
     </div>`;
     s.prepend(note);
   });

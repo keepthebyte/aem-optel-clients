@@ -26,6 +26,7 @@ A rule:
   intent: 'utm',                  // 'utm' | 'memory' | false; default: campaign tags, else top interest
   when: { source: 'ai' },         // conditions, all must hold
   goal: { click: 'pricing|quote' }, // what success means for THIS cohort (review.js)
+  support: { click: 'features|customers' }, // the secondary action: the convincing content (optional)
   model: { click: 'login' },      // only for memory rules: how size.js estimates them from Optel
 }
 ```
@@ -47,9 +48,23 @@ A rule:
 
 Unknown conditions never match (a typo turns a rule off; the tests catch it).
 
-`goal`: `{ click: regex }` on click selector + target, `{ navigate: true }` (clicked through
-to another page), or `{ checkpoint: 'formsubmit' }`. Default: any click that is not the
-cookie banner.
+`goal`: `{ click: regex }` on click selector + target, `{ path: regex }` (arrived on a page:
+for a site-wide goal), `{ navigate: true }` (clicked through to another page), or
+`{ checkpoint: 'formsubmit' }`; with click and path, either counts. Default: any click that is
+not the cookie banner. `goalLabel` names it in plain words for the demo panel.
+
+`support`: the rule's **secondary action**, same shape as `goal`: the click to the content that
+convinces this cohort before it acts (coverage, reviews, pricing, how to cancel). size.js
+reports it per rule (`today.supportRate`), review.js tests it against the holdout next to the
+goal, and the demo panel shows it. `supportLabel` names it.
+
+`conversion` (top level, beside `rules`): the site's conversion anywhere on the site, e.g.
+`{ click: 'quote|enroll', path: '^/quote', label: 'start a quote' }`. With `size.js --site`
+it lists the pages viewed right before it (`secondOrder.assists`).
+
+`pathStrip` (top level, optional): a regex removed from every path before the second order
+counts it, when one page is reachable under two paths (AEM `/content/<site>/en/x.html` and
+`/x.html`). `insights.pages` names paths for the generated notes.
 
 ## Designing the set
 
@@ -79,6 +94,17 @@ cookie banner.
    a click pattern as well as from `clickIntent`.
 6. **One goal per rule, the cohort's own job**: sign-in for customers, quote or contact for
    prospects, any navigation for mobile explorers. Not "any click" everywhere.
+6b. **And a secondary action: design for the second step, not only the first.** Most visitors
+   are not ready to act on the homepage; they go and check something first. `size.js --site`
+   shows what: `secondOrder.first[]` (the page right after the homepage) with `next[]` (what
+   they click there), and `secondOrder.assists` (pages right before the conversion, with
+   `lift`). Pages with high lift are the convincing content: bring them onto the cohort's
+   homepage (a coverage summary, the cancel policy, reviews), point the rule's `support` at
+   them, and give each such section an `Insight Path` so the demo explains it with the numbers.
+   A goal that does not move yet with a support step that does is a promising experience,
+   not a failed one (review.js says so). Optel cannot follow a referrer- or campaign-detected
+   cohort to its next page: the second order is site-wide (device split only), so present it as
+   what visitors do, not what one cohort does.
 7. **Read `today.topClicks` before you pick a rule's experience.** "Clicked an ad" is not
    "prospect" on a well-known brand: brand search ads (`gclid` with no product or offer tag) are
    largely customers typing the brand to sign in. On one telco homepage the brand-search

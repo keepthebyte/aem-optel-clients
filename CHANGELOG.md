@@ -10,6 +10,26 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### optel-client.js
+- **Added** `paths(bundles, { from })`: second-order journeys, the page right after `from`
+  and the click on that page, both measured on that page's own view (CLI: `--report paths
+  --from /`, load the whole site). `assists(bundles, { goal })`: pages viewed right before a
+  goal, with the goal rate of views coming from each and `lift` against the site rate (CLI:
+  `--report assists --goal <regex>`). Helpers `previousPage(b)` (same-host navigate source)
+  and `nextPages(b)`.
+
+### homepage-cohorts: the second action
+- Rules: `support` (the secondary action, the convincing content) beside `goal`, with
+  `supportLabel`; top-level `conversion` for the whole site; goals take `path` and count any
+  of click / path.
+- `size.js --site site.jsonl`: `secondOrder` (first page after the homepage with its next
+  clicks, a device split, assists for the conversion) and `today.supportRate` per rule.
+- `review.js`: the supporting step against the holdout, a "promising" verdict when it moves
+  before the goal does, and a column in the markdown.
+- Insights: Section Metadata `Insight Path` generates a section's findings from
+  `secondOrder` (`pathFacts`); the panel shows the supporting step next to the goal.
+- Docs: rules.md item 6b "design for the second step", SKILL.md steps 1 and 2.
+
 ### homepage-cohorts
 - `size.js`: per rule, views per 7-day window (`weeks`, plus `meta.weeks` / `meta.fullWeeks`),
   `growth` (last full week over the first, null without two full weeks of 10+ bundles),

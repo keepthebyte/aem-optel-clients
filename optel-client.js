@@ -84,7 +84,7 @@
  *   §4 Classification                         classifyReferrer, classifyAcquisition, classifyClick, classifyConsent, parseRedirect
  *   §5 Aggregation primitives                 weightOf, viewsOf, groupBy, percentile, timeSeries, marginOfError, compareProportions
  *   §6 Reports (ready-made, JSON-friendly)    summary, topPages, trafficSources, clickReport, cwvReport, errorReport,
- *                                             formReport, mediaReach, flows, experimentReport, checkpointReport
+ *                                             formReport, mediaReach, flows, paths, assists, experimentReport, checkpointReport
  *   §6b Use-case reports                      activityReport, aiReferralReport, redirectReport, deadClickReport,
  *                                             segmentProfile, pageInsights, comparePeriods
  *   §7 CLI
@@ -1359,6 +1359,110 @@ export function flows(bundles, { path, top = 15 } = {}) {
   };
 }
 
+/** The page a view came from inside the same site (its `navigate` source), or null. */
+export function previousPage(b) {
+  const e = firstEvent(b, 'navigate');
+  if (!e?.source) return null;
+  try {
+    const u = new URL(e.source, b.url);
+    return u.hostname === hostOf(b) ? normalizePath(u.pathname) : null;
+  } catch { return null; }
+}
+
+/** Internal pages a view clicked through to (navigation clicks on the same host, not itself). */
+export function nextPages(b) {
+  const host = hostOf(b);
+  const here = pathOf(b);
+  return events(b, 'click').filter((e) => {
+    try { return isNavigation(e, b.url) && new URL(e.target, b.url).hostname === host; } catch { return false; }
+  }).map((e) => normalizePath(new URL(e.target, b.url).pathname)).filter((t) => t !== here);
+}
+
+/**
+ * Second-order journeys from one page (the homepage by default): where people go first after
+ * it, and what they do on that page, the second action. Optel does not link views into visits,
+ * but the first page's own view records both steps: it came from `from` (its navigate source)
+ * and its clicks say where it went next. So the second step is measured, not inferred.
+ * `filter` keeps a subset of the first-page views (e.g. one device). A cohort detected on the
+ * homepage by referrer or campaign cannot be followed: the next view no longer carries it.
+ * `pathFn` folds path variants into one key (e.g. strips an AEM /content/<site> prefix).
+ * Rows under LOW_SAMPLE bundles carry `lowSample`: second steps split a page's arrivals again.
+ * @returns {{ from, arrivals, bundles, first: Array<{ path, views, bundles, share, onward, next }> }}
+ *   `share` of arrivals from `from`; `onward` = share of that page's arrivals that clicked on
+ *   to another page; `next[]` = groupBy rows of those clicks (share of the page's arrivals);
+ *   `nextAll[]` = views whose previous page was this one, from any origin (share of `viewsAll`).
+ */
+export function paths(bundles, {
+  from = '/', top = 10, topNext = 5, filter, pathFn = (p) => p,
+} = {}) {
+  const f = pathFn(normalizePath(from));
+  const at = (b) => pathFn(pathOf(b));
+  const prev = (b) => { const p = previousPage(b); return p ? pathFn(p) : null; };
+  const nexts = (b) => { const here = at(b); return nextPages(b).map(pathFn).filter((t) => t !== here); };
+  const human = realViews(bundles).filter((b) => !filter || filter(b));
+  const arrived = human.filter((b) => prev(b) === f && at(b) !== f);
+  const arrivals = weightOf(arrived);
+  const first = groupBy(arrived, at, { top, total: arrivals }).map((g) => {
+    const here = arrived.filter((b) => at(b) === g.key);
+    const w = weightOf(here);
+    const everyone = human.filter((b) => at(b) === g.key);
+    const wAll = weightOf(everyone);
+    return {
+      path: g.key,
+      views: g.views,
+      bundles: g.bundles,
+      share: g.share,
+      lowSample: g.bundles < LOW_SAMPLE,
+      onward: ratio(weightOf(here.filter((b) => nexts(b).length)), w),
+      next: groupBy(here, nexts, { top: topNext, total: w }).map((n) => ({ ...n, lowSample: n.bundles < LOW_SAMPLE })),
+      // where all of this page's visitors go next, wherever they came from, counted on the next
+      // page's own view (its navigate source): far more views than the arrivals from `from`, and
+      // more complete than clicks, which a view does not always record
+      viewsAll: wAll,
+      nextAll: groupBy(human.filter((b) => prev(b) === g.key && at(b) !== g.key), at, { top: topNext, total: wAll })
+        .map((n) => ({ ...n, lowSample: n.bundles < LOW_SAMPLE })),
+    };
+  });
+  return {
+    from: f, arrivals, bundles: arrived.length, first,
+  };
+}
+
+/**
+ * Convincing content: the pages people view right before they reach a goal, and how much more
+ * often views coming from a page reach it than views coming from anywhere else in the site.
+ * `goal(b)` decides per view: a click, a form submit, arriving on a page.
+ * Views that entered the site directly have no previous page and are left out of both sides.
+ * @returns {{ goalViews, views, rate, pages: Array<{ path, views, bundles, goalViews, share, rate, lift, lowSample }> }}
+ *   `share` of all goal views; `rate` = goal views / views from that page; `lift` = rate / site rate.
+ */
+export function assists(bundles, { goal, top = 10, pathFn = (p) => p } = {}) {
+  if (typeof goal !== 'function') throw new Error('assists needs a goal(bundle) predicate');
+  const prev = (b) => { const p = previousPage(b); return p ? pathFn(p) : null; };
+  const from = realViews(bundles).filter((b) => prev(b));
+  const hit = from.filter((b) => goal(b));
+  const views = weightOf(from);
+  const goalViews = weightOf(hit);
+  const rate = ratio(goalViews, views);
+  const pages = groupBy(hit, prev, { total: goalViews }).map((g) => {
+    const all = from.filter((b) => prev(b) === g.key);
+    const r = ratio(g.views, weightOf(all));
+    return {
+      path: g.key,
+      views: weightOf(all),
+      bundles: all.length,
+      goalViews: g.views,
+      share: g.share,
+      rate: r,
+      lift: rate ? r / rate : null,
+      lowSample: all.length < LOW_SAMPLE,
+    };
+  }).sort((a, b) => b.goalViews - a.goalViews).slice(0, top);
+  return {
+    goalViews, views, rate, pages,
+  };
+}
+
 /**
  * A/B results for the AEM Experimentation plugin (`experiment` checkpoint).
  * Conversion defaults to "clicked anything but the cookie banner"; pass your
@@ -1735,6 +1839,9 @@ Filters (applied while loading)
 Reports
   summary (default)  pages  sources  clicks  cwv  errors  forms  reach  reach-media
   flows (with --path: previous/next pages)  experiments  checkpoints
+  paths              (second-order journeys from --from, default /: first page, then the next click;
+                     load the whole site, not --path, so the next pages are in the data)
+  assists            (pages viewed right before a goal; --goal <regex> on click targets or page paths)
   checkpoint:<name>  (breakdown of one checkpoint, e.g. checkpoint:utm)
   timeseries         (views/visits per day; --by hour|week)
   activity           (did nothing / consent only / scrolled / interacted / navigated, per channel; --by)
@@ -1870,6 +1977,12 @@ async function cli(argv) {
       reach: () => mediaReach(bundles, o), // viewblock on EDS sites, viewmedia elsewhere
       'reach-media': () => mediaReach(bundles, { ...o, checkpoint: 'viewmedia' }),
       flows: () => flows(bundles, { ...o, path: args.path }),
+      paths: () => paths(bundles, { ...o, from: args.from || '/' }),
+      assists: () => {
+        if (!args.goal) throw new Error('--report assists needs --goal <regex>');
+        const re = new RegExp(args.goal, 'i');
+        return assists(bundles, { ...o, goal: (b) => re.test(pathOf(b)) || events(b, 'click').some((e) => re.test(`${e.source || ''} ${e.target || ''}`)) });
+      },
       experiments: () => experimentReport(bundles),
       checkpoints: () => checkpointReport(bundles, o),
       timeseries: () => timeSeries(realViews(bundles), { by: ['hour', 'week'].includes(args.by) ? args.by : 'day', series: { visits: (b) => (isVisit(b) ? b.weight : 0) } }),

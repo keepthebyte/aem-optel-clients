@@ -106,14 +106,17 @@ export function ruleOf(o, rules, b) {
   return { ...matchRule(rules, signalsFromBundle(o, rules, b)), modelled: true };
 }
 
-/** goal: { click: regex } | { navigate: true } | { checkpoint: 'formsubmit' }; default: any non-consent click */
+/** goal: any of { click: regex, path: regex } | { navigate: true } | { checkpoint: 'formsubmit' }; default: any non-consent click */
 export function goalHit(o, goal, b) {
   const cl = clicks(o, b);
   if (!goal) return cl.length > 0;
-  if (goal.click) return cl.some((c) => rx(goal.click).test(c.text));
-  if (goal.navigate) return o.events(b, 'click').some((e) => o.isNavigation(e, b.url));
-  if (goal.checkpoint) return o.has(b, goal.checkpoint);
-  return cl.length > 0;
+  // any of the keys given: { click, path } counts a quote click or arriving on the quote page
+  const tests = [];
+  if (goal.click) tests.push(() => cl.some((c) => rx(goal.click).test(c.text)));
+  if (goal.path) tests.push(() => rx(goal.path).test(o.pathOf(b)));
+  if (goal.navigate) tests.push(() => o.events(b, 'click').some((e) => o.isNavigation(e, b.url)));
+  if (goal.checkpoint) tests.push(() => o.has(b, goal.checkpoint));
+  return tests.length ? tests.some((t) => t()) : cl.length > 0;
 }
 
 /** Entry column of the Sankey: a named source from rules.sources, else Optel's acquisition channel. */

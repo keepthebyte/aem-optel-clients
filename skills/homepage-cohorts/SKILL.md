@@ -61,6 +61,8 @@ month, nothing can be judged).
 OPTEL=path/to/optel-client.js   # next to the aem-optel skill, or the aem-optel-clients repo root
 node $OPTEL --domain www.example.com --path / --last 7d --report page
 node $OPTEL --domain www.example.com --path / --last 30d --granularity hour --report raw --out home.jsonl
+node $OPTEL --domain www.example.com --last 30d --granularity hour --report raw --out site.jsonl   # whole site: the second order
+node $OPTEL --domain www.example.com --last 30d --report paths --from /                              # quick look: first page, then the next click
 ```
 
 Always hourly files: daily and monthly files are thinned subsets (from 1.4x to ~50x fewer
@@ -69,7 +71,10 @@ rules split the page's sample again by rule and arm. Expect ~100 s per month of 
 files. Reload until the CLI reports 0 failed files. Small sites: 8-12 weeks.
 
 From the brief, note: views, channel and device mix, the activity ladder ("did nothing"
-instead of bounce), top clicks with consent separated, next pages. Check that the cookie
+instead of bounce), top clicks with consent separated, next pages, and the **second order**: where people go
+after the homepage and what they do there (`--report paths`), and which pages come right before
+the conversion (`--report assists --goal 'quote|enroll'`). The first action shows why they came;
+the second shows what convinces them. Check that the cookie
 banner's clicks are recognised as consent (`--report clicks` lists them under consent): an
 unrecognised CMP makes "accept" the homepage's top click and every cohort's goal. If it is not,
 add its selectors to `CONSENT` in optel-client.js. Email tools and captive Wi-Fi portals often
@@ -82,13 +87,15 @@ Write `scripts/cohort-rules.js` from `engine/cohort-rules.js` (`references/rules
 fields, conditions, how to choose and order rules, modelled memory rules). Then:
 
 ```bash
-node scripts/size.js --rules ../site/scripts/cohort-rules.js --bundles home.jsonl --out cohorts.json
+node scripts/size.js --rules ../site/scripts/cohort-rules.js --bundles home.jsonl --site site.jsonl --out cohorts.json
 node scripts/sankey.js --in cohorts.json --out sankey
 ```
 
 Read `cohorts.json`: share and `lowSample` per rule, `today.topClicks` and `didNothing`
 per cohort (design input), `modelled` and `firstVisitAssumed` rules (estimates and upper
-bounds). Iterate on order and conditions. Before agreeing an experience for a paid rule, look
+bounds), and `secondOrder` (first page after the homepage, the next click there, assists):
+give each rule a `support` step, the convincing content, as well as its `goal`
+(`references/rules.md` item 6b). Iterate on order and conditions. Before agreeing an experience for a paid rule, look
 at its top clicks: brand search ads on a known brand behave like customers
 (`references/rules.md`, items 7-9).
 Show the user the Sankey and the table, and agree the experiences before building anything:
