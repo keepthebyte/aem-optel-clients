@@ -457,6 +457,7 @@ main > .section > .cohort-insight > svg {
 
 .cohort-insight-body {
   display: grid;
+  flex: 1;
   gap: 10px;
   min-width: 0;
 }
@@ -486,25 +487,32 @@ main > .section > .cohort-insight .cohort-insight-src {
   color: var(--cohort-ink-2);
 }
 
+/* the cohort's numbers on the first note: one row, value over words, so every number shares a
+   baseline and every label starts on the same line */
 .cohort-insight-stats {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px 28px;
-  margin: 4px 0;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px 32px;
+  max-width: 960px;
+  margin: 6px 0 4px;
 }
 
 .cohort-insight-stats li {
-  grid-template-columns: auto 1fr;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .cohort-insight-stats b {
-  font-size: 30px;
+  font-size: 34px;
+  line-height: 1;
   text-align: left;
 }
 
 .cohort-insight-stats span {
+  max-width: 24ch;
   font-size: 16px;
   line-height: 1.35;
+  color: var(--cohort-ink-2);
 }
 
 /* a section everyone sees and nobody wrote a finding for: one quiet line */
