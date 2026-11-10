@@ -210,13 +210,16 @@ function writeMemory(rules, v) {
   } catch (e) { /* storage blocked */ }
 }
 
-/** Signals for this view. Demo/simulation overrides: ?ref=<host> stands in for the referrer. */
-export function browserSignals(rules) {
-  const u = new URL(window.location.href);
+/**
+ * Signals for a URL, a referrer and a memory: the engine's whole view of a visitor.
+ * `ref` in the URL stands in for the referrer (demo/simulation): a host or a full referrer.
+ */
+export function signalsFor(rules, href, referrer = '', memory = {}) {
+  const u = new URL(href);
   const q = u.searchParams;
   const utm = Object.fromEntries(UTM.map((k) => [k, (q.get(`utm_${k}`) || '').toLowerCase()]));
   // ?ref= takes a host (portal.example.com) or a full referrer (android-app://com.facebook.katana/)
-  let ref = q.get('ref') || document.referrer;
+  let ref = q.get('ref') || referrer;
   if (ref && !ref.includes('://')) ref = `https://${ref}/`;
   const refHost = refHostOf(ref);
   const siteHost = u.hostname.replace(/^www\./, '');
@@ -233,9 +236,14 @@ export function browserSignals(rules) {
     paid,
     device: mobile ? 'mobile' : 'desktop',
     bot: SIGNALS.bot.test(ua) || navigator.webdriver === true,
-    memory: readMemory(rules),
+    memory,
     path: u.pathname,
   };
+}
+
+/** Signals for this view. Demo/simulation overrides: ?ref=<host> stands in for the referrer. */
+export function browserSignals(rules) {
+  return signalsFor(rules, window.location.href, document.referrer, readMemory(rules));
 }
 
 /** Resolve this view's rule. ?cohort=<rule id> forces a rule (demo and screenshots). */

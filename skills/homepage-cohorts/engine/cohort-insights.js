@@ -113,17 +113,19 @@ export function ruleFacts(data, id, rules = {}) {
   const atMost = r.modelled || r.firstVisitAssumed ? ' at most' : '';
   const headline = `${pct(r.share, true)} of homepage views${atMost} · ${weeks} weeks`;
   const stats = [{ value: pct(r.share, true), text: `of homepage views${atMost} · ${weeks} weeks` }];
-  if (t.didNothing != null) {
+  if (t.didNothing != null && !r.modelled) {
     const ratio = t.vsAll?.didNothing;
     const vs = ratio && Math.abs(ratio - 1) >= 0.15 ? ` (${ratio.toFixed(1)}× the page average)` : '';
     lines.push(`${pct(t.didNothing)} do nothing today${vs}`);
   }
   if (t.goalRate) lines.push(`${pct(t.goalRate)} reach the goal${rule.goalLabel ? ` (${rule.goalLabel})` : ''}`);
   if (t.supportRate) lines.push(`${pct(t.supportRate)} take the supporting step${rule.supportLabel ? ` (${rule.supportLabel})` : ''}`);
+  // a modelled rule's views were picked by what they clicked: their "do nothing" is circular
+  // (0% for a rule modelled on a click), as their goal rate is (size.js leaves that null)
   // goal first in the large display: it is what the experience is built to move
   if (t.goalRate) stats.push({ value: pct(t.goalRate), text: `reach the goal${rule.goalLabel ? `: ${rule.goalLabel}` : ''}` });
   if (t.supportRate) stats.push({ value: pct(t.supportRate), text: `take the supporting step${rule.supportLabel ? `: ${rule.supportLabel}` : ''}` });
-  if (t.didNothing != null) {
+  if (t.didNothing != null && !r.modelled) {
     const ratio = t.vsAll?.didNothing;
     stats.push({
       value: pct(t.didNothing),

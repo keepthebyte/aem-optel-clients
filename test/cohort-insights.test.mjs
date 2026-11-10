@@ -73,7 +73,8 @@ test('caveats: modelled, unseen, small but standing out', () => {
   const m = ruleFacts(data, 'signed-in', rules);
   assert.match(m.headline, /at most/);
   assert.match(m.caveats[0], /Modelled/);
-  assert.deepEqual(m.lines, ['30% do nothing today']);
+  assert.deepEqual(m.lines, []); // picked by what it clicked: its "do nothing" is circular
+  assert.deepEqual(m.stats.map((x) => x.value), ['13.5%']);
   assert.match(ruleFacts(data, 'from-account', rules).headline, /not seen/);
   const ai = ruleFacts(data, 'ai', rules);
   assert.ok(ai.lines.some((l) => /stands out/.test(l)));
