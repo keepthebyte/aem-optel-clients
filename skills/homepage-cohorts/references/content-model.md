@@ -21,6 +21,7 @@ Authors keep editing it like any page; the engine removes what a visitor should 
 | `Cohorts` | `customer, prospect:pricing` | Section only for these experiences. `experience:intent` is more specific than `experience`. No `Cohorts` = everyone. |
 | `Hide For` | `customer, mobile` | Section removed for these experiences (use `default` to hide it from unmatched visitors and keep the default identical to the homepage). |
 | `Promote` | `customer` | Section moved right under the first section for these experiences. |
+| `Insight Path` | `/coverage-exclusions` | Not read by the engine. The page this section stands in for; Insights mode generates its findings from `cohorts.json` `secondOrder` (next stop after the homepage, next step after a page, lift before the conversion). Comma list allowed. Prefer it to typed numbers. |
 | `Insight` | `Coverage & exclusions is the #1 next step from product pages (2.8k in 8 weeks).` | Not read by the engine. The Optel finding behind the section, shown on the page in the demo panel's Insights mode and in the Experience Workspace panel. One or two sentences with the number and the period. |
 
 Keys a visitor matches, most specific first: `<experience>:<intent>`, `<experience>`, `default`.
@@ -30,7 +31,10 @@ tags or the top on-device interest (`intents` in the rules).
 ## Insights: say why each section is there
 
 Every cohort section exists because of something in the data: who arrives, what they do
-today, where they go next (the second-order paths). Write that down in the section's `Insight`
+today, where they go next (the second-order paths). When a section brings a page onto the
+homepage (coverage, FAQ, cancel policy), give it `Insight Path` with that page's path: the
+note then generates the numbers from `secondOrder`, and they follow each size.js run. Keep
+`Insight` for what the data cannot say on its own (why it matters, what you decided). Write that down in the section's `Insight`
 while sizing, with the number and the period, in the visitor's terms:
 
 | Section | Insight |

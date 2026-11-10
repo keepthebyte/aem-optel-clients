@@ -290,3 +290,61 @@ test('first-visit rules without a model are flagged as an upper bound', () => {
   assert.equal(assumesFirstVisit({ when: { source: 'ai' } }), false);
   assert.equal(assumesFirstVisit(null), false);
 });
+
+test('size.js --site: second order, assists for the conversion, supporting step per rule', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cohorts-second-'));
+  const S = 'https://www.example.com';
+  const home = [
+    ...Array.from({ length: 4 }, (_, i) => B([{ checkpoint: 'enter', source: 'https://chatgpt.com/' },
+      ...(i < 3 ? [{ checkpoint: 'click', source: 'main a', target: `${S}/features` }] : [])])),
+    B([{ checkpoint: 'enter', source: '' }]),
+  ];
+  const next = (page, to, from = `${S}/`) => B([{ checkpoint: 'navigate', source: from },
+    ...(to ? [{ checkpoint: 'click', source: 'main a', target: `${S}${to}` }] : [])], { url: `${S}${page}` });
+  const site = [...home,
+    ...Array.from({ length: 6 }, (_, i) => next('/features', i < 4 ? '/pricing' : null)),
+    next('/blog', null),
+    ...Array.from({ length: 30 }, (_, i) => next('/x', i < 15 ? '/quote' : null, `${S}/pricing`)),
+    ...Array.from({ length: 30 }, (_, i) => next('/x', i < 3 ? '/quote' : null, `${S}/blog`)),
+  ];
+  fs.writeFileSync(path.join(tmp, 'h.jsonl'), home.map((b) => JSON.stringify(b)).join('\n'));
+  fs.writeFileSync(path.join(tmp, 's.jsonl'), site.map((b) => JSON.stringify(b)).join('\n'));
+  run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'h.jsonl'), '--site', path.join(tmp, 's.jsonl'), '--out', path.join(tmp, 'c.json')]);
+  const c = JSON.parse(fs.readFileSync(path.join(tmp, 'c.json'), 'utf8'));
+  const ai = c.rules.find((r) => r.id === 'ai-referred');
+  assert.equal(ai.today.supportRate, 0.75);
+  assert.equal(c.rules.find((r) => r.id === 'none').today.supportRate, null);
+  const so = c.secondOrder;
+  assert.equal(so.scope, 'site');
+  assert.equal(so.first[0].path, '/features');
+  assert.equal(so.first[0].next[0].key, '/pricing');
+  assert.ok(Math.abs(so.first[0].onward - 4 / 6) < 1e-9);
+  assert.equal(so.assists.pages[0].path, '/pricing');
+  assert.ok(so.assists.pages[0].lift > 1.5);
+  // without --site there is no second order
+  run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'h.jsonl'), '--out', path.join(tmp, 'c0.json')]);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'c0.json'), 'utf8')).secondOrder, null);
+});
+
+test('goals: any of click / path; review.js reports the supporting step', () => {
+  assert.equal(goalHit(optel, { click: 'nope', path: '^/quote' }, B([], { url: 'https://www.example.com/quote' })), true);
+  assert.equal(goalHit(optel, { click: 'nope', path: '^/quote' }, B([], { url: 'https://www.example.com/x' })), false);
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'review-support-'));
+  const view = (arm, goal, sup) => B([
+    { checkpoint: 'enter', source: 'https://chatgpt.com/' },
+    { checkpoint: 'experiment', source: 'homepage-cohorts', target: arm === 'control' ? 'control' : 'challenger-1' },
+    { checkpoint: 'audience', source: 'ai-referred', target: arm },
+    ...(goal ? [{ checkpoint: 'click', source: '.hero a', target: 'https://www.example.com/quote' }] : []),
+    ...(sup ? [{ checkpoint: 'click', source: 'main a', target: 'https://www.example.com/features' }] : []),
+  ]);
+  const bundles = [];
+  for (let i = 0; i < 100; i += 1) bundles.push(view('control', i < 20, i < 10));
+  for (let i = 0; i < 100; i += 1) bundles.push(view('challenger-1', i < 22, i < 40));
+  fs.writeFileSync(path.join(tmp, 'm.jsonl'), bundles.map((b) => JSON.stringify(b)).join('\n'));
+  run('review.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'm.jsonl'), '--out', path.join(tmp, 'r.json'), '--md', path.join(tmp, 'r.md')]);
+  const ai = JSON.parse(fs.readFileSync(path.join(tmp, 'r.json'), 'utf8')).rules.find((x) => x.id === 'ai-referred');
+  assert.equal(ai.support.control, 0.1);
+  assert.equal(ai.support.cohort, 0.4);
+  assert.equal(ai.verdict, 'promising: more take the supporting step, goal not clear yet');
+  assert.match(fs.readFileSync(path.join(tmp, 'r.md'), 'utf8'), /pricing, features or customers: 10\.0% → 40\.0%/);
+});

@@ -49,7 +49,8 @@ Copy from this skill's `engine/`:
 `cohort-panel.js` imports `./cohorts.js` and `./cohort-insights.js`; keep them side by side.
 
 "Explain sections" (the dock switch, or `?demo&insights`) reads `insights.src` from the
-rules (default `/cohorts/cohorts.json`): copy `size.js` output there (`cohorts/cohorts.json` in
+rules (default `/cohorts/cohorts.json`): copy `size.js` output there (run with `--site` so
+`Insight Path` notes have the second order to generate from) (`cohorts/cohorts.json` in
 the repo; Code Sync serves it). It is aggregated Optel data on a public host: publish it only
 where that is fine (a demo or POC branch, never without the site owner's OK). Without it the
 section notes still show their reasons and `Insight` text; only the numbers are left out. Theme

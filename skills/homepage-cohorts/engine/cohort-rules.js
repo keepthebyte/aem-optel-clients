@@ -5,7 +5,8 @@
  * Every field here is read in two places:
  *   - the browser (scripts/cohorts.js) decides the page with `when`
  *   - the skill's size.js / review.js evaluate the same `when` on Optel bundles, use `model`
- *     to estimate memory-based rules from today's behaviour, and `goal` to measure each rule
+ *     to estimate memory-based rules from today's behaviour, `goal` to measure each rule and
+ *     `support` for its secondary action (the convincing content the experience points to)
  *
  * Regexes are strings (case-insensitive) so the file stays plain data.
  */
@@ -22,8 +23,13 @@ export default {
   ],
 
   // demo panel Insights mode (cohort-insights.js): where size.js output is published, and the
-  // tag on each section note. A rule's optional `goalLabel` names its goal in plain words.
-  insights: { src: '/cohorts/cohorts.json', label: 'Optel' },
+  // tag on each section note. A rule's optional `goalLabel` / `supportLabel` name its goal and
+  // supporting step in plain words; `pages` names paths in generated notes.
+  insights: { src: '/cohorts/cohorts.json', label: 'Optel', pages: { '/pricing': 'Pricing' } },
+
+  // the site's conversion, anywhere on the site: size.js --site lists the pages viewed right
+  // before it (assists: the convincing content). Any of click / path.
+  conversion: { click: 'quote|demo|contact', path: '^/(quote|contact)', label: 'ask for a quote' },
 
   memory: {
     storeKey: 'cohorts-v1',
@@ -70,6 +76,9 @@ export default {
       experience: 'prospect',
       when: { source: 'ai' },
       goal: { click: 'pricing|quote|contact|demo' },
+      // the secondary action: AI visitors check the details before they ask (review.js tests both)
+      support: { click: 'pricing|features|customers' },
+      supportLabel: 'pricing, features or customers',
     },
     {
       id: 'campaign',

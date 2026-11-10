@@ -108,3 +108,42 @@ test('numbers in a finding are bolded, ordinals and words are not', async () => 
   const { markNumbers } = await import('../skills/homepage-cohorts/engine/cohort-insights.js');
   assert.equal(markNumbers('2nd-order: 2.8k in 8 weeks, ~15% of views'), '2nd-order: <b>2.8k</b> in <b>8</b> weeks, <b>~15%</b> of views');
 });
+
+test('generated findings for a page: first stop, next step, convincing content', async () => {
+  const { pathFacts, pathSource } = await import('../skills/homepage-cohorts/engine/cohort-insights.js');
+  const so = {
+    ...data,
+    secondOrder: {
+      start: '2026-09-14T00:00:00Z', end: '2026-11-09T00:00:00Z', weeks: 8,
+      first: [
+        { path: '/dog-insurance', views: 61000, share: 0.24, bundles: 610, next: [{ key: '/coverage', views: 2800, share: 0.12, bundles: 28, lowSample: true }, { key: '/rare', views: 300, share: 0.01, bundles: 3, lowSample: true }] },
+        { path: '/claims', views: 49000, share: 0.19, bundles: 490, next: [] },
+      ],
+      conversion: { label: 'start a quote' },
+      assists: { rate: 0.05, pages: [{ path: '/coverage', rate: 0.11, lift: 2.2, lowSample: false }, { path: '/claims', rate: 0.2, lift: 4, lowSample: true }] },
+    },
+  };
+  const r = { insights: { pages: { '/coverage': 'Coverage & exclusions', '/dog-insurance': 'Dog insurance' } } };
+  assert.deepEqual(pathFacts(so, '/coverage', r), [
+    // most telling first: the unhedged finding before the small-sample one
+    'Visitors coming from Coverage & exclusions start a quote 2.2× as often as the site average (11% vs 5%)',
+    'The #1 next step from Dog insurance: 12% of its visitors from the homepage go on to Coverage & exclusions (~2,800 views in 8 weeks) (small sample)',
+  ]);
+  assert.match(pathFacts(so, 'dog-insurance', r)[0], /^The #1 next stop after the homepage: 24% .* \(~61k views in 8 weeks\); then 12% of its visitors from the homepage go on to Coverage/);
+  // a thin homepage sample falls back to all the page's visitors, and says so
+  const wide = JSON.parse(JSON.stringify(so));
+  wide.secondOrder.first[0].next = [{ key: '/coverage', views: 300, share: 0.15, bundles: 3, lowSample: true }];
+  wide.secondOrder.first[0].nextAll = [{ key: '/coverage', views: 28000, share: 0.2, bundles: 280, lowSample: false }];
+  assert.equal(pathFacts(wide, '/coverage', r)[0], 'The #1 next step from Dog insurance: 20% of all its visitors go on to Coverage & exclusions (~28k views in 8 weeks)');
+  assert.deepEqual(pathFacts(so, '/claims', r), ['#2 next stop after the homepage: 19% of the visitors who go on land on /claims (~49k views in 8 weeks)']);
+  assert.deepEqual(pathFacts(data, '/coverage', r), []);
+  assert.deepEqual(pathFacts(so, '/rare', r), []); // 3 sampled views: not said at all
+  assert.equal(pathSource(so), 'Optel · site journeys · Sep 14 – Nov 9');
+});
+
+test('the supporting step shows next to the goal', () => {
+  const d = { ...data, rules: [{ ...data.rules[0], today: { ...data.rules[0].today, supportRate: 0.21 } }] };
+  const f = ruleFacts(d, 'paid-social', { ...rules, rules: [{ id: 'paid-social', goalLabel: 'starts a quote', supportLabel: 'reads coverage' }] });
+  assert.deepEqual(f.stats[2], { value: '21%', text: 'take the supporting step: reads coverage' });
+  assert.ok(f.lines.includes('21% take the supporting step (reads coverage)'));
+});
