@@ -208,6 +208,9 @@ test('acquisition: real-world tagging seen on production domains', () => {
     assert.ok(!optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target }])).label.includes(':ai'), target);
   });
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://cr.m365copilotapp.svc.cloud.microsoft/' }])).label, 'earned:ai:copilot');
+  // Meta's link wrapper: someone clicked a link in an answer
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://l.meta.ai/' }])).label, 'earned:ai:meta-ai');
+  assert.equal(optel.classifyReferrer('https://l.meta.ai/?u=x').type, 'ai');
   // Muse, Meta's personal agent
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://muse.ai/' }])).label, 'earned:ai:muse');
   // a blog post on openai.com or anthropic.com is a referral, not an assistant answer
@@ -465,4 +468,26 @@ test('assists: pages right before a goal, with lift against the site rate', () =
   assert.equal(cov.lowSample, true);
   assert.equal(a.pages[1].path, '/blog');
   assert.throws(() => optel.assists(b, {}), /goal/);
+});
+
+test('personal AI agents: named, still bots, and reported on their own', () => {
+  const B = (ua, events = [], url = 'https://www.example.com/') => ({ id: 'x', url, userAgent: ua, weight: 100, time: '2026-11-02T10:00:00.000Z', timeSlot: '2026-11-02T10:00:00.000Z', events });
+  ['chatgpt-agent', 'claude-agent', 'google-agent', 'manus-user', 'meta-agent'].forEach((n) => {
+    assert.equal(optel.personalAgentOf(B(`bot:ai:${n}`)), n);
+    assert.ok(optel.isBot(B(`bot:ai:${n}`)), 'never a human view');
+  });
+  // crawlers and answer fetchers are not personal agents
+  ['bot:ai:gptbot', 'bot:ai:chatgpt-user', 'bot:crawler', 'bot', 'desktop:windows'].forEach((ua) => assert.equal(optel.personalAgentOf(B(ua)), null, ua));
+  const r = optel.personalAgentReport([
+    B('bot:ai:chatgpt-agent', [{ checkpoint: 'enter', source: '' }, { checkpoint: 'click', source: 'main a.button', target: 'https://www.example.com/pricing' }]),
+    B('bot:ai:chatgpt-agent', [], 'https://www.example.com/pricing'),
+    B('bot:ai:claude-agent', [{ checkpoint: 'enter', source: '' }]),
+    B('bot:ai:gptbot'),
+    ...Array.from({ length: 7 }, () => B('desktop:windows', [{ checkpoint: 'enter', source: '' }])),
+  ]);
+  assert.equal(r.views, 300);
+  assert.equal(r.shareOfViews, 0.3);
+  assert.equal(r.lowSample, true);
+  assert.deepEqual(r.agents.map((a) => [a.key, a.label, a.views, a.clickRate]), [['chatgpt-agent', 'ChatGPT agent', 200, 0.5], ['claude-agent', 'Claude agent', 100, 0]]);
+  assert.equal(r.pages[0].key, '/');
 });

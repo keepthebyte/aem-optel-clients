@@ -10,6 +10,25 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Personal AI agents
+- Personal AI agents, the assistants that drive a browser for one person. Optel labels them
+  `bot:ai:chatgpt-agent`, `claude-agent`, `google-agent`, `manus-user` and `meta-agent`.
+  - `optel-client.js`: `PERSONAL_AGENTS`, `personalAgentOf(bundle)`, `isPersonalAgent(bundle)`
+    and `personalAgentReport()` (`--report agents`): views next to human views, per agent, pages,
+    click and form rates, weekly. They stay bots: `isBot` is true and no human report counts them.
+  - `homepage-cohorts`: a `when: { agent: true | [names] }` condition, an `agent` signal
+    (`agentOf`), and a `personal-agent` rule with an `agent` experience in the rules template.
+    An agent matches only rules that ask for one, so the other rules stay human. `size.js` and
+    `review.js` count agent views only for those rules; the Sankey shows them as their own entry
+    source and flow colour. `?agent=<name>` simulates one, also from the demo panel.
+  - Claude, Google and Manus agents are recognised by user agent. ChatGPT and Meta agents send
+    an ordinary Chrome user agent and a `Signature-Agent` request header, which a page cannot
+    read: the CDN has to pass it on as `Server-Timing: agent;desc=...` (`references/install.md` §8).
+- `homepage-cohorts` engine: `Hide For` on a `Slot` section now leaves the slot empty for that
+  experience when that section would be the one shown (before, slot sections ignored it).
+- `l.meta.ai`, the link wrapper behind links clicked in a Meta AI answer, is covered by the
+  `meta.ai` rule (`earned:ai:meta-ai`, `source: 'ai'` in cohorts) and now has tests.
+
 ### optel-client.js
 - **Added** `paths(bundles, { from })`: second-order journeys, the page right after `from`
   and the click on that page, both measured on that page's own view (CLI: `--report paths

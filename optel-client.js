@@ -86,7 +86,7 @@
  *   §6 Reports (ready-made, JSON-friendly)    summary, topPages, trafficSources, clickReport, cwvReport, errorReport,
  *                                             formReport, mediaReach, flows, paths, assists, experimentReport, checkpointReport
  *   §6b Use-case reports                      activityReport, aiReferralReport, redirectReport, deadClickReport,
- *                                             segmentProfile, pageInsights, comparePeriods
+ *                                             segmentProfile, personalAgentReport, pageInsights, comparePeriods
  *   §7 CLI
  *
  * Classification rules follow @adobe/rum-distiller (the library behind the Optel
@@ -468,6 +468,23 @@ export const has = (b, cp) => (b.events || []).some((e) => e.checkpoint === cp);
 
 /** Bots, crawlers, monitoring. Exclude them from every human metric. */
 export const isBot = (b) => /^bot/i.test(b.userAgent || '');
+
+/**
+ * Personal AI agents: an assistant driving a browser for one person (book, compare, fill a form),
+ * as opposed to crawlers and answer fetchers (GPTBot, ChatGPT-User). The collector labels them
+ * `bot:ai:<name>`: Claude, Google and Manus by user agent, ChatGPT and Meta by the
+ * `Signature-Agent` request header (their cloud browsers send an ordinary Chrome user agent).
+ * They are bots for every human metric (isBot stays true); use these to look at them on their own.
+ */
+export const PERSONAL_AGENTS = {
+  'chatgpt-agent': 'ChatGPT agent', 'claude-agent': 'Claude agent', 'google-agent': 'Google agent', 'manus-user': 'Manus', 'meta-agent': 'Meta agent',
+};
+/** 'chatgpt-agent' | 'claude-agent' | 'google-agent' | 'manus-user' | 'meta-agent' | null */
+export function personalAgentOf(b) {
+  const name = (/^bot:ai:(.+)$/i.exec(b.userAgent || '') || [])[1]?.toLowerCase();
+  return name in PERSONAL_AGENTS ? name : null;
+}
+export const isPersonalAgent = (b) => personalAgentOf(b) !== null;
 
 /** A prerender only counts as a view once it was actually navigated to (rum-distiller pageViews). */
 export function isPageView(b) {
@@ -1754,6 +1771,33 @@ export function segmentProfile(bundles, { by = (b) => b.userAgent || 'undefined'
 }
 
 /**
+ * Personal AI agents (bot:ai:chatgpt-agent, claude-agent, google-agent, manus-user, meta-agent):
+ * how many views they make next to people, which agent, where they land and whether they act.
+ * Early numbers: tracking started in late 2026 and the bundler keeps only part of the bot
+ * traffic, so read shares as a floor and check `bundles` before quoting a rate.
+ */
+export function personalAgentReport(bundles, { top = 15 } = {}) {
+  const agents = bundles.filter((b) => isPersonalAgent(b) && isPageView(b));
+  const views = weightOf(agents);
+  const clicked = (b) => events(b, 'click').some((e) => classifyClick(e, b.url) !== 'consent');
+  const metrics = {
+    visitShare: (g) => ratio(weightOf(g.filter(isVisit)), weightOf(g)),
+    clickRate: (g) => ratio(weightOf(g.filter(clicked)), weightOf(g)),
+    formRate: (g) => ratio(weightOf(g.filter((b) => has(b, 'fill'))), weightOf(g)),
+  };
+  return {
+    views,
+    bundles: agents.length,
+    lowSample: agents.length < LOW_SAMPLE,
+    shareOfViews: ratio(views, views + viewsOf(bundles)), // of human + personal-agent views
+    agents: groupBy(agents, personalAgentOf, { total: views, metrics: { ...metrics, topPaths: (g) => groupBy(g, pathOf, { top: 3 }).map((r) => `${r.key} ${(r.share * 100).toFixed(0)}%`) } })
+      .map((r) => ({ ...r, label: PERSONAL_AGENTS[r.key] })),
+    pages: groupBy(agents, pathOf, { top, total: views, metrics }),
+    weekly: timeSeries(agents, { by: 'week' }),
+  };
+}
+
+/**
  * Everything about one page in one call: views and visits, how people arrived,
  * the activity ladder, clicks (consent and dead taps separated), reach (viewblock
  * on EDS sites, viewmedia otherwise), CWV, previous/next pages, errors.
@@ -1849,6 +1893,7 @@ Reports
   redirects          (redirect chains and delay per ad network / channel, engagement by delay)
   dead-clicks        (dead taps per component and page, repeat taps)
   segments           (behaviour per user agent for bot / agent hunting; --by)
+  agents             (personal AI agents: ChatGPT, Claude, Google, Manus, Meta; views, pages, clicks)
   page               (everything about one page; needs --path)
   compare            (with --vs previous: key rates against the previous period of equal length)
   sample             (first 3 bundles, raw: check the data shape)
@@ -1917,6 +1962,7 @@ async function cli(argv) {
     redirects: [...ACT, 'redirect', 'cwv-ttfb', 'cwv-lcp'],
     'dead-clicks': ['click', 'consent'],
     segments: [...ACT, 'cwv-ttfb', 'cwv-lcp'],
+    agents: ACT,
     page: [...ACT, ...CWV, 'error', '404', 'back_forward', 'reload'],
     compare: [...ACT, 'redirect', 'cwv-lcp', 'error'],
     timeseries: [],
@@ -1991,6 +2037,7 @@ async function cli(argv) {
       redirects: () => redirectReport(bundles, o),
       'dead-clicks': () => deadClickReport(bundles, o),
       segments: () => segmentProfile(bundles, { ...o, ...(byKey ? { by: byKey } : {}) }),
+      agents: () => personalAgentReport(bundles, o),
       page: () => { if (!args.path) throw new Error('--report page needs --path'); return pageInsights(bundles, args.path, o); },
       compare: async () => {
         if (args.vs !== 'previous') throw new Error('--report compare needs --vs previous');
