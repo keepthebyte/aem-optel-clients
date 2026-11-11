@@ -5,10 +5,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as optel from '../optel-client.js';
 import {
-  matchRule, matches, sourceOf, intentFrom, refHostOf, SIGNALS,
+  matchRule, matches, sourceOf, intentFrom, refHostOf, SIGNALS, agentOf,
 } from '../skills/homepage-cohorts/engine/cohorts.js';
 import {
   signalsFromBundle, goalHit, entryOf, ruleOf, assumesFirstVisit,
@@ -36,6 +36,38 @@ test('no signal, and bots, get the original sections', () => {
   assert.equal(none.rule, null);
   assert.deepEqual(none.keys, ['default']);
   assert.equal(matchRule(rules, sig({ bot: true, source: 'ai' })).rule, null);
+});
+
+test('personal AI agents match only the rules that ask for one', () => {
+  const m = matchRule(rules, sig({ agent: 'chatgpt-agent' }));
+  assert.equal(m.rule, 'personal-agent');
+  assert.equal(m.experience, 'agent');
+  // an agent's browser is automated, and it may carry a referrer or tags: still the agent rule
+  assert.equal(matchRule(rules, sig({ agent: 'claude-agent', bot: true, refHost: 'portal.example.com', source: 'ai' })).rule, 'personal-agent');
+  assert.equal(matchRule(rules, sig({ agent: 'manus-user', utm: { ...sig().utm, campaign: 'pricing-q1' } })).keys[0], 'agent:pricing');
+  // people never get it, and without an agent rule an agent gets the original page
+  assert.equal(matchRule(rules, sig({ source: 'ai' })).rule, 'ai-referred');
+  const human = { ...rules, rules: rules.rules.filter((r) => r.id !== 'personal-agent') };
+  assert.equal(matchRule(human, sig({ agent: 'chatgpt-agent', source: 'ai' })).rule, null);
+  // a rule for some agents only
+  const only = { rules: [{ id: 'claude', experience: 'agent', when: { agent: ['claude-agent'] } }] };
+  assert.equal(matchRule(only, sig({ agent: 'claude-agent' })).rule, 'claude');
+  assert.equal(matchRule(only, sig({ agent: 'google-agent' })).rule, null);
+  assert.equal(matches({ agent: false }, sig(), rules), true);
+});
+
+test('agentOf: user agent, or what the CDN passed on from Signature-Agent', () => {
+  assert.equal(agentOf('Mozilla/5.0 (X11; Linux x86_64) Chrome/140.0 Safari/537.36 Claude-Agent/1.0'), 'claude-agent');
+  assert.equal(agentOf('Mozilla/5.0 (compatible; Google-Agent/1.0)'), 'google-agent');
+  assert.equal(agentOf('Mozilla/5.0 Chrome/140.0 Safari/537.36 Manus-User/1.0'), 'manus-user');
+  const chrome = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+  assert.equal(agentOf(chrome), null);
+  assert.equal(agentOf(chrome, 'chatgpt-agent'), 'chatgpt-agent');
+  assert.equal(agentOf(chrome, '"https://chatgpt.com"'), 'chatgpt-agent');
+  assert.equal(agentOf(chrome, '"https://muse.ai"'), 'meta-agent');
+  assert.equal(agentOf(chrome, 'https://www.meta.com'), 'meta-agent');
+  assert.equal(agentOf(chrome, 'gptbot'), null);
+  assert.equal(agentOf('Mozilla/5.0 (compatible; GPTBot/1.2)'), null);
 });
 
 test('campaign: ad click id or paid medium, intent from the tags', () => {
@@ -77,6 +109,7 @@ test('source and intent classification', () => {
   assert.equal(sourceOf('chatgpt.com', 'example.com', { source: 'chatgpt.com' }, ['openai']), 'other', 'a ChatGPT ad is paid, not a citation');
   assert.equal(sourceOf('com.openai.chatgpt', 'example.com'), 'ai', 'ChatGPT Android app');
   assert.equal(sourceOf('copilot.cloud.microsoft', 'example.com'), 'ai');
+  assert.equal(sourceOf('l.meta.ai', 'example.com'), 'ai', 'a link clicked in a Meta AI answer');
   assert.equal(sourceOf('', 'example.com', { source: 'copilot.com?form=mg0auo' }), 'ai');
   assert.equal(sourceOf('', 'example.com', { source: 'geminiforbusiness' }), 'ai');
   assert.equal(intentFrom(rules, '/plans/business'), 'pricing');
@@ -212,6 +245,38 @@ test('size.js: weeks, growth, engagement against all views, standsOut', () => {
   // the big, quiet rest never stands out
   assert.equal(c.rules.find((x) => x.id === 'none').standsOut, false);
   assert.equal(c.today.weeks.reduce((a, w) => a + w, 0), c.meta.views);
+});
+
+test('size.js and review.js: personal agents count only where a rule asks for them', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'cohorts-'));
+  const aud = (rule, arm) => ({ checkpoint: 'audience', source: rule, target: arm });
+  const bundles = [
+    ...Array.from({ length: 8 }, () => B([{ checkpoint: 'enter', source: '' }, aud('none', 'challenger-1')])),
+    ...Array.from({ length: 2 }, () => B([{ checkpoint: 'enter', source: '' }, aud('personal-agent', 'challenger-1')], { ua: 'bot:ai:chatgpt-agent' })),
+    B([{ checkpoint: 'enter', source: '' }, aud('none', 'challenger-1')], { ua: 'bot:ai:claude-agent' }), // tagged before the rule existed
+    B([{ checkpoint: 'enter', source: '' }], { ua: 'bot:ai:gptbot' }), // a crawler
+  ];
+  const file = path.join(tmp, 'b.jsonl');
+  fs.writeFileSync(file, bundles.map((b) => JSON.stringify(b)).join('\n'));
+  run('size.js', ['--rules', rulesFile, '--bundles', file, '--out', path.join(tmp, 'c.json')]);
+  const c = JSON.parse(fs.readFileSync(path.join(tmp, 'c.json'), 'utf8'));
+  assert.equal(c.meta.bundles, 11); // 8 people + 3 personal agents, not the crawler
+  const agent = c.rules.find((r) => r.id === 'personal-agent');
+  assert.equal(agent.bundles, 3);
+  assert.equal(agent.signal, 'agent');
+  assert.equal(c.columns[0].nodes.find((n) => n.id === 'e:agent').label, 'Personal AI agents');
+  run('sankey.js', ['--in', path.join(tmp, 'c.json'), '--out', path.join(tmp, 's')]);
+  assert.match(fs.readFileSync(path.join(tmp, 's.svg'), 'utf8'), /data-n="x:agent"/);
+  // rules without an agent rule: agents stay out, as before
+  const human = path.join(tmp, 'human-rules.mjs');
+  fs.writeFileSync(human, `import r from ${JSON.stringify(pathToFileURL(rulesFile).href)};\nexport default { ...r, rules: r.rules.filter((x) => x.id !== 'personal-agent') };\n`);
+  run('size.js', ['--rules', human, '--bundles', file, '--out', path.join(tmp, 'h.json')]);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'h.json'), 'utf8')).meta.bundles, 8);
+  // review: the agent rule is measured on the agents the engine tagged with it
+  run('review.js', ['--rules', rulesFile, '--bundles', file, '--out', path.join(tmp, 'r.json')]);
+  const r = JSON.parse(fs.readFileSync(path.join(tmp, 'r.json'), 'utf8'));
+  assert.equal(r.rules.find((x) => x.id === 'personal-agent').cohort.bundles, 2);
+  assert.equal(r.rules.find((x) => x.id === 'none').cohort.bundles, 8);
 });
 
 test('review.js: lift per rule against the holdout, A/A on unmatched', () => {

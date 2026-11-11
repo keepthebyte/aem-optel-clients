@@ -88,10 +88,23 @@ export function signalsFromBundle(o, rules, b, { modelled = true } = {}) {
     utm,
     paid,
     device: o.device(b) === 'mobile' ? 'mobile' : 'desktop',
-    bot: false, // realViews() already removed bots
+    // Optel files personal agents under bots (bot:ai:<name>); cohortViews() keeps them
+    agent: o.personalAgentOf(b),
+    bot: false, // cohortViews() already removed the other bots
     memory,
     path: o.pathOf(b),
   };
+}
+
+/** Ids of the rules written for personal AI agents (`when.agent`). */
+export const agentRuleIds = (rules) => new Set((rules.rules || []).filter((r) => r.when && r.when.agent).map((r) => r.id));
+
+/**
+ * The views the rules are sized and reviewed on: human views, plus the personal-agent views
+ * that `claims(b)` says an agent rule takes. Agents no rule asks for stay out, like every bot.
+ */
+export function cohortViews(o, bundles, claims) {
+  return bundles.filter((b) => (o.isPersonalAgent(b) ? o.isPageView(b) && claims(b) : o.isHumanView(b)));
 }
 
 /**
@@ -126,6 +139,7 @@ export function entryOf(o, rules, b) {
   const named = (rules.sources || []).find((s) => (s.referrer || []).some((h) => host === h || host.endsWith(`.${h}`)));
   if (named) return named.id;
   if (!o.isVisit(b)) return 'internal';
+  if (o.isPersonalAgent(b)) return 'agent';
   const a = o.classifyAcquisition(b);
   if (!a) return 'internal';
   if (a.channel === 'ai') return 'ai';
@@ -138,7 +152,7 @@ export function entryOf(o, rules, b) {
 }
 
 export const ENTRY_LABELS = {
-  direct: 'Direct', search: 'Search', internal: 'Internal navigation', paid: 'Paid', social: 'Social', ai: 'AI assistants', owned: 'Email & owned campaigns', referral: 'Other referrers',
+  direct: 'Direct', search: 'Search', internal: 'Internal navigation', paid: 'Paid', social: 'Social', ai: 'AI assistants', agent: 'Personal AI agents', owned: 'Email & owned campaigns', referral: 'Other referrers',
 };
 
 /**
@@ -155,6 +169,7 @@ export function assumesFirstVisit(rule) {
 export function signalOf(rule) {
   if (!rule) return 'none';
   const keys = JSON.stringify(rule.when || {});
+  if (/"agent"/.test(keys)) return 'agent';
   if (/"device"/.test(keys)) return 'device';
   if (/"signedIn"|"visits"|"interest"/.test(keys)) return 'memory';
   return 'link';

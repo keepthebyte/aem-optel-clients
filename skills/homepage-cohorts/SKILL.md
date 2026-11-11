@@ -123,6 +123,9 @@ which cohorts, what each gets first, what goes away for it.
    preview link to `/new?demo`.
 
 Automated browsers report `navigator.webdriver` and are treated as bots (original page).
+Personal AI agents (ChatGPT, Claude, Google, Manus, Meta) are the exception: they match rules
+with `when.agent` and nothing else (`references/rules.md`, "Personal AI agents"; ChatGPT and
+Meta agents need the CDN step in `references/install.md` §8). Simulate one with `?agent=chatgpt-agent`.
 To screenshot cohort pages, launch Chromium with `--disable-blink-features=AutomationControlled`
 and a normal user agent, or force a rule with `?cohort=<rule id>`.
 

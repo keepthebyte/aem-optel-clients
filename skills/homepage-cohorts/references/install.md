@@ -230,3 +230,52 @@ panel can be tried before it reaches `main`.
 - **Standalone**: `/tools/cohorts/index.html?path=/new` works outside Experience Workspace.
 - Its model has tests (`test/ew-panel.test.mjs` in this repo); copy them next to the site's rule
   tests if the site changes the panel.
+
+## 8. Personal AI agents (only for a rule with `when.agent`)
+
+Claude, Google and Manus agents name themselves in the user agent (`Claude-Agent`,
+`Google-Agent`, `Manus-User`); the engine reads that and nothing else is needed.
+
+ChatGPT and Meta agents browse from cloud browsers with an ordinary Chrome user agent and
+`navigator.webdriver` off. They identify themselves with a request header the page cannot see:
+`Signature-Agent: "https://chatgpt.com"` (Meta: `"https://muse.ai"` or `"https://www.meta.com"`).
+Optel's collector reads the same header for `bot:ai:chatgpt-agent` and `bot:ai:meta-agent`.
+To let the engine see it, the CDN copies it to the HTML response as a `Server-Timing` entry
+named `agent`, which the page reads from its navigation timing:
+
+```
+Server-Timing: agent;desc="https://chatgpt.com"
+```
+
+`desc` is the header value as sent, or an agent name (`chatgpt-agent`, `meta-agent`). Add it
+when the response is delivered, after the cache lookup, so the cached page stays one object
+and no `Vary` is needed. Sketches; adapt to the site's CDN setup:
+
+```js
+// Cloudflare Worker
+const KNOWN = ['"https://chatgpt.com"', '"https://muse.ai"', '"https://www.meta.com"'];
+export default {
+  async fetch(request, env, ctx) {
+    const res = await fetch(request);
+    const agent = request.headers.get('signature-agent');
+    if (!KNOWN.includes(agent)) return res;
+    const out = new Response(res.body, res);
+    out.headers.append('Server-Timing', `agent;desc=${agent}`);
+    return out;
+  },
+};
+```
+
+```vcl
+# Fastly, in vcl_deliver
+if (req.http.Signature-Agent == {""https://chatgpt.com""} || req.http.Signature-Agent == {""https://muse.ai""} || req.http.Signature-Agent == {""https://www.meta.com""}) {
+  add resp.http.Server-Timing = "agent;desc=" req.http.Signature-Agent;
+}
+```
+
+Without this step the rule still works for the three agents the user agent names; ChatGPT and
+Meta agents then look like people and get whichever rule their referrer or device matches.
+The header is self-declared (the signature is not verified here): fine for choosing a layout,
+not for access or pricing. Check with `?agent=chatgpt-agent`, then with
+`curl -sI -H 'Signature-Agent: "https://chatgpt.com"' https://www.example.com/ | grep -i server-timing`.
+

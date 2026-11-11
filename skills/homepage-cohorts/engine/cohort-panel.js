@@ -19,7 +19,7 @@ import {
 
 const INSIGHTS_KEY = 'cohort-insights';
 const PICK_KEY = 'cohort-scenario';
-const PARAMS = ['cohort', 'ref', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'experiment', 'gclid', 'fbclid'];
+const PARAMS = ['cohort', 'ref', 'agent', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'experiment', 'gclid', 'fbclid'];
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',

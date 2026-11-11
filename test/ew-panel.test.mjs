@@ -30,7 +30,7 @@ test('experiences come from the rules, intents from the keys the page uses', () 
   const secs = [S(0, { slot: 'hero', cohorts: 'prospect:pricing' }), S(1, { cohorts: 'customer' })];
   const cj = { rules: [{ id: 'from-portal', share: 0.05 }, { id: 'signed-in-before', share: 0.1 }, { id: 'none', share: 0.2 }] };
   const exps = experiencesOf(rules, secs, cj);
-  assert.deepEqual(exps.map((e) => e.id), ['default', 'customer', 'prospect', 'prospect:pricing', 'mobile']);
+  assert.deepEqual(exps.map((e) => e.id), ['default', 'customer', 'prospect', 'prospect:pricing', 'mobile', 'agent']);
   assert.deepEqual(exps.find((e) => e.id === 'prospect:pricing').keys, ['prospect:pricing', 'prospect', 'default']);
   assert.ok(Math.abs(exps.find((e) => e.id === 'customer').share - 0.15) < 1e-9);
   assert.equal(exps.find((e) => e.id === 'default').share, 0.2);

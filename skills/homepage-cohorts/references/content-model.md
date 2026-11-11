@@ -19,7 +19,7 @@ Authors keep editing it like any page; the engine removes what a visitor should 
 | --- | --- | --- |
 | `Slot` | `hero` | Sections sharing a slot compete; the first whose `Cohorts` has the most specific key wins, the rest are removed. Put the original section in the slot with `Cohorts: default` (or no `Cohorts`). |
 | `Cohorts` | `customer, prospect:pricing` | Section only for these experiences. `experience:intent` is more specific than `experience`. No `Cohorts` = everyone. |
-| `Hide For` | `customer, mobile` | Section removed for these experiences (use `default` to hide it from unmatched visitors and keep the default identical to the homepage). |
+| `Hide For` | `customer, mobile` | Section removed for these experiences (use `default` to hide it from unmatched visitors and keep the default identical to the homepage). On a `Slot` section it leaves the slot empty for that experience when this section would be the one shown. |
 | `Promote` | `customer` | Section moved right under the first section for these experiences. |
 | `Insight Path` | `/coverage-exclusions` | Not read by the engine. The page this section stands in for; Insights mode generates its findings from `cohorts.json` `secondOrder` (next stop after the homepage, next step after a page, lift before the conversion). Comma list allowed. Prefer it to typed numbers. |
 | `Insight` | `Coverage & exclusions is the #1 next step from product pages (2.8k in 8 weeks).` | Not read by the engine. The Optel finding behind the section, shown on the page in the demo panel's Insights mode and in the Experience Workspace panel. One or two sentences with the number and the period. |

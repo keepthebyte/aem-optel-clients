@@ -20,9 +20,10 @@ const SIG = {
   link: { label: 'Where they came from (referrer / UTM / ad)', color: '#2f74d0' },
   memory: { label: 'Visit memory (on device)', color: '#17a08a' },
   device: { label: 'Device', color: '#e8693c' },
+  agent: { label: 'Personal AI agent', color: '#8a5cd6' },
   none: { label: 'No signal', color: '#9a9a9a' },
 };
-const ORDER = ['link', 'memory', 'device', 'none'];
+const ORDER = ['link', 'agent', 'memory', 'device', 'none'];
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const total = data.meta.views;
 const pct = (v) => `${((v / total) * 100).toFixed(1)}%`;

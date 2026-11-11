@@ -46,6 +46,7 @@ export default {
     customer: { label: 'Customer: sign-in first', sub: 'Sign in · help signing in · top tasks · one offer' },
     prospect: { label: 'Prospect: answer & act', sub: 'Repeats the ad or the interest · quote · advisor' },
     mobile: { label: 'Mobile: quick tasks', sub: 'Thumb-sized top tasks · shorter page' },
+    agent: { label: 'Personal agent: plain & actionable', sub: 'Facts and prices as text · labelled actions · nothing hidden behind hover or carousels' },
   },
 
   // break out named entry sources in the Sankey (otherwise Optel's channel is used)
@@ -54,6 +55,17 @@ export default {
   ],
 
   rules: [
+    {
+      // An assistant browsing for one person (ChatGPT, Claude, Google, Manus, Meta agents).
+      // First: the signal is explicit, and an agent matches no other rule. Small today
+      // (Optel started tracking them in late 2026); kept because the layout is cheap.
+      id: 'personal-agent',
+      label: 'A personal AI agent is browsing',
+      experience: 'agent',
+      intent: 'utm',
+      when: { agent: true },
+      goal: { click: 'pricing|quote|contact|demo' },
+    },
     {
       id: 'from-portal',
       label: 'Arrived from the customer portal',
@@ -112,6 +124,7 @@ export default {
     ['No signal', {}],
     ['Back from the portal', { ref: 'portal.example.com' }],
     ['From ChatGPT', { utm_source: 'chatgpt.com' }],
+    ['A personal AI agent', { agent: 'chatgpt-agent' }],
     ['Paid ad: pricing', { utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'pricing-q1' }],
     ['Returning, read about product A', {}, { visits: 2, interests: { 'product-a': 3 } }],
     ['First visit on a phone', { cohort: 'mobile-first-visit' }],
