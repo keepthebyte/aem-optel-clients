@@ -29,6 +29,7 @@ Reports and scripts:
 | `scripts/size.js` | homepage bundles + rules → `cohorts.json` (share per rule, what each cohort does today, Sankey flows) |
 | `scripts/sankey.js` | `cohorts.json` → `sankey.svg` / `sankey.html` (flows tagged for the video) |
 | `scripts/verify.js` | homepage URL + cohort page URL → ok / first differing section (the holdout guarantee) |
+| `scripts/agent-check.js` | cohort page URL → findings for the page a personal AI agent gets, first-screen screenshot and accessibility tree (needs Playwright) |
 | `scripts/review.js` | a month of bundles + rules → `review.json` / `review.md` (lift per rule vs holdout, A/A check, unmatched traffic) |
 
 The explainer video for leadership, and the monthly video update, are made with the
@@ -126,6 +127,9 @@ Automated browsers report `navigator.webdriver` and are treated as bots (origina
 Personal AI agents (ChatGPT, Claude, Google, Manus, Meta) are the exception: they match rules
 with `when.agent` and nothing else (`references/rules.md`, "Personal AI agents"; ChatGPT and
 Meta agents need the CDN step in `references/install.md` §8). Simulate one with `?agent=chatgpt-agent`.
+Build their experience by `references/agent-experience.md` (the task as a native form in the
+first screen, everything open, nothing moves, same facts and prices as for people) and check it
+with `node scripts/agent-check.js --url https://{branch}--{repo}--{org}.aem.page/new`.
 To screenshot cohort pages, launch Chromium with `--disable-blink-features=AutomationControlled`
 and a normal user agent, or force a rule with `?cohort=<rule id>`.
 

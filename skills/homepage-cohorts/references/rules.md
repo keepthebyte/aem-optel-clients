@@ -77,7 +77,8 @@ and fills forms to finish that person's task. It is not a crawler and not a refe
   never fire for it, so their sizes and goal rates stay human. Without an agent rule an agent
   gets the original page, like every bot.
 - Put the agent rule first. Its experience is a layout an agent can read and act on in one
-  pass; `intent: 'utm'` still lets a tagged link pick the product.
+  pass; `intent: 'utm'` still lets a tagged link pick the product. How to design and build
+  that page, and how to check it: `agent-experience.md`.
 - Sizing: Optel files agents under bots, and the bundler keeps only part of the bot traffic.
   `size.js` and `--report agents` give a floor, and the share is small today (tracking started
   in late 2026). This is the exception to "drop cohorts under 2%": keep it if the layout is

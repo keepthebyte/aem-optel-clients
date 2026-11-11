@@ -18,6 +18,9 @@ change report shapes or classification results; read **Changed** before upgradin
     click and form rates, weekly. They stay bots: `isBot` is true and no human report counts them.
   - `homepage-cohorts`: a `when: { agent: true | [names] }` condition, an `agent` signal
     (`agentOf`), and a `personal-agent` rule with an `agent` experience in the rules template.
+  - `homepage-cohorts`: `references/agent-experience.md`, how to design and build the page an
+    agent gets and what must not change, and `scripts/agent-check.js`, which loads the page as
+    an agent and reports what it would trip over.
     An agent matches only rules that ask for one, so the other rules stay human. `size.js` and
     `review.js` count agent views only for those rules; the Sankey shows them as their own entry
     source and flow colour. `?agent=<name>` simulates one, also from the demo panel.
