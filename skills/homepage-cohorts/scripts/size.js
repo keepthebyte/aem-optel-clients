@@ -17,7 +17,7 @@
  */
 import fs from 'node:fs';
 import {
-  loadOptel, loadRules, readBundles, parseArgs, ruleOf, goalHit, entryOf, ENTRY_LABELS, signalOf, clicks, assumesFirstVisit,
+  loadOptel, loadRules, readBundles, parseArgs, ruleOf, goalHit, entryOf, ENTRY_LABELS, signalOf, clicks, assumesFirstVisit, cohortViews, agentRuleIds,
 } from './lib.js';
 
 const args = parseArgs(process.argv.slice(2));
@@ -32,7 +32,8 @@ const all = readBundles(args.bundles);
 // for one rule set over several paths (e.g. two locales with the same audience)
 const pagePath = args.path || '/';
 const paths = new Set(String(pagePath).split(',').map((p) => o.normalizePath(p.trim())));
-const views = o.realViews(all).filter((b) => paths.has(o.pathOf(b)));
+const agentRules = agentRuleIds(rules);
+const views = cohortViews(o, all, (b) => agentRules.has(ruleOf(o, rules, b).rule)).filter((b) => paths.has(o.pathOf(b)));
 const total = o.weightOf(views);
 if (!views.length) { console.error(`no human views of ${pagePath} in ${args.bundles}`); process.exit(1); }
 
@@ -202,7 +203,7 @@ const out = {
     bundles: views.length,
     weeks: nWeeks,
     fullWeeks,
-    note: 'Sampled page views, bots and prerenders excluded. `weeks[]` are 7-day windows from `start`; the last one is partial when `weeks > fullWeeks`. `growth` is the last full week over the first, null without two full weeks of 10+ bundles each. `today.vsAll` compares a rule with all views (1 = the same; `didNothing` below 1 is better). `standsOut` marks a small rule (under 5% of views) that is clearly more engaged or growing 2x or more: call it out by name. `today.supportRate` is the rule\'s secondary action (`support`) on the homepage. `secondOrder` (with --site) is site-wide: `first[]` = pages people open right after the homepage (share of those arrivals), each with `next[]` = what they click on there; `assists.pages[]` = pages viewed right before the conversion, `lift` against the site rate. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today. Rules with `firstVisitAssumed: true` ask for a first visit, which Optel cannot see either: every view counts as one, so their share is an upper bound. `topClicks[].link: false` is a click that opened something on the page (menu, search, carousel) rather than a link: its `click` is the element selector.',
+    note: 'Sampled page views, bots and prerenders excluded (personal AI agents count only where a rule asks for them). `weeks[]` are 7-day windows from `start`; the last one is partial when `weeks > fullWeeks`. `growth` is the last full week over the first, null without two full weeks of 10+ bundles each. `today.vsAll` compares a rule with all views (1 = the same; `didNothing` below 1 is better). `standsOut` marks a small rule (under 5% of views) that is clearly more engaged or growing 2x or more: call it out by name. `today.supportRate` is the rule\'s secondary action (`support`) on the homepage. `secondOrder` (with --site) is site-wide: `first[]` = pages people open right after the homepage (share of those arrivals), each with `next[]` = what they click on there; `assists.pages[]` = pages viewed right before the conversion, `lift` against the site rate. Rules with `modelled: true` depend on on-device memory, which Optel cannot see: they are estimated at steady state from what views do today. Rules with `firstVisitAssumed: true` ask for a first visit, which Optel cannot see either: every view counts as one, so their share is an upper bound. `topClicks[].link: false` is a click that opened something on the page (menu, search, carousel) rather than a link: its `click` is the element selector.',
   },
   columns,
   links: [...linkMap.values()].map((l) => ({ ...l, rules: [...l.rules] })),

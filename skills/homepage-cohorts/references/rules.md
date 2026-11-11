@@ -40,6 +40,7 @@ A rule:
 | `utm` | `{ medium: '^(paid|cpc)$', any: 'spring' }` | regex per tag; `any` = campaign, content or term |
 | `paid` | `true`, `['google', 'openai']` | ad click ids on the URL (gclid, fbclid, msclkid, oppref, ...) |
 | `device` | `'mobile'` | user agent, `userAgentData.mobile`, or width < 600 px |
+| `agent` | `true`, `['chatgpt-agent', 'claude-agent']` | a personal AI agent is browsing: `chatgpt-agent claude-agent google-agent manus-user meta-agent` (Optel's `bot:ai:<name>`). From the user agent, or from the CDN for ChatGPT and Meta (`install.md` §8) |
 | `signedIn` | `true` | memory: this browser clicked a `memory.signIn` control |
 | `visits` | `{ min: 2 }`, `{ max: 1 }` | memory: visits including this one |
 | `interest` | `true`, `['pricing']` | memory: top interest from pages visited |
@@ -65,6 +66,26 @@ it lists the pages viewed right before it (`secondOrder.assists`).
 `pathStrip` (top level, optional): a regex removed from every path before the second order
 counts it, when one page is reachable under two paths (AEM `/content/<site>/en/x.html` and
 `/x.html`). `insights.pages` names paths for the generated notes.
+
+## Personal AI agents
+
+A personal agent is an assistant driving a browser for one person: it reads the page, clicks
+and fills forms to finish that person's task. It is not a crawler and not a referral (`source:
+'ai'` is a person who clicked a link in an answer).
+
+- An agent matches **only** rules with `when.agent`. Portal, campaign, memory and device rules
+  never fire for it, so their sizes and goal rates stay human. Without an agent rule an agent
+  gets the original page, like every bot.
+- Put the agent rule first. Its experience is a layout an agent can read and act on in one
+  pass; `intent: 'utm'` still lets a tagged link pick the product.
+- Sizing: Optel files agents under bots, and the bundler keeps only part of the bot traffic.
+  `size.js` and `--report agents` give a floor, and the share is small today (tracking started
+  in late 2026). This is the exception to "drop cohorts under 2%": keep it if the layout is
+  cheap, and expect `review.js` to say "not enough data yet" for a long time.
+- ChatGPT and Meta agents are only recognised once the CDN passes `Signature-Agent` on
+  (`install.md` §8). The signal is self-declared, like a user agent: use it to choose a layout,
+  never to show different facts, prices or access.
+- Try it with `?agent=chatgpt-agent` (or the demo panel scenario).
 
 ## Designing the set
 

@@ -69,6 +69,7 @@ Output is JSON on stdout (`{ meta, data }`), progress on stderr. Pipe to `jq` or
 | Redirect chains before the page, per ad network, and engagement by delay | `--report redirects` |
 | Dead taps per component and page, repeat ("rage") taps | `--report dead-clicks` |
 | Bot / AI-agent hunting: behaviour per user agent | `--report segments [--by ua\|os]` |
+| Personal AI agents (ChatGPT, Claude, Google, Manus, Meta): views, pages, clicks, weekly | `--report agents` |
 | Everything about one page (redesign brief, landing-page review) | `--path / --report page` |
 | This period vs the one before, with significance | `--report compare --vs previous` |
 | See the raw data shape | `--report sample` |
@@ -295,6 +296,15 @@ direct-entry share, events per view, click / scroll / form rates, share of first
 rate, top paths. Compare the suspect agent with windows/mac. Synthetic monitoring looks like:
 ~95% direct, few events, < 5% clicks, weekday-heavy, one landing page. Then trend it with
 `timeseries --by week` filtered by user agent in code.
+
+**Personal AI agents.** `--report agents` → views of `bot:ai:chatgpt-agent`, `claude-agent`,
+`google-agent`, `manus-user` and `meta-agent` (an assistant driving a browser for one person,
+not a crawler), their share next to human views, per agent, landing pages, click and form
+rates, and a weekly trend. In code: `personalAgentOf(b)`, `isPersonalAgent(b)`. They are bots
+for every other report. Tracking started in late 2026 and the bundler drops part of the bot
+traffic, so volumes are a floor and most sites have a handful of bundles: say so, and do not
+quote a rate when `lowSample` is true. A person who clicked a link in an AI answer is not an
+agent; that is `--report ai`.
 
 **Homepage / landing page brief.** `--path / --report page` → views, entry share, channels,
 activity overall and by channel, clicks (consent and dead separated), reach (viewblock on EDS,

@@ -43,6 +43,13 @@ export const SIGNALS = {
     'com.openai.chatgpt': 'chatgpt.com',
   },
   bot: /bot|crawl|spider|slurp|headless|lighthouse|pagespeed|prerender|preview/i,
+  // personal AI agents (an assistant browsing for one person), named as in Optel's bot:ai:<name>.
+  // Claude, Google and Manus say so in the user agent. ChatGPT and Meta browse with an ordinary
+  // Chrome user agent and sign the request (Signature-Agent header): the page only knows them
+  // when the CDN passes that on as `Server-Timing: agent;desc="chatgpt-agent"` (install.md §8).
+  agentUa: /claude-agent|google-agent|manus-user/i,
+  agentSigned: { 'https://chatgpt.com': 'chatgpt-agent', 'https://muse.ai': 'meta-agent', 'https://www.meta.com': 'meta-agent' },
+  agents: ['chatgpt-agent', 'claude-agent', 'google-agent', 'manus-user', 'meta-agent'],
   mobileUa: /Mobi|Android|iPhone|iPad/i,
   // ad click ids on the landing URL → network (same names as Optel's `paid` checkpoint)
   paidParams: {
@@ -96,6 +103,16 @@ export function sourceOf(refHost, siteHost, utm = {}, paid = []) {
 }
 
 /**
+ * The personal AI agent behind this view, or null. `hint` is what the CDN passed on:
+ * an agent name, or the raw Signature-Agent value ('"https://chatgpt.com"').
+ */
+export function agentOf(ua = '', hint = '') {
+  const h = String(hint || '').replace(/"/g, '').trim().toLowerCase();
+  const m = SIGNALS.agentUa.exec(ua || '');
+  return (m && m[0].toLowerCase()) || SIGNALS.agentSigned[h] || (SIGNALS.agents.includes(h) ? h : null);
+}
+
+/**
  * The intent named by a text (campaign tags, a path),
  * from rules.intents: [[id, regex], ...] in priority order.
  */
@@ -118,6 +135,7 @@ export function topInterest(memory = {}) {
  *        regex strings (case-insensitive); any = campaign|content|term
  *   paid: true | false | ['google', 'facebook', ...]
  *   device: 'mobile' | 'desktop'
+ *   agent: true | ['chatgpt-agent', ...]  a personal AI agent is browsing (any, or one of)
  *   signedIn: true | false            on-device memory: this browser clicked sign-in before
  *   visits: { min, max }              on-device memory: visits including this one
  *   interest: true | ['pricing', ...] on-device memory: top interest exists / is one of
@@ -140,6 +158,7 @@ export function matches(when, s, rules = {}) {
         : rx(re).test(s.utm[f] || '')));
       case 'paid': return paidMatches(v, s);
       case 'device': return s.device === v;
+      case 'agent': return v === true ? !!s.agent : v === false ? !s.agent : arr(v).includes(s.agent);
       case 'signedIn': return !!s.memory.signedIn === v;
       case 'visits': return (s.memory.visits || 0) >= (v.min ?? 0) && (s.memory.visits || 0) <= (v.max ?? Infinity);
       case 'interest': { const t = topInterest(s.memory); return v === true ? !!t : arr(v).includes(t); }
@@ -161,11 +180,14 @@ function intentOf(rules, r, s) {
 
 /**
  * First rule that matches wins. Bots never match (they always get the original sections).
+ * A personal AI agent only matches rules that ask for one (`when.agent`): the rules written
+ * for people never fire for an agent, so their numbers stay human.
  * @returns {{ rule: string|null, experience: string, intent: string|null,
  *   keys: string[], label: string }}
  */
 export function matchRule(rules, s) {
-  const r = s.bot ? null : (rules.rules || []).find((x) => matches(x.when, s, rules));
+  const pool = (rules.rules || []).filter((x) => !s.agent || (x.when && x.when.agent));
+  const r = s.bot && !s.agent ? null : pool.find((x) => matches(x.when, s, rules));
   if (!r) {
     return {
       rule: null, experience: 'default', intent: null, keys: ['default'], label: 'no rule matched',
@@ -210,7 +232,20 @@ function writeMemory(rules, v) {
   } catch (e) { /* storage blocked */ }
 }
 
-/** Signals for this view. Demo/simulation overrides: ?ref=<host> stands in for the referrer. */
+/** What the CDN said about the request: the `agent` entry of the page's Server-Timing header. */
+function agentHint() {
+  try {
+    const [nav] = performance.getEntriesByType('navigation');
+    return ((nav && nav.serverTiming) || []).find((t) => t.name === 'agent')?.description || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+/**
+ * Signals for this view. Demo/simulation overrides: ?ref=<host> stands in for the referrer,
+ * ?agent=<name> for a personal AI agent.
+ */
 export function browserSignals(rules) {
   const u = new URL(window.location.href);
   const q = u.searchParams;
@@ -224,6 +259,7 @@ export function browserSignals(rules) {
     .filter(([p]) => q.has(p))
     .map(([, n]) => n))];
   const ua = navigator.userAgent;
+  const agent = agentOf(ua, q.get('agent') || agentHint());
   const mobile = (navigator.userAgentData && navigator.userAgentData.mobile)
     || SIGNALS.mobileUa.test(ua) || window.matchMedia('(max-width: 599px)').matches;
   return {
@@ -232,7 +268,9 @@ export function browserSignals(rules) {
     utm,
     paid,
     device: mobile ? 'mobile' : 'desktop',
-    bot: SIGNALS.bot.test(ua) || navigator.webdriver === true,
+    agent,
+    // an agent's browser is automated too; it is an agent first
+    bot: !agent && (SIGNALS.bot.test(ua) || navigator.webdriver === true),
     memory: readMemory(rules),
     path: u.pathname,
   };
@@ -273,6 +311,8 @@ export function apply(main, keys) {
     let winner;
     keys.some((k) => { winner = group.find((s) => list(s.dataset.cohorts || 'default').includes(k)); return winner; });
     group.forEach((s) => { if (s !== winner) s.remove(); });
+    // Hide For on the winner leaves the slot empty for that experience
+    if (winner && list(winner.dataset.hideFor).some((c) => own.includes(c))) winner.remove();
   });
   sections.forEach((s) => {
     if (!s.isConnected || s.dataset.slot) return;
