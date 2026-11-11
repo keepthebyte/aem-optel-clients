@@ -223,9 +223,20 @@ body.cohort-demo {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
   }
 
+  /* the visitor list alone sets the sheet's height: previews of longer or shorter numbers
+     scroll inside this column instead of moving the (bottom-anchored) sheet under the pointer */
   .cohort-side {
-    padding-left: 40px;
+    position: relative;
+    min-height: 380px;
     border-left: 1px solid var(--cohort-rule);
+  }
+
+  .cohort-side-in {
+    position: absolute;
+    inset: 0;
+    overflow: auto;
+    padding-left: 40px;
+    overscroll-behavior: contain;
   }
 }
 
@@ -326,6 +337,24 @@ body.cohort-demo {
   letter-spacing: -0.01em;
   text-align: right;
   color: var(--cohort-ink);
+}
+
+.cohort-who {
+  margin: 0 0 14px !important;
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.cohort-who span {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  color: var(--cohort-ink-2);
+}
+
+/* hovering a visitor previews its numbers: the accent marks whose they are */
+.cohort-data.is-preview .cohort-who b {
+  color: var(--cohort-accent);
 }
 
 .cohort-caveat {

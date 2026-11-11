@@ -10,7 +10,9 @@
  *   - Explain sections (or ?insights): a note on every section saying why it is there, with the
  *     data behind it (cohort-insights.js).
  */
-import { forgetVisitor, readMemory } from './cohorts.js';
+import {
+  forgetVisitor, readMemory, matchRule, signalsFor, memoryAllowed,
+} from './cohorts.js';
 import {
   loadInsightData, showInsights, hideInsights, ruleFacts, statsHTML,
 } from './cohort-insights.js';
@@ -93,13 +95,26 @@ function explainSwitch(rules) {
 
 /* ---------- the visitor sheet ---------- */
 
-async function fillData(box, rules, ctx) {
-  const f = ruleFacts(await loadInsightData(rules), ctx?.rule || null, rules);
+/** The rule a scenario lands in, resolved here without the reload (same engine, same signals). */
+function scenarioRule(rules, i) {
+  const [, params, memory] = rules.scenarios[i];
+  const u = new URL(rules.pocPath || '/new', window.location.origin);
+  Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+  const mem = memory && memoryAllowed(rules) ? memory : {};
+  return matchRule(rules, { ...signalsFor(rules, u.href, '', mem), bot: false });
+}
+
+/** The right column: who this group is and what Optel shows for it (current or hovered visitor). */
+async function fillData(box, rules, { rule, experience }, name) {
+  const data = await loadInsightData(rules);
+  const exp = (rules.experiences || {})[experience];
+  const who = `<p class="cohort-who"><b>${esc(name)}</b>${exp ? ` <span>${esc(exp.label)}</span>` : ''}</p>`;
+  const f = ruleFacts(data, rule || null, rules);
   if (!f) {
-    box.innerHTML = '<p class="cohort-muted">Publish size.js output at /cohorts/cohorts.json to show the numbers behind this group.</p>';
+    box.innerHTML = `${who}<p class="cohort-muted">Publish size.js output at /cohorts/cohorts.json to show the numbers behind this group.</p>`;
     return;
   }
-  box.innerHTML = `<h3>What Optel shows for this group</h3>
+  box.innerHTML = `<h3>What Optel shows</h3>${who}
     ${f.stats.length ? statsHTML(f.stats, 'cohort-stats') : `<p>${esc(f.headline)}</p>`}
     ${f.caveats.map((c) => `<p class="cohort-caveat">${esc(c)}</p>`).join('')}
     <p class="cohort-muted">${esc(f.source)}</p>`;
@@ -146,7 +161,7 @@ function sheetHTML(rules, ctx, current) {
       <ul>${(rules.scenarios || []).map(([n], i) => `<li><button type="button" data-s="${i}"${i === current ? ' aria-current="true"' : ''}>
         <span>${esc(n)}</span>${i === current ? CHECK : ''}</button></li>`).join('')}</ul>
     </section>
-    <div class="cohort-side">
+    <div class="cohort-side"><div class="cohort-side-in">
       <section class="cohort-data" aria-live="polite"></section>
       <details class="cohort-more">
         <summary>How this visitor was detected</summary>
@@ -154,7 +169,7 @@ function sheetHTML(rules, ctx, current) {
         <p class="cohort-muted">On-device only: no personal information, no third-party calls, decided before the page paints.</p>
       </details>
       <a class="cohort-link" href="${originalHref(rules)}">Compare with the original page</a>
-    </div>
+    </div></div>
     </div>`;
 }
 
@@ -219,6 +234,23 @@ export default function initPanel(rules) {
   visitor.addEventListener('click', () => open(sheet.hidden));
   sheet.querySelector('.cohort-close').addEventListener('click', () => { open(false); visitor.focus(); });
   sheet.querySelectorAll('[data-s]').forEach((b) => b.addEventListener('click', () => pick(rules, Number(b.dataset.s))));
+
+  // hover or focus a visitor: the right column previews that group's numbers, so the presenter
+  // can talk through each one before switching; leaving the list shows the current one again
+  const box = sheet.querySelector('.cohort-data');
+  const list = sheet.querySelector('.cohort-pick ul');
+  let shown = -2;
+  const show = (i) => {
+    if (i === shown) return;
+    shown = i;
+    box.classList.toggle('is-preview', i !== current && i !== -1);
+    if (i < 0 || i === current) fillData(box, rules, ctx, visitorName(rules, ctx, current));
+    else fillData(box, rules, scenarioRule(rules, i), rules.scenarios[i][0]);
+  };
+  list.addEventListener('pointerover', (e) => { const b = e.target.closest('[data-s]'); if (b) show(Number(b.dataset.s)); });
+  list.addEventListener('focusin', (e) => { const b = e.target.closest('[data-s]'); if (b) show(Number(b.dataset.s)); });
+  list.addEventListener('pointerleave', () => show(-1));
+  list.addEventListener('focusout', (e) => { if (!list.contains(e.relatedTarget)) show(-1); });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !sheet.hidden) { open(false); visitor.focus(); }
   });
@@ -227,5 +259,5 @@ export default function initPanel(rules) {
   });
 
   document.body.append(el);
-  fillData(sheet.querySelector('.cohort-data'), rules, ctx);
+  show(-1);
 }

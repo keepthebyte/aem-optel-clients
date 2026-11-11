@@ -243,15 +243,16 @@ function agentHint() {
 }
 
 /**
- * Signals for this view. Demo/simulation overrides: ?ref=<host> stands in for the referrer,
- * ?agent=<name> for a personal AI agent.
+ * Signals for a URL, a referrer and a memory: the engine's whole view of a visitor.
+ * Demo/simulation overrides in the URL: `ref` stands in for the referrer (a host or a full
+ * referrer), `agent=<name>` for a personal AI agent.
  */
-export function browserSignals(rules) {
-  const u = new URL(window.location.href);
+export function signalsFor(rules, href, referrer = '', memory = {}) {
+  const u = new URL(href);
   const q = u.searchParams;
   const utm = Object.fromEntries(UTM.map((k) => [k, (q.get(`utm_${k}`) || '').toLowerCase()]));
   // ?ref= takes a host (portal.example.com) or a full referrer (android-app://com.facebook.katana/)
-  let ref = q.get('ref') || document.referrer;
+  let ref = q.get('ref') || referrer;
   if (ref && !ref.includes('://')) ref = `https://${ref}/`;
   const refHost = refHostOf(ref);
   const siteHost = u.hostname.replace(/^www\./, '');
@@ -259,7 +260,9 @@ export function browserSignals(rules) {
     .filter(([p]) => q.has(p))
     .map(([, n]) => n))];
   const ua = navigator.userAgent;
-  const agent = agentOf(ua, q.get('agent') || agentHint());
+  // the CDN's hint describes this page's request, not a URL previewed in the demo panel
+  const here = typeof window !== 'undefined' && href === window.location.href;
+  const agent = agentOf(ua, q.get('agent') || (here ? agentHint() : ''));
   const mobile = (navigator.userAgentData && navigator.userAgentData.mobile)
     || SIGNALS.mobileUa.test(ua) || window.matchMedia('(max-width: 599px)').matches;
   return {
@@ -271,9 +274,14 @@ export function browserSignals(rules) {
     agent,
     // an agent's browser is automated too; it is an agent first
     bot: !agent && (SIGNALS.bot.test(ua) || navigator.webdriver === true),
-    memory: readMemory(rules),
+    memory,
     path: u.pathname,
   };
+}
+
+/** Signals for this view (see signalsFor for the ?ref= and ?agent= overrides). */
+export function browserSignals(rules) {
+  return signalsFor(rules, window.location.href, document.referrer, readMemory(rules));
 }
 
 /** Resolve this view's rule. ?cohort=<rule id> forces a rule (demo and screenshots). */
