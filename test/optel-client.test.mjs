@@ -213,6 +213,11 @@ test('acquisition: real-world tagging seen on production domains', () => {
   assert.equal(optel.classifyReferrer('https://l.meta.ai/?u=x').type, 'ai');
   // Muse, Meta's personal agent
   assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: 'https://muse.ai/' }])).label, 'earned:ai:muse');
+  // the Muse mobile apps tag links utm_source=l.metamuse.ai (attribution.now/labs/meta-ai, Nov 2026)
+  assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'l.metamuse.ai' }])).label, 'earned:ai:muse');
+  assert.equal(optel.classifyReferrer('https://l.metamuse.ai/').type, 'ai');
+  // utm_source=meta is a Facebook / Instagram ad, not Meta AI
+  assert.ok(!optel.classifyAcquisition(visit([{ checkpoint: 'enter', source: '' }, { checkpoint: 'utm', source: 'utm_source', target: 'meta' }, { checkpoint: 'utm', source: 'utm_medium', target: 'paid_social' }])).label.includes(':ai'));
   // a blog post on openai.com or anthropic.com is a referral, not an assistant answer
   ['https://openai.com/index/customer-story/', 'https://help.openai.com/', 'https://www.anthropic.com/customers/x'].forEach((source) => {
     assert.equal(optel.classifyAcquisition(visit([{ checkpoint: 'enter', source }])).channel, 'referral', source);

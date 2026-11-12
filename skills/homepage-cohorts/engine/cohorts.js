@@ -21,9 +21,9 @@
 /* ---------- built-in signal classification (kept small: this ships to every visitor) ---------- */
 
 export const SIGNALS = {
-  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|perplexity\.ai|claude\.ai|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|meta\.ai|muse\.ai|deepseek\.com|mistral\.ai|grok\.com|you\.com|phind\.com)$/i,
+  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|perplexity\.ai|claude\.ai|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|meta\.ai|muse\.ai|metamuse\.ai|deepseek\.com|mistral\.ai|grok\.com|you\.com|phind\.com)$/i,
   // copilot, gemini, claude stand alone: capgemini, eventcopilot.ai are not AI (rum-distiller)
-  aiUtm: /chatgpt|openai|perplexity|(?<![a-z0-9])(copilot|gemini(forbusiness)?|claude|anthropic)(?![a-z0-9])|deepseek|mistral|grok/i,
+  aiUtm: /chatgpt|openai|perplexity|(?<![a-z0-9])(copilot|gemini(forbusiness)?|claude|anthropic)(?![a-z0-9])|deepseek|mistral|grok|(^|\.)(meta|muse|metamuse)\.ai$/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|search\.brave\.com|qwant\.com|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|threads\.net|bsky\.app)$/i,
   // in-app referrers: android-app://com.facebook.katana/ → facebook.com. Same table as

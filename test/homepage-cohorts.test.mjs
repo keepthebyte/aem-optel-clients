@@ -110,6 +110,8 @@ test('source and intent classification', () => {
   assert.equal(sourceOf('com.openai.chatgpt', 'example.com'), 'ai', 'ChatGPT Android app');
   assert.equal(sourceOf('copilot.cloud.microsoft', 'example.com'), 'ai');
   assert.equal(sourceOf('l.meta.ai', 'example.com'), 'ai', 'a link clicked in a Meta AI answer');
+  assert.equal(sourceOf('', 'example.com', { source: 'l.metamuse.ai' }), 'ai', 'Muse mobile app tag');
+  assert.notEqual(sourceOf('', 'example.com', { source: 'meta' }), 'ai', 'utm_source=meta is a Meta ad');
   assert.equal(sourceOf('', 'example.com', { source: 'copilot.com?form=mg0auo' }), 'ai');
   assert.equal(sourceOf('', 'example.com', { source: 'geminiforbusiness' }), 'ai');
   assert.equal(intentFrom(rules, '/plans/business'), 'pricing');
