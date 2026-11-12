@@ -10,6 +10,12 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Muse UTM tag
+- `utm_source=l.metamuse.ai`, the tag the Muse mobile apps started adding in November 2026, is AI
+  traffic: `earned:ai:muse` (`RULES.aiUtm`, `vendorOf`, and `homepage-cohorts` `sourceOf`).
+  `metamuse.ai` is also an AI referrer host. `utm_source=meta` alone stays a Meta ad, not AI.
+  Field data and lab runs: https://attribution.now/labs/meta-ai
+
 ### Personal AI agents
 - Personal AI agents, the assistants that drive a browser for one person. Optel labels them
   `bot:ai:chatgpt-agent`, `claude-agent`, `google-agent`, `manus-user` and `meta-agent`.

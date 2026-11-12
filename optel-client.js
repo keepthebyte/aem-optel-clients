@@ -679,10 +679,10 @@ export const RULES = {
   adReferrer: /doubleclick|googlesyndication|googleadservices|amazon-adsystem|imasdk\.googleapis|adnxs|adsrvr|criteo|taboola|outbrain|teads|themediatrust/i,
   search: /(^|\.)(google\.[a-z.]+|bing\.com|yahoo\.[a-z.]+|duckduckgo\.com|ecosia\.org|baidu\.com|yandex\.[a-z]+|naver\.com|ask\.com|aol\.com|search\.brave\.com|qwant\.com|seznam\.cz|startpage\.com)$/i,
   social: /(^|\.)(facebook\.com|instagram\.com|tiktok\.com|twitter\.com|x\.com|t\.co|snapchat\.com|pinterest\.[a-z.]+|linkedin\.com|lnkd\.in|reddit\.com|youtube\.com|youtu\.be|threads\.net|whatsapp\.com|line\.me|bsky\.app)$/i,
-  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|perplexity\.ai|claude\.ai|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|muse\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
+  ai: /(^|\.)(chatgpt\.com|chat\.openai\.com|perplexity\.ai|claude\.ai|copilot\.microsoft\.com|copilot\.com|copilot\.cloud\.microsoft|m365copilotapp\.svc\.cloud\.microsoft|gemini\.google\.com|bard\.google\.com|notebooklm\.google\.com|you\.com|meta\.ai|muse\.ai|metamuse\.ai|deepseek\.com|chat\.mistral\.ai|mistral\.ai|grok\.com|x\.ai|poe\.com|phind\.com)$/i,
   /* `chatgpt` is tagged in many shapes (chatgptads, chatgpt_conversion); copilot, gemini and claude
      are words in other names (capgemini, eventcopilot.ai, claudette), so they must stand alone (rum-distiller) */
-  aiUtm: /chatgpt|openai|perplexity|(?<![a-z0-9])(copilot|gemini(forbusiness)?|claude|anthropic)(?![a-z0-9])|deepseek|mistral|grok/i,
+  aiUtm: /chatgpt|openai|perplexity|(?<![a-z0-9])(copilot|gemini(forbusiness)?|claude|anthropic)(?![a-z0-9])|deepseek|mistral|grok|(^|\.)(meta|muse|metamuse)\.ai$/i,
   /* ad networks whose click ids mean "an ad inside an AI assistant" (ChatGPT ads: oppref / olref) */
   aiAdNetworks: /^openai$/i,
   /* Brand naming conventions that state the type in the tag itself: utm_source=social_p (paid),
@@ -715,7 +715,7 @@ export const RULES = {
 
 const VENDORS = [
   [/chatgpt|openai/i, 'chatgpt'], [/perplexity/i, 'perplexity'], [/(?<![a-z0-9])(claude|anthropic)(?![a-z0-9])/i, 'claude'],
-  [/(?<![a-z0-9])copilot(?![a-z0-9])|(^|\.)m365copilotapp\./i, 'copilot'], [/(?<![a-z0-9])gemini(forbusiness)?(?![a-z0-9])|bard|notebooklm/i, 'gemini'], [/meta\.ai/i, 'meta-ai'], [/(^|\.)muse\.ai$/i, 'muse'], [/deepseek/i, 'deepseek'], [/mistral/i, 'mistral'], [/grok|x\.ai/i, 'grok'],
+  [/(?<![a-z0-9])copilot(?![a-z0-9])|(^|\.)m365copilotapp\./i, 'copilot'], [/(?<![a-z0-9])gemini(forbusiness)?(?![a-z0-9])|bard|notebooklm/i, 'gemini'], [/meta\.ai/i, 'meta-ai'], [/(^|\.)(meta)?muse\.ai$/i, 'muse'], [/deepseek/i, 'deepseek'], [/mistral/i, 'mistral'], [/grok|x\.ai/i, 'grok'],
   [/google|gclid|dclid|doubleclick|dv360|gdn|adwords|googlesyndication/i, 'google'], [/instagram|(^|[^a-z])ig([^a-z]|$)/i, 'instagram'],
   [/facebook|fbclid|(^|[^a-z])fb([^a-z]|$)|(^|[^a-z])meta([^a-z]|$)/i, 'facebook'], [/bing|msclkid/i, 'bing'], [/microsoft/i, 'microsoft'],
   [/tiktok|ttclid/i, 'tiktok'], [/youtube|youtu\.be|^yt$/i, 'youtube'], [/linkedin|lnkd/i, 'linkedin'], [/twitter|(^|\.)x\.com|(^|\.)t\.co$/i, 'x'],
