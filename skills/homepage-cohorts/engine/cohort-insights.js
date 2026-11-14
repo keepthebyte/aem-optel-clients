@@ -134,9 +134,11 @@ export function ruleFacts(data, id, rules = {}) {
   }
   const link = (t.topClicks || []).find((c) => c.link);
   if (link) lines.push(`Most clicked link: ${link.click} (${pct(link.share)})`);
-  if (r.growth != null && Math.abs(r.growth) >= 0.2) {
-    lines.push(`${r.growth > 0 ? 'Up' : 'Down'} ${pct(Math.abs(r.growth))} from the first full week to the last`);
-    stats.push({ value: `${r.growth > 0 ? '+' : '−'}${pct(Math.abs(r.growth))}`, text: 'first full week to the last' });
+  // growth is a ratio (size.js: the last full week over the first), shown as the change
+  const change = r.growth == null ? 0 : r.growth - 1;
+  if (Math.abs(change) >= 0.2) {
+    lines.push(`${change > 0 ? 'Up' : 'Down'} ${pct(Math.abs(change))} from the first full week to the last`);
+    stats.push({ value: `${change > 0 ? '+' : '−'}${pct(Math.abs(change))}`, text: 'first full week to the last' });
   }
   if (r.standsOut) lines.push('Small, but stands out: more engaged or growing fast');
   if (r.modelled) caveats.push('Modelled: depends on on-device memory, which Optel cannot see, so it is estimated from what views do today.');

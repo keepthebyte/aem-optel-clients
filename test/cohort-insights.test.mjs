@@ -64,7 +64,7 @@ test('rule facts come from cohorts.json, not from copy', () => {
     '64% do nothing today (1.7× the page average)',
     '9.2% reach the goal (starts a quote)',
     'Most clicked link: /dog-insurance (4%)',
-    'Up 66% from the first full week to the last',
+    'Down 34% from the first full week to the last',
   ]);
   assert.match(f.source, /www\.example\.com\/ · Sep 14 – Nov 9 · 397k views \(3,974 sampled\)/);
 });
@@ -94,7 +94,7 @@ test('insightText restores the comma spacing the pipeline drops', async () => {
 
 test('large-display stats carry the same numbers, goal first', () => {
   const f = ruleFacts(data, 'paid-social', rules);
-  assert.deepEqual(f.stats.map((x) => x.value), ['14.6%', '9.2%', '64%', '+66%']);
+  assert.deepEqual(f.stats.map((x) => x.value), ['14.6%', '9.2%', '64%', '−34%']);
   assert.match(f.stats[1].text, /reach the goal: starts a quote/);
   assert.deepEqual(ruleFacts(data, 'from-account', rules).stats, []);
   assert.equal(ruleFacts(data, null, rules).stats[0].value, '34.5%');
