@@ -120,9 +120,11 @@ export function intentFrom(rules, text = '') {
   return ((rules.intents || []).find(([, re]) => rx(re).test(text)) || [null])[0];
 }
 
+/** The most-viewed interest; a tie goes to the one viewed last (memory.lastInterest). */
 export function topInterest(memory = {}) {
   const e = Object.entries(memory.interests || {});
-  return e.length ? e.sort((a, b) => b[1] - a[1])[0][0] : null;
+  const last = (k) => (k === memory.lastInterest ? 1 : 0);
+  return e.length ? e.sort((a, b) => b[1] - a[1] || last(b[0]) - last(a[0]))[0][0] : null;
 }
 
 /* ---------- rules ---------- */
@@ -136,6 +138,8 @@ export function topInterest(memory = {}) {
  *   paid: true | false | ['google', 'facebook', ...]
  *   device: 'mobile' | 'desktop'
  *   agent: true | ['chatgpt-agent', ...]  a personal AI agent is browsing (any, or one of)
+ *   partner: true | false             a site signal: scripts.js sets signals.partner and passes
+ *                                     `signals` to runCohorts (e.g. a referral code it looked up)
  *   signedIn: true | false            on-device memory: this browser clicked sign-in before
  *   visits: { min, max }              on-device memory: visits including this one
  *   interest: true | ['pricing', ...] on-device memory: top interest exists / is one of
@@ -158,6 +162,7 @@ export function matches(when, s, rules = {}) {
         : rx(re).test(s.utm[f] || '')));
       case 'paid': return paidMatches(v, s);
       case 'device': return s.device === v;
+      case 'partner': return !!s.partner === v;
       case 'agent': return v === true ? !!s.agent : v === false ? !s.agent : arr(v).includes(s.agent);
       case 'signedIn': return !!s.memory.signedIn === v;
       case 'visits': return (s.memory.visits || 0) >= (v.min ?? 0) && (s.memory.visits || 0) <= (v.max ?? Infinity);
@@ -335,16 +340,26 @@ export function apply(main, keys) {
     .reverse().forEach((s) => anchor.after(s));
 }
 
+/** Whether this page runs cohorts: in the cohort experiment, or `Cohorts: on` in its metadata. */
+export function runsCohorts(rules, getMetadata) {
+  const exp = rules.experiment || 'homepage-cohorts';
+  return document.body.classList.contains(`experiment-${exp}`)
+    || !!(getMetadata && getMetadata('cohorts') === 'on');
+}
+
 /**
  * Entry point for scripts.js loadEager(), after runExperimentation() and decorateMain().
+ * `signals`: this view's signals when scripts.js already read them (e.g. to add a site signal
+ * such as a partner looked up from an index).
  * @returns the context (also on window.cohorts) or null when this page doesn't run cohorts
  */
-export function runCohorts(main, rules, { sampleRUM, getMetadata, force } = {}) {
+export function runCohorts(main, rules, {
+  sampleRUM, getMetadata, force, signals,
+} = {}) {
   const exp = rules.experiment || 'homepage-cohorts';
   const { body } = document;
   const inExperiment = body.classList.contains(`experiment-${exp}`);
-  const poc = getMetadata && getMetadata('cohorts') === 'on';
-  if (!inExperiment && !poc) return null;
+  if (!runsCohorts(rules, getMetadata)) return null;
   const arm = inExperiment ? (body.dataset.variant || 'control') : 'poc';
   let ctx;
   try {
@@ -358,7 +373,7 @@ export function runCohorts(main, rules, { sampleRUM, getMetadata, force } = {}) 
         label: force.label || '',
         forced: true,
       }
-      : resolve(rules);
+      : resolve(rules, signals);
     apply(main, arm === 'control' && !force ? ['default'] : ctx.keys);
   } catch (e) {
     // never show every variant at once: fall back to the original sections
@@ -384,7 +399,10 @@ export function rememberVisit(rules, now = Date.now()) {
   m.last = now;
   m.interests = m.interests || {};
   const i = intentFrom(rules, window.location.pathname);
-  if (i) m.interests[i] = (m.interests[i] || 0) + 1;
+  if (i) {
+    m.interests[i] = (m.interests[i] || 0) + 1;
+    m.lastInterest = i;
+  }
   writeMemory(rules, m);
 }
 

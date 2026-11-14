@@ -415,3 +415,13 @@ test('goals: any of click / path; review.js reports the supporting step', () => 
   assert.equal(ai.verdict, 'promising: more take the supporting step, goal not clear yet');
   assert.match(fs.readFileSync(path.join(tmp, 'r.md'), 'utf8'), /pricing, features or customers: 10\.0% → 40\.0%/);
 });
+
+test('engine: a tie between interests goes to the one viewed last; partner is a site signal', async () => {
+  const { topInterest } = await import('../skills/homepage-cohorts/engine/cohorts.js');
+  assert.equal(topInterest({ interests: { a: 2, b: 2 }, lastInterest: 'b' }), 'b');
+  assert.equal(topInterest({ interests: { a: 3, b: 2 }, lastInterest: 'b' }), 'a');
+  assert.equal(topInterest({ interests: { a: 2, b: 2 } }), 'a');
+  assert.equal(matches({ partner: true }, sig({ partner: { code: 'x' } }), rules), true);
+  assert.equal(matches({ partner: true }, sig(), rules), false);
+  assert.equal(matches({ partner: false }, sig(), rules), true);
+});

@@ -222,7 +222,7 @@ export default function initPanel(rules) {
   visitor.setAttribute('aria-expanded', 'false');
   visitor.setAttribute('aria-controls', 'cohort-sheet');
   visitor.innerHTML = `<span class="cohort-visitor-k">Visitor</span>
-    <span class="cohort-visitor-name">${esc(visitorName(rules, ctx, current))}</span>${CHEVRON}`;
+    <span class="cohort-visitor-field"><span class="cohort-visitor-name">${esc(visitorName(rules, ctx, current))}</span>${CHEVRON}</span>`;
   dock.append(visitor, explainSwitch(rules));
   el.append(sheet, dock);
 

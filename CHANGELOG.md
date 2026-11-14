@@ -10,6 +10,16 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Cohort demo panel and engine
+- `homepage-cohorts`: the demo panel (`?demo`) is redesigned in Spectrum 2 (light), with its tokens
+  inlined in `cohort-panel.css`. It looks the same on every site; the section notes keep the
+  site's `--cohort-*` theme. `--cohort-dark` is gone; `--cohort-ink-2` and `--cohort-rule` are new.
+- `homepage-cohorts`: `runCohorts` takes `signals`, so `scripts.js` can add a signal of its own
+  before the rules resolve, and `runsCohorts()` says whether a page runs cohorts. A
+  `when: { partner: true | false }` condition reads `signals.partner`.
+- `homepage-cohorts`: when two interests are viewed equally often, the one viewed last wins
+  (`memory.lastInterest`).
+
 ### Muse UTM tag
 - `utm_source=l.metamuse.ai`, the tag the Muse mobile apps started adding in November 2026, is AI
   traffic: `earned:ai:muse` (`RULES.aiUtm`, `vendorOf`, and `homepage-cohorts` `sourceOf`).
