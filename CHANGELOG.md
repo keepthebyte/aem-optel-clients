@@ -21,6 +21,11 @@ change report shapes or classification results; read **Changed** before upgradin
   - `scripts/as-redirected.js` and `references/runtime.md`: arrivals from the old sites on the new
     one with `homepage-cohorts` (`?from=<id>`, `from-<id>` rules), sized before a redirect exists.
 
+### Fixed
+- `homepage-cohorts`: the demo panel and section notes read `growth` in `cohorts.json` as a change,
+  but `size.js` writes a ratio (the last full week over the first). A rule at 0.7x showed as
+  "+70%"; it now shows as "−30%", and a steady rule (1.0x) no longer shows as "+100%".
+
 ### Cohort demo panel and engine
 - `homepage-cohorts`: the demo panel (`?demo`) is redesigned in Spectrum 2 (light), with its tokens
   inlined in `cohort-panel.css`. It looks the same on every site; the section notes keep the
