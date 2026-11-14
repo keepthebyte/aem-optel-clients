@@ -10,6 +10,17 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Site merge
+- New skill `site-merge`, for several sites that become one. Step 1 reads each site on its own:
+  visits by need (the page they land on; a homepage visit takes the need of its first click).
+  Step 2 merges the cohorts that share a need into the audiences of the new site, each with what
+  it keeps after the redirect, what it gains, and today's cross-site rate as the baseline. Step 3
+  draws the Sankey: sites on the left, audiences on the right, at each site's own scale or real
+  volume, one traffic layer at a time (all, SEO, GEO, or any acquisition channel).
+  - `scripts/pull.js` loads every site with one key per site from `OPTEL_DOMAIN_KEY_<ID>`.
+  - `scripts/as-redirected.js` and `references/runtime.md`: arrivals from the old sites on the new
+    one with `homepage-cohorts` (`?from=<id>`, `from-<id>` rules), sized before a redirect exists.
+
 ### Cohort demo panel and engine
 - `homepage-cohorts`: the demo panel (`?demo`) is redesigned in Spectrum 2 (light), with its tokens
   inlined in `cohort-panel.css`. It looks the same on every site; the section notes keep the

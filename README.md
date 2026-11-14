@@ -13,6 +13,7 @@ What is here:
 | [`optel-client.js`](optel-client.js) | One dependency-free ES module. Loads bundles from `bundles.aem.page` with a domain key, and turns them into reports (traffic sources, clicks and dead clicks, Core Web Vitals, errors and 404s, forms, scroll reach, journeys, experiments), plus use-case reports: an activity ladder instead of bounce, AI assistant referrals (organic vs ChatGPT ads) vs search, redirect chains per ad network, dead taps per component, behaviour profiles for bot / AI-agent hunting, one-page briefs and period comparisons. Runs in the browser, in Node 18+, and as a CLI. Annotated for the coding model that builds on it: the header and section comments explain the data model, the checkpoints, and the rules that keep numbers right. |
 | [`skills/aem-optel/SKILL.md`](skills/aem-optel/SKILL.md) | An agent skill: how to get the key, which command answers which question, what the data means, and how not to misread a sample. |
 | [`skills/homepage-cohorts/SKILL.md`](skills/homepage-cohorts/SKILL.md) | An agent skill for EDS sites: size cohort rules on the homepage's Optel traffic, draw the Sankey, build a cohort homepage as a POC, promote it as a 90/10 experiment with the [AEM Experimentation plugin](https://github.com/adobe/aem-experimentation) (rollback is one metadata row), and review every rule against its holdout each month. Ships a dependency-free cohort engine. |
+| [`skills/site-merge/SKILL.md`](skills/site-merge/SKILL.md) | An agent skill for sites that are being consolidated into one: read each site's visits by what they come for, merge the cohorts that share a need into the audiences of the new site, and draw the Sankey (each site on the left, merged audiences on the right, what each keeps and gains), with layers for all traffic, SEO and GEO. Includes the runtime guide for arrivals from the old sites. |
 | [`skills/homepage-cohorts-video/SKILL.md`](skills/homepage-cohorts-video/SKILL.md) | An agent skill: a narrated explainer or monthly update video of the cohort homepage, from the site's captures, `cohorts.json` and `review.json`. Playwright, ffmpeg, and ElevenLabs or macOS `say`. |
 
 It grew out of two Experience Workspace panels, which now live here too:
@@ -74,7 +75,7 @@ cp skills/aem-optel/SKILL.md optel-client.js ~/.claude/skills/aem-optel/
 The homepage skills read the client from the `aem-optel` skill next to them:
 
 ```bash
-cp -R skills/homepage-cohorts skills/homepage-cohorts-video ~/.claude/skills/
+cp -R skills/homepage-cohorts skills/homepage-cohorts-video skills/site-merge ~/.claude/skills/
 ```
 
 Other agents: point them at `skills/aem-optel/SKILL.md`. It is plain Markdown with
@@ -100,7 +101,8 @@ range planning, classification, aggregation, every report, and the loading
 failure modes (404 slots, rejected keys, key redaction). The Experience
 Workspace panels' rules, Stardust brief and per-site settings run on a
 synthetic fixture. The homepage-cohorts engine, sizing, Sankey and monthly
-review run on synthetic bundles too.
+review run on synthetic bundles too. So do the site-merge steps: need
+classification, the merge per layer, the redirect model and the Sankey build.
 
 ## Versions
 

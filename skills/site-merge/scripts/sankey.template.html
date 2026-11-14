@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{TITLE}}</title>
+<style>
+  :root {
+    --surface: #fcfcfb; --plane: #f9f9f7; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781; --hair: #e1e0d9; --axis: #c3c2b7;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; --node: #52514e; --gain: #006300;
+    --font: system-ui, -apple-system, 'Segoe UI', roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #1a1a19; --plane: #0d0d0d; --ink: #f0efec; --ink-2: #c3c2b7; --hair: #2c2c2a; --axis: #383835;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; --node: #c3c2b7; --gain: #0ca30c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--plane); color: var(--ink); font: 15px/1.45 var(--font); }
+  main { max-width: 1320px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 28px; line-height: 1.2; margin: 0 0 6px; font-weight: 650; }
+  .sub { color: var(--ink-2); margin: 0 0 24px; max-width: 70ch; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .tile { background: var(--surface); border: 1px solid var(--hair); border-radius: 8px; padding: 14px 16px; }
+  .tile b { display: block; font-size: 28px; line-height: 1.15; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tile span { color: var(--ink-2); font-size: 13px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 16px 24px; align-items: center; margin-bottom: 12px; }
+  .seg { display: inline-flex; border: 1px solid var(--axis); border-radius: 8px; overflow: hidden; }
+  .seg button { font: inherit; font-size: 13px; padding: 9px 14px; border: 0; background: transparent; color: var(--ink-2); cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+  .seg button:focus-visible { outline: 2px solid var(--s1); outline-offset: -2px; }
+  .layer-note { margin: 0 0 12px; font-size: 13px; color: var(--ink-2); max-width: 90ch; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; }
+  .card { background: var(--surface); border: 1px solid var(--hair); border-radius: 8px; padding: 8px 12px 12px; overflow-x: auto; }
+  .chart { position: relative; width: 1270px; margin: 0 auto; }
+  .heads { display: grid; grid-template-columns: 410px 290px 1fr; font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); padding: 16px 0 0; }
+  .heads span:nth-child(1) { padding-left: 16px; }
+  .heads span:nth-child(3) { padding-left: 34px; }
+  svg { display: block; }
+  svg text { font: 13px var(--font); fill: var(--ink-2); }
+  svg .site-name { font-size: 15px; font-weight: 650; fill: var(--ink); }
+  svg .site-sub { font-size: 12px; fill: var(--muted); }
+  svg .pct { fill: var(--ink); font-variant-numeric: tabular-nums; }
+  .ribbon { opacity: 0.42; transition: opacity 0.12s; }
+  .dim .ribbon { opacity: 0.1; }
+  .dim .ribbon.on { opacity: 0.8; }
+  .hit { fill: transparent; cursor: default; }
+  .aud { position: absolute; left: 734px; width: 520px; padding-right: 12px; }
+  .aud h3 { margin: 0; font-size: 15px; line-height: 1.3; font-weight: 650; }
+  .aud h3 small { font-weight: 400; color: var(--ink-2); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .aud p { margin: 2px 0 0; font-size: 13px; line-height: 1.38; color: var(--ink-2); }
+  .aud p b { color: var(--ink); font-weight: 600; }
+  .aud p.gain b { color: var(--gain); }
+  .aud.off { opacity: 0.35; }
+  #tip { position: fixed; z-index: 5; pointer-events: none; background: var(--ink); color: var(--surface); font-size: 13px; line-height: 1.4; padding: 10px 12px; border-radius: 6px; max-width: 320px; display: none; }
+  #tip b { font-weight: 650; }
+  details { margin-top: 20px; }
+  summary { cursor: pointer; font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--hair); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; }
+  td.n, th.n { text-align: right; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 16px; max-width: 90ch; }
+</style>
+</head>
+<body>
+<main>
+  <h1>{{TITLE}}</h1>
+  <p class="sub" id="sub"></p>
+  <div class="tiles" id="tiles"></div>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Traffic" id="layers"></div>
+    <div class="seg" role="group" aria-label="Scale" id="modes">
+      <button type="button" data-mode="even" aria-pressed="true">Each site at its own scale</button>
+      <button type="button" data-mode="volume" aria-pressed="false">Real visit volume</button>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+  <p class="layer-note" id="layernote"></p>
+  <div class="card">
+    <div class="chart" id="chart">
+      <div class="heads"><span>Today: each site and what its visitors come for</span><span>Merge by need</span><span>One site: its audiences, what each keeps and gains</span></div>
+      <svg id="svg" role="img" aria-labelledby="svgt"><title id="svgt">Sankey: the cohorts of several sites merged into the audiences of one site. The same numbers are in the table below.</title></svg>
+    </div>
+  </div>
+  <details>
+    <summary>The numbers as a table</summary>
+    <div id="tables"></div>
+  </details>
+  <p class="note" id="note"></p>
+</main>
+<div id="tip" role="status"></div>
+<script>
+const DATA = /*DATA*/null;
+const { sites, merged, needLabels } = DATA;
+const SITE_COLORS = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
+const pct = (v, d) => { const p = v * 100; return `${p.toFixed(d ?? (p < 10 ? 1 : 0))}%`; };
+const num = (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : v >= 1e3 ? `${Math.round(v / 1e3)}k` : String(Math.round(v)));
+const day = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const NS = 'http://www.w3.org/2000/svg';
+const el = (name, attrs = {}, text) => { const e = document.createElementNS(NS, name); Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v)); if (text != null) e.textContent = text; return e; };
+const order = merged.layers[0].audiences.map((a) => a.id);
+let LAYER = merged.layers[0]; let MODE = 'even';
+
+document.getElementById('sub').textContent = `Visits to ${sites.map((s) => s.host.replace('www.', '')).join(', ')} from ${day(merged.meta.start)} to ${day(merged.meta.end)}, read one site at a time and then merged by what the visitor came for.`;
+const tiles = () => {
+  const L = LAYER; const what = L.id === 'all' ? 'visits' : `${L.label} visits`;
+  document.getElementById('tiles').innerHTML = [
+    [num(L.visits), `${what} on the ${sites.length} sites (${L.bundles.toLocaleString('en')} sampled)${L.id === 'all' ? '' : ` · ${pct(L.shareOfAll)} of all visits`}`],
+    [pct(L.sharedVisits), 'of them are in an audience that more than one site brings'],
+    [pct(L.cross), 'click through to another of the sites today'],
+  ].map(([b, t]) => `<div class="tile"><b>${b}</b><span>${t}</span></div>`).join('');
+  const srcs = sites.map((x) => `${x.host.replace('www.', '')}: ${pct(x.layers[L.id].shareOfSite)} of its visits${L.id === 'all' ? '' : ` (${x.layers[L.id].sources.slice(0, 3).map((v) => v.source).join(', ') || 'none'})`}`);
+  document.getElementById('layernote').textContent = L.id === 'all' ? '' : `${L.sub}. ${srcs.join(' · ')}.${L.lowSample ? ` Only ${L.bundles} sampled visits in this layer: read it as a direction, not as shares to quote.` : ''}`;
+};
+document.getElementById('legend').innerHTML = sites.map((s, i) => `<span><i style="background:var(${SITE_COLORS[i]})"></i>${esc(s.host.replace('www.', ''))}</span>`).join('');
+document.getElementById('note').textContent = `${merged.meta.note} Shares at "its own scale" are of each site's visits, so a small site reads as clearly as a large one; the audience bars then show the mean across the sites. Cohorts with fewer than 30 sampled visits are marked as a low sample.`;
+
+const tip = document.getElementById('tip');
+const showTip = (e, html) => { tip.innerHTML = html; tip.style.display = 'block'; const r = tip.getBoundingClientRect(); tip.style.left = `${Math.min(e.clientX + 14, window.innerWidth - r.width - 8)}px`; tip.style.top = `${Math.min(e.clientY + 14, window.innerHeight - r.height - 8)}px`; };
+const hideTip = () => { tip.style.display = 'none'; };
+
+function draw() {
+  const mode = MODE; const LID = LAYER.id; tiles();
+  const svg = document.getElementById('svg');
+  const chart = document.getElementById('chart');
+  svg.replaceChildren(svg.querySelector('title'));
+  chart.querySelectorAll('.aud').forEach((n) => n.remove());
+  const W = 1270; const X1 = 400; const X2 = 706; const NW = 12; const SLOT = 17; const GROUP = 34; const TOP = 14; const GAP = 2;
+  const total = LAYER.visits;
+  // value of a site cohort: its share of its own site (even) or of all visits (volume)
+  const val = (s, c) => (mode === 'even' ? c.share / sites.length : c.visits / total);
+  const K = 860; // px for all visits
+  let y = TOP;
+  const left = []; // cohort nodes
+  sites.forEach((s, si) => {
+    const y0 = y;
+    const cs = order.map((id) => s.layers[LID].cohorts.find((c) => c.need === id)).filter(Boolean);
+    cs.forEach((c) => { const h = Math.max(1, val(s, c) * K); left.push({ s, si, c, y, h }); y += Math.max(h, SLOT) + GAP; });
+    s.y0 = y0; s.y1 = y - GAP; y += GROUP;
+  });
+  const leftH = y - GROUP;
+  // audiences: stacked, each with room for its text
+  let ty = TOP;
+  const right = LAYER.audiences.map((a) => {
+    const parts = left.filter((n) => n.c.need === a.id);
+    const h = parts.reduce((s, n) => s + n.h, 0);
+    // the text first, so the slot is as tall as what it says
+    const d = document.createElement('div');
+    d.className = 'aud'; d.dataset.a = a.id;
+    const size = mode === 'even' ? `${pct(a.shareEvenSites)} of a site's visits on average` : `${pct(a.share)} of all visits`;
+    d.innerHTML = `<h3>${esc(a.label)} <small>· ${size} · ${num(a.visits)} visits · ${a.from.length} ${a.from.length === 1 ? 'site' : 'sites'}${a.from.every((f) => f.lowSample) ? ' · low sample' : ''}</small></h3>
+      <p><b>Keeps</b> ${esc(a.keep)}</p>${a.gain ? `<p class="gain"><b>Gains</b> ${esc(a.gain)}</p><p>Today ${pct(a.cross)} of them reach another of the sites.</p>` : ''}`;
+    chart.appendChild(d);
+    d.style.top = `${ty + chart.querySelector('.heads').offsetHeight - 3}px`;
+    const node = { a, y: ty, h, parts };
+    ty += Math.max(h, d.offsetHeight) + 16;
+    return node;
+  });
+  const H = Math.max(leftH, ty) + 10;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('width', W); svg.setAttribute('height', H);
+  const gR = svg.appendChild(el('g')); const gN = svg.appendChild(el('g'));
+  // site labels
+  sites.forEach((s, si) => {
+    gN.appendChild(el('rect', { x: 16, y: s.y0, width: 4, height: s.y1 - s.y0, rx: 2, fill: `var(${SITE_COLORS[si]})` }));
+    gN.appendChild(el('text', { x: 30, y: s.y0 + 14, class: 'site-name' }, s.host.replace('www.', '')));
+    gN.appendChild(el('text', { x: 30, y: s.y0 + 32, class: 'site-sub' }, s.name));
+    gN.appendChild(el('text', { x: 30, y: s.y0 + 50, class: 'site-sub' }, `${num(s.layers[LID].visits)} visits · ${pct(total ? s.layers[LID].visits / total : 0)} of ${LID === 'all' ? 'all' : `all ${LAYER.label}`}`));
+  });
+  right.forEach((r) => {
+    let off = r.y;
+    r.parts.forEach((n) => {
+      const color = `var(${SITE_COLORS[n.si]})`;
+      const y0 = n.y; const y1 = off; const h = n.h; off += h;
+      const x0 = X1 + NW; const mx = (x0 + X2) / 2;
+      const p = el('path', { d: `M${x0},${y0}C${mx},${y0} ${mx},${y1} ${X2},${y1}L${X2},${y1 + h}C${mx},${y1 + h} ${mx},${y0 + h} ${x0},${y0 + h}Z`, fill: color, class: 'ribbon', 'data-a': r.a.id, 'data-s': n.s.id });
+      gR.appendChild(p);
+      const html = `<b>${esc(n.s.host.replace('www.', ''))}: ${esc(needLabels[n.c.need])}</b><br>${num(n.c.visits)} visits · ${pct(n.c.share)} of the site${n.c.lowSample ? ' · low sample' : ''}<br>Mostly ${esc(Object.keys(n.c.channels)[0])} (${pct(Object.values(n.c.channels)[0])}) · ${pct(n.c.cross)} click to another site${n.c.viaHome > 0.01 ? `<br>${pct(n.c.viaHome)} came in through the homepage` : ''}<br>Top page: ${esc(n.c.topPages[0]?.path || '')}`;
+      // node + label + a generous hit row
+      gN.appendChild(el('rect', { x: X1, y: n.y, width: NW, height: n.h, rx: Math.min(2, n.h / 2), fill: color }));
+      const ly = n.y + Math.max(n.h, SLOT) / 2 + 4.5;
+      const t = gN.appendChild(el('text', { x: X1 - 8, y: ly, 'text-anchor': 'end' }, `${needLabels[n.c.need]}${n.c.lowSample ? ' *' : ''}  `));
+      t.appendChild(el('tspan', { class: 'pct' }, pct(n.c.share)));
+      const hit = gN.appendChild(el('rect', { x: 200, y: n.y, width: X1 + NW - 200, height: Math.max(n.h, SLOT), class: 'hit', 'data-a': r.a.id, 'data-s': n.s.id }));
+      [hit, p].forEach((t2) => { t2.addEventListener('mousemove', (e) => showTip(e, html)); t2.addEventListener('mouseleave', hideTip); });
+    });
+    gN.appendChild(el('rect', { x: X2, y: r.y, width: NW, height: Math.max(1, r.h), rx: Math.min(2, r.h / 2), fill: 'var(--node)' }));
+  });
+  // hover: one audience (from its text or a ribbon), or one site cohort
+  const focus = (sel) => { svg.classList.toggle('dim', !!sel); svg.querySelectorAll('.ribbon').forEach((p) => p.classList.toggle('on', !!sel && Object.entries(sel).every(([k, v]) => p.dataset[k] === v))); chart.querySelectorAll('.aud').forEach((n) => n.classList.toggle('off', !!sel && n.dataset.a !== sel.a)); };
+  chart.querySelectorAll('.aud').forEach((n) => { n.addEventListener('mouseenter', () => focus({ a: n.dataset.a })); n.addEventListener('mouseleave', () => focus(null)); });
+  svg.querySelectorAll('.ribbon, .hit').forEach((n) => { n.addEventListener('mouseenter', () => focus({ a: n.dataset.a, s: n.dataset.s })); n.addEventListener('mouseleave', () => focus(null)); });
+}
+
+const table = () => { document.getElementById('tables').innerHTML = `<table><thead><tr><th>Audience of the merged site</th><th class="n">Visits</th><th class="n">Share</th>${sites.map((s) => `<th class="n">${esc(s.host.replace('www.', ''))}</th>`).join('')}<th class="n">Reach another site today</th><th>Served on the new site by</th></tr></thead><tbody>${LAYER.audiences.map((a) => `<tr><td>${esc(a.label)}</td><td class="n">${num(a.visits)}</td><td class="n">${pct(a.share)}</td>${sites.map((s) => { const f = a.from.find((x) => x.site === s.id); return `<td class="n">${f ? pct(f.shareOfSite) + (f.lowSample ? ' *' : '') : '–'}</td>`; }).join('')}<td class="n">${pct(a.cross)}</td><td>${esc(a.on)}</td></tr>`).join('')}</tbody></table><p class="note">Site columns: the share of that site's visits. * fewer than 30 sampled visits.</p>`; };
+document.getElementById('layers').innerHTML = merged.layers.map((l, i) => `<button type="button" data-layer="${l.id}" aria-pressed="${i === 0}">${esc(l.label)}</button>`).join('');
+const press = (group, b) => group.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+document.querySelectorAll('#modes button').forEach((b) => b.addEventListener('click', () => { press(b.parentNode, b); MODE = b.dataset.mode; draw(); }));
+document.querySelectorAll('#layers button').forEach((b) => b.addEventListener('click', () => { press(b.parentNode, b); LAYER = merged.layers.find((l) => l.id === b.dataset.layer); draw(); table(); }));
+draw(); table();
+</script>
+</body>
+</html>
