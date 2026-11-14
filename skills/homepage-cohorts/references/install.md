@@ -54,10 +54,12 @@ rules (default `/cohorts/cohorts.json`): copy `size.js` output there (run with `
 the repo; Code Sync serves it). It is aggregated Optel data on a public host: publish it only
 where that is fine (a demo or POC branch, never without the site owner's OK). Without it the
 section notes still show their reasons and `Insight` text; only the numbers are left out. Theme
-the notes with `--cohort-insight-max`, `--cohort-insight-gutter` and `--cohort-insight-gap`, and the
-whole layer with `--cohort-font`, `--cohort-dark`, `--cohort-accent`, `--cohort-tint`, `--cohort-ink`,
-`--cohort-radius` and `--cohort-bottom` on the site's `:root` (the panel's defaults sit in
-`:where(:root)`, so the site wins although cohort-panel.css loads last).
+the notes with `--cohort-insight-max`, `--cohort-insight-gutter`, `--cohort-insight-gap`,
+`--cohort-font`, `--cohort-accent`, `--cohort-tint`, `--cohort-ink`, `--cohort-ink-2`, `--cohort-rule`
+and `--cohort-radius` on the site's `:root`, and move the launcher with `--cohort-bottom`. The panel
+itself is Spectrum 2 (light) and stays the same on every site, so it reads as the tool and not as
+part of the page; its tokens are inlined, and a site can still override any `--cohort-s2-*` (the
+defaults sit in `:where(:root)`, so the site wins although cohort-panel.css loads last).
 
 ## 3. `scripts/scripts.js`
 
@@ -118,6 +120,12 @@ Order matters: `runExperimentation` before `decorateMain` (it replaces `<main>`)
 `loadSection` (nothing is visible yet, so no flicker).
 
 If the site's `aem.js` does not export `sampleRUM`, use `window.hlx.rum.sampleRUM`.
+
+A site signal the engine cannot read itself (a partner looked up from an index, a segment from a
+first-party cookie) goes in through `signals`: read `browserSignals(cohortRules)`, add the field,
+and pass `{ signals }` to `runCohorts`. `when: { partner: true }` reads `signals.partner` this
+way. `runsCohorts(cohortRules, getMetadata)` says whether the page runs cohorts at all, so the
+lookup is only paid for where it is used.
 
 ## 4. Consent manager
 
