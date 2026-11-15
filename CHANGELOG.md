@@ -22,6 +22,10 @@ change report shapes or classification results; read **Changed** before upgradin
 - New skill `brand-visibility-video`: storyboard and captures templates for the explainer of
   that plan, on the `homepage-cohorts-video` scripts.
 
+- `brand-visibility`: a per-site `scope` (path pattern) for a read of one market or section, a
+  one-theme site (`sites` in the theme rules), and homepage visits take the theme of their
+  first themed click.
+
 ### Video
 - Scene types `brands`, `bars`, `pillars`, `strip` and `space` (`references/storyboard.md`).
 - `render.js --hq 1` draws the stage at 2x and scales down; `tts.js --final 1` uses

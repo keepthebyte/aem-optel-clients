@@ -82,7 +82,7 @@ const siteNodes = SITES.map(([id, name]) => { const v = themes.reduce((a,t) => a
 groups.push(g1);
 // 2 what people ask
 y += 34; const g2 = { title:'What people ask AI', sub:`${DATA.scope ? DATA.scope.split(',')[0] + ' · ' : ''}${fmtP(themes.reduce((a,t) => a + t.prompts, 0))} prompts a month · who is named`, y: y - 6 }; y += 28;
-const stateNodes = STATES.map(([id, name]) => { const k = themes.filter((t) => t.state === id); const v = k.reduce((a,t) => a + t.prompts, 0); const n = { id, name: `${name} ${fmtP(v)}`, k, y, h: k.reduce((a,t) => a + pp(t.prompts), 0), cursor: y }; y += n.h + 16; return n; });
+y += 6; const stateNodes = STATES.filter(([id]) => themes.some((t) => t.state === id)).map(([id, name]) => { const k = themes.filter((t) => t.state === id); const v = k.reduce((a,t) => a + t.prompts, 0); const n = { id, name: `${name} ${fmtP(v)}`, k, y, h: k.reduce((a,t) => a + pp(t.prompts), 0), cursor: y }; y += n.h + 16; return n; });
 groups.push(g2);
 // 3 what the firm wants
 y += 34; const g3 = { title:'What the firm wants', sub:'Public statements · named growth areas', y: y - 6 }; y += 28;
@@ -128,7 +128,7 @@ const shared = themes.filter((t) => SITES.filter(([id]) => (t.sites[id] || 0) >=
 document.getElementById('tiles').innerHTML = '';
 [['Who arrives', fmt(themed), `visits land on a page about one of ${themes.length} client themes (${Math.round(100 * themed / DATA.meta.visits)}% of all visits)`],
  ['What people ask', fmtP(themes.reduce((a,t) => a + t.prompts, 0)), `AI prompts a month on these themes; ${themes.filter((t) => t.state === 'open').length} of ${themes.length} themes are open, or thin for everyone compared`],
- ['What the firm wants', `${want.length} of ${themes.length}`, `themes are a growth area ${DATA.firm} names publicly`]].forEach(([b, s, d]) => {
+ ['What the firm wants', `${want.length} of ${themes.length}`, DATA.wantedNote || `themes are a growth area ${DATA.firm} names publicly`]].forEach(([b, s, d]) => {
   const t = document.createElement('div'); t.className = 'tile'; const B = document.createElement('b'); B.textContent = b; const S = document.createElement('strong'); S.textContent = s; const D = document.createElement('span'); D.textContent = d; t.append(B, S, D); document.getElementById('tiles').append(t); });
 const lg = document.getElementById('legend');
 [...SITES.map(([id, n]) => [COLOR[id], n]), [css('--ask'), 'AI prompts a month (own scale)'], [css('--want'), 'Named by the firm (one band per theme)']].forEach(([c, n]) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = c; s.append(i, n); lg.append(s); });

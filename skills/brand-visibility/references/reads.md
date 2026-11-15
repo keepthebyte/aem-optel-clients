@@ -34,8 +34,13 @@ Rules that keep it honest:
   return 429. Retry a 429 after a pause.
 - A full-text volume for a query (`tab: 'stats'`) is too fuzzy to quote; sum close topics.
 - Totals are directional. Say so, and name the largest topic when it carries the total.
-- Who is named: the `brands` tab of a topic, or the mention counts per topic from the same
-  tool. Compare with a fixed, short list of competitors and state the list.
+- Who is named: the `brands` tab takes a free-text `query`, not a topic, and its result is
+  fuzzy (a product query also returns the leaders of the wider category). Use a specific
+  query per theme, read the top rows, and find the firm's own rows with `textFilter`. Quote
+  it as directional, with the query. The firm's own tracked topics and mentions, where the
+  customer has them set up, are the better source.
+- The sandbox has no timers: run the calls one after another and keep each run to a few
+  queries; retry a 429 in a later run.
 
 ## Read 2 from Semrush
 
