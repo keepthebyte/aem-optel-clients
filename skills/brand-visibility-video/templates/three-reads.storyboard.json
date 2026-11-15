@@ -1,0 +1,460 @@
+{
+  "title": "Three reads, one plan",
+  "host": "main--site--org.aem.page",
+  "brand": {
+    "dark": "#1d2a3a",
+    "dark2": "#2c3e55",
+    "accent": "#f2a33a"
+  },
+  "voice": {
+    "provider": "say",
+    "sayVoice": "Samantha",
+    "sayRate": 200,
+    "final": {
+      "provider": "elevenlabs",
+      "voiceId": "[voice id]",
+      "model": "eleven_multilingual_v2",
+      "settings": {
+        "stability": 0.42,
+        "similarity_boost": 0.75,
+        "style": 0.35,
+        "use_speaker_boost": true,
+        "speed": 1.1
+      }
+    }
+  },
+  "scenes": [
+    {
+      "id": "intro",
+      "type": "title",
+      "duration": 4,
+      "kicker": "Example Group · Brand Visibility",
+      "title": "Three reads.<br><em>One plan.</em>",
+      "sub": "A way to think about search, AI answers and the website as one thing"
+    },
+    {
+      "id": "situation",
+      "type": "stats",
+      "hold": 0.3,
+      "title": "Example Group today",
+      "stats": [
+        {
+          "at": "s1",
+          "n": "[n]",
+          "t": "[a fact from the annual report]"
+        },
+        {
+          "at": "s2",
+          "n": "[n]",
+          "t": "[a second]"
+        },
+        {
+          "at": "s3",
+          "n": "[n]",
+          "t": "[a third]"
+        }
+      ],
+      "narration": "[Who the firm is, in one sentence.] {s1}[Fact.] {s2}[Fact.] {s3}[Fact.]"
+    },
+    {
+      "id": "brands",
+      "type": "brands",
+      "hold": 0.3,
+      "title": "Three websites today",
+      "cards": [
+        {
+          "page": "old-group",
+          "name": "Example Group",
+          "domain": "example.com"
+        },
+        {
+          "page": "old-shop",
+          "name": "Shop",
+          "domain": "example-shop.com",
+          "now": "[new name, if renamed]"
+        },
+        {
+          "page": "old-pro",
+          "name": "Professional",
+          "domain": "example-pro.com"
+        }
+      ],
+      "one": "Example",
+      "lines": [
+        "Shop<small>Example Shop</small>",
+        "Professional<small>Example Pro</small>"
+      ],
+      "narration": "[Its sites today.] {renamed}[What was renamed.] {merge}[What it is becoming.]"
+    },
+    {
+      "id": "define",
+      "type": "pillars",
+      "hold": 0.3,
+      "title": "Brand visibility: three reads of the same firm",
+      "cols": [
+        {
+          "at": "arrive",
+          "h": "Read 1",
+          "k": "Who arrives",
+          "items": [
+            "What visitors come for, on every site",
+            "Measured on the sites themselves",
+            "The audience the firm already has"
+          ]
+        },
+        {
+          "at": "ask",
+          "h": "Read 2",
+          "k": "What people ask",
+          "items": [
+            "Questions put to search and AI assistants",
+            "Who gets named in the answer",
+            "The audience the firm could have"
+          ]
+        },
+        {
+          "at": "want",
+          "h": "Read 3",
+          "k": "What the firm wants",
+          "items": [
+            "Its own stated strategy",
+            "Where growth should come from",
+            "The audience it is aiming for"
+          ]
+        }
+      ],
+      "narration": "So what is brand visibility? Not a set of channels. Three reads of the same firm. {arrive}Who arrives. {ask}What people ask. {want}And what the firm wants."
+    },
+    {
+      "id": "arrive",
+      "type": "stats",
+      "hold": 0.3,
+      "title": "Read 1 · who arrives",
+      "stats": [
+        {
+          "at": "s1",
+          "n": "[meta.visits]",
+          "t": "visits in [period], across the sites"
+        },
+        {
+          "at": "s2",
+          "n": "[share]",
+          "t": "land on a page about a client theme"
+        },
+        {
+          "at": "s3",
+          "n": "[n]",
+          "t": "themes get visitors from more than one site"
+        }
+      ],
+      "narration": "Read one: who arrives. {s1}[Visits.] {s2}[Share with a theme.] {s3}[Shared themes.]"
+    },
+    {
+      "id": "space",
+      "type": "space",
+      "hold": 0.3,
+      "title": "Read 2 · what people ask, and who is named",
+      "sub": "[scope of reads.json] · compared with [the competitors, by name] only",
+      "all": "Everything people ask AI assistants (not to scale)",
+      "out": [
+        "Left out: [what theme-rules exclude]"
+      ],
+      "addr": "Addressable for the firm",
+      "addrSmall": "[topics] topics · [prompts] prompts a month",
+      "segs": [
+        {
+          "at": "s1",
+          "v": 40,
+          "text": "40%",
+          "label": "The firm leads",
+          "small": "[prompts] a month",
+          "play": "Defend",
+          "playSmall": "make thin leads deep",
+          "playAt": "plays"
+        },
+        {
+          "at": "s2",
+          "v": 20,
+          "text": "20%",
+          "label": "A competitor leads",
+          "small": "[prompts] a month",
+          "play": "Win",
+          "playSmall": "publish what the firm knows",
+          "playAt": "plays"
+        },
+        {
+          "at": "s3",
+          "v": 40,
+          "text": "40%",
+          "label": "Open, or thin",
+          "small": "[prompts] a month",
+          "play": "Claim",
+          "playSmall": "be the first complete answer",
+          "playAt": "plays"
+        }
+      ],
+      "stepsLabel": "Track it",
+      "steps": [
+        "Topics owned",
+        "Mentions",
+        "Citations",
+        "Visits",
+        "Leads"
+      ],
+      "narration": "Read two: what people ask. {all}[The whole space.] {addr}[The part that matters to the firm.] {s1}[Where it leads.] {s2}[Where others lead.] {s3}[What is open.] {plays}Three states, three jobs. {track}[One line to track them.]"
+    },
+    {
+      "id": "wants",
+      "type": "pillars",
+      "hold": 0.3,
+      "title": "Read 3 · what the firm wants",
+      "cols": [
+        {
+          "at": "c1",
+          "h": "Brand",
+          "k": "[e.g. one brand]",
+          "items": [
+            "[statement, with date]"
+          ]
+        },
+        {
+          "at": "c2",
+          "h": "Growth",
+          "k": "[where from]",
+          "items": [
+            "[statement, with date]"
+          ]
+        },
+        {
+          "at": "c3",
+          "h": "Focus",
+          "k": "[n] named growth areas",
+          "items": [
+            "[area]",
+            "[area]",
+            "[area]"
+          ]
+        }
+      ],
+      "narration": "Read three: what the firm wants, read from what it says in public. {c1}[Brand.] {c2}[Growth.] {c3}[Named growth areas.]"
+    },
+    {
+      "id": "reads",
+      "type": "browser",
+      "hold": 0.6,
+      "pages": [
+        {
+          "at": 0,
+          "page": "reads-arrive",
+          "url": " · three reads, one plan",
+          "label": "<b>Read 1</b> who arrives, by client theme"
+        },
+        {
+          "at": "ask",
+          "page": "reads-ask",
+          "url": " · three reads, one plan",
+          "label": "<b>Read 2</b> what people ask AI"
+        },
+        {
+          "at": "want",
+          "page": "reads-want",
+          "url": " · three reads, one plan",
+          "label": "<b>Read 3</b> what the firm wants"
+        },
+        {
+          "at": "plan",
+          "page": "reads-plan",
+          "url": " · three reads, one plan",
+          "label": "<b>One plan</b> a job for each theme"
+        }
+      ],
+      "scroll": [
+        {
+          "at": 0.3,
+          "to": "chart",
+          "dur": 2.5
+        }
+      ],
+      "rings": [
+        {
+          "at": "t1",
+          "until": "t2",
+          "mark": "reads-plan.ai"
+        },
+        {
+          "at": "t2",
+          "until": "t3",
+          "mark": "reads-plan.health"
+        },
+        {
+          "at": "t3",
+          "mark": "reads-plan.people"
+        }
+      ],
+      "narration": "Now merge them, by what a client is trying to solve. [Read one, by theme.] {ask}[Read two joins.] {want}[Read three joins.] {plan}And each theme gets a job. {t1}[Claim.] {t2}[Defend.] {t3}[Win.]"
+    },
+    {
+      "id": "p-claim",
+      "type": "title",
+      "duration": 3,
+      "kicker": "Job 1 of 3",
+      "title": "Claim what's <em>open</em>",
+      "sub": "[theme]: [why the three reads put it first]"
+    },
+    {
+      "id": "claim-how",
+      "type": "browser",
+      "hold": 0.3,
+      "pages": [
+        {
+          "at": 0,
+          "page": "theme-page",
+          "url": "/themes/ai-and-data",
+          "label": "<b>One possible answer</b> a theme, as one firm"
+        }
+      ],
+      "scroll": [
+        {
+          "at": 0.3,
+          "to": "row",
+          "dur": 2.5
+        }
+      ],
+      "rings": [
+        {
+          "at": "ring",
+          "mark": "theme-page.row"
+        }
+      ],
+      "narration": "[The theme, the visitors it has, what is missing.] {ring}[What the page does.]"
+    },
+    {
+      "id": "p-defend",
+      "type": "title",
+      "duration": 3,
+      "kicker": "Job 2 of 3",
+      "title": "Defend what the firm <em>leads</em>",
+      "sub": "[theme]: [why]"
+    },
+    {
+      "id": "defend",
+      "type": "bars",
+      "hold": 0.3,
+      "title": "[theme]: [the finding]",
+      "sub": "Mentions in AI answers · [scope]",
+      "rows": [
+        {
+          "at": "b1",
+          "label": "[brand]",
+          "v": 50,
+          "text": "50"
+        },
+        {
+          "at": "b1",
+          "label": "[brand]",
+          "v": 20,
+          "text": "20"
+        },
+        {
+          "at": "b2",
+          "label": "Nearest competitor",
+          "v": 45,
+          "text": "45",
+          "muted": true
+        }
+      ],
+      "foot": "[what the bars add up to]",
+      "narration": "{b1}[The lead, by brand.] {b2}[Against the nearest competitor.] {foot}[What follows.]"
+    },
+    {
+      "id": "p-win",
+      "type": "title",
+      "duration": 3,
+      "kicker": "Job 3 of 3",
+      "title": "Win what <em>others hold</em>",
+      "sub": "[theme]: [why]"
+    },
+    {
+      "id": "win",
+      "type": "stats",
+      "hold": 0.3,
+      "title": "Held by others · [topic]",
+      "stats": [
+        {
+          "at": "s1",
+          "n": "[n]",
+          "t": "AI prompts a month on [topic]"
+        },
+        {
+          "at": "s2",
+          "n": "[n]",
+          "t": "competitors named there"
+        },
+        {
+          "at": "s3",
+          "n": "[n]",
+          "t": "mentions of the firm, which publishes [its study]"
+        }
+      ],
+      "narration": "[The topic.] {s1}[Demand.] {s2}[Who is named.] {s3}[The firm is not, though it has the material.]"
+    },
+    {
+      "id": "win-how",
+      "type": "browser",
+      "hold": 0.3,
+      "pages": [
+        {
+          "at": 0,
+          "page": "finding",
+          "url": "/research/annual-study/finding",
+          "label": "<b>Research</b> a finding that names its source"
+        }
+      ],
+      "rings": [
+        {
+          "at": "claim",
+          "until": "cite",
+          "mark": "finding.claim"
+        },
+        {
+          "at": "cite",
+          "mark": "finding.cite"
+        }
+      ],
+      "narration": "So write the finding the other way round. {claim}One sentence that names the firm and the report. {cite}[How to cite it.]"
+    },
+    {
+      "id": "measure",
+      "type": "stats",
+      "hold": 0.3,
+      "title": "One line to track it",
+      "stats": [
+        {
+          "at": "s1",
+          "n": "[n]",
+          "t": "topics owned, of [n] in the plan"
+        },
+        {
+          "at": "s2",
+          "n": "[n]",
+          "t": "mentions and citations a month"
+        },
+        {
+          "at": "s3",
+          "n": "[n]",
+          "t": "AI-referred visits, and the leads they become"
+        }
+      ],
+      "narration": "Last, how to know it works. One line: topics owned, mentions, citations, visits, leads. {s1}[Today.] {s2}[Today.] {s3}[Today.]"
+    },
+    {
+      "id": "close",
+      "type": "title",
+      "hold": 1.0,
+      "kicker": "Brand Visibility",
+      "title": "Three reads.<br>One plan.<br><em>One experience.</em>",
+      "sub": "Who arrives, what people ask and what the firm wants, merged by client theme. [Period and sources]: a starting point.",
+      "narration": "So that's the model. Brand visibility isn't search, or AI, or the website. It's three reads of the same firm, merged into one plan, and one experience that carries it out."
+    }
+  ]
+}

@@ -14,6 +14,8 @@ What is here:
 | [`skills/aem-optel/SKILL.md`](skills/aem-optel/SKILL.md) | An agent skill: how to get the key, which command answers which question, what the data means, and how not to misread a sample. |
 | [`skills/homepage-cohorts/SKILL.md`](skills/homepage-cohorts/SKILL.md) | An agent skill for EDS sites: size cohort rules on the homepage's Optel traffic, draw the Sankey, build a cohort homepage as a POC, promote it as a 90/10 experiment with the [AEM Experimentation plugin](https://github.com/adobe/aem-experimentation) (rollback is one metadata row), and review every rule against its holdout each month. Ships a dependency-free cohort engine. |
 | [`skills/site-merge/SKILL.md`](skills/site-merge/SKILL.md) | An agent skill for sites that are being consolidated into one: read each site's visits by what they come for, merge the cohorts that share a need into the audiences of the new site, and draw the Sankey (each site on the left, merged audiences on the right, what each keeps and gains), with layers for all traffic, SEO and GEO. Includes the runtime guide for arrivals from the old sites. |
+| [`skills/brand-visibility/SKILL.md`](skills/brand-visibility/SKILL.md) | An agent skill for planning search, AI answers and the website as one thing: three reads of a firm merged by client theme. Who arrives (Optel visits of every site by the theme of the landing page), what people ask (prompt and search demand per theme and who is named, from Adobe Brand Visibility prompt research or Semrush), what the firm wants (its public statements). Each theme gets a job (claim, defend, win), an experience and one line to track it by; the three reads are drawn as one picture. |
+| [`skills/brand-visibility-video/SKILL.md`](skills/brand-visibility-video/SKILL.md) | An agent skill: the narrated explainer of that plan, a storyboard template and captures on the video pipeline below. |
 | [`skills/homepage-cohorts-video/SKILL.md`](skills/homepage-cohorts-video/SKILL.md) | An agent skill: a narrated explainer or monthly update video of the cohort homepage, from the site's captures, `cohorts.json` and `review.json`. Playwright, ffmpeg, and ElevenLabs or macOS `say`. |
 
 It grew out of two Experience Workspace panels, which now live here too:
@@ -102,7 +104,8 @@ failure modes (404 slots, rejected keys, key redaction). The Experience
 Workspace panels' rules, Stardust brief and per-site settings run on a
 synthetic fixture. The homepage-cohorts engine, sizing, Sankey and monthly
 review run on synthetic bundles too. So do the site-merge steps: need
-classification, the merge per layer, the redirect model and the Sankey build.
+classification, the merge per layer, the redirect model and the Sankey build,
+and the brand-visibility read of visits by theme and its picture.
 
 ## Versions
 

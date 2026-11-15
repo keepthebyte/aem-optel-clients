@@ -10,6 +10,26 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Brand visibility
+- New skill `brand-visibility`: three reads of a firm merged by client theme. Read 1, who arrives:
+  `scripts/visits-by-theme.js` reads the theme of every topical visit from the words of its
+  landing page (`theme-rules.js`: whole words, first match wins, exclusions counted), on the
+  rules and bundles of `site-merge`. Reads 2 and 3 (prompt and search demand per theme and who
+  is named, from Adobe Brand Visibility prompt research or Semrush; the firm's public
+  statements) are written into `reads.json`; `references/reads.md` has the calls and the rules.
+  Each theme gets a job (claim, defend, win), an experience and a tracking line.
+  `scripts/three-reads.js` draws the picture, one read at a time with `?show=`.
+- New skill `brand-visibility-video`: storyboard and captures templates for the explainer of
+  that plan, on the `homepage-cohorts-video` scripts.
+
+### Video
+- Scene types `brands`, `bars`, `pillars`, `strip` and `space` (`references/storyboard.md`).
+- `render.js --hq 1` draws the stage at 2x and scales down; `tts.js --final 1` uses
+  `voice.final`, so a draft voice and the final voice live in one storyboard.
+- `capture.js`: `consent` accepts the cookie banner of a site you do not control, `image`
+  registers an existing screenshot, `width` / `height` set the window, top-level `hq` captures
+  at 2x. A `click` is followed by a scroll back to the top.
+
 ## [0.6.0] - 2026-11-14
 
 ### Site merge

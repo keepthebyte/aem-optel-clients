@@ -55,10 +55,12 @@ if (!chromium) { console.error('Playwright not found: npm i -D playwright && npx
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const browser = await chromium.launch({ args: ['--allow-file-access-from-files'] });
-const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
+// --hq 1: supersample the stage at 2x and downscale with Lanczos, slower preset, lower CRF
+const HQ = !!args.hq;
+const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: HQ ? 2 : 1 });
 page.on('pageerror', (e) => console.error('stage error:', e.message));
 await page.goto(pathToFileURL(path.join(here, 'stage.html')).href);
-await page.evaluate((d) => window.init(d), { storyboard: sb, captures, svg, review, cues });
+await page.evaluate((d) => window.init(d), { storyboard: sb, captures, svg, review, cues, durs: Object.fromEntries(scenes.map((x) => [x.id, x.dur])) });
 
 if (args.stills) {
   const dir = path.join(work, 'stills'); fs.mkdirSync(dir, { recursive: true });
@@ -79,7 +81,7 @@ for (const [i, s] of scenes.entries()) {
   const clip = path.join(clipDir, `${s.id}.mp4`);
   if (only ? !only.includes(s.id) : false) { if (!fs.existsSync(clip)) throw new Error(`${s.id}: no clip to reuse`); continue; }
   const n = Math.round(s.dur * FPS);
-  const ff = spawn('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', clip], { stdio: ['pipe', 'inherit', 'inherit'] });
+  const ff = spawn('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-', ...(HQ ? ['-vf', 'scale=1920:1080:flags=lanczos'] : []), '-c:v', 'libx264', '-preset', HQ ? 'slow' : 'medium', '-crf', HQ ? '14' : '18', '-pix_fmt', 'yuv420p', clip], { stdio: ['pipe', 'inherit', 'inherit'] });
   const t0 = Date.now();
   for (let f = 0; f < n; f += 1) {
     await page.evaluate(([j, tt]) => window.render(j, tt), [i, f / FPS]);
@@ -126,7 +128,7 @@ if (au.length) {
   f += `anullsrc=r=44100:cl=stereo[a]`;
 }
 execFileSync('ffmpeg', ['-loglevel', 'error', '-y', ...inputs, ...ain, '-filter_complex', f, '-map', '[v]', '-map', '[a]',
-  '-c:v', 'libx264', '-crf', '18', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-t', total.toFixed(2), out], { stdio: 'inherit' });
+  '-c:v', 'libx264', '-crf', HQ ? '16' : '18', '-preset', HQ ? 'slow' : 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', HQ ? '256k' : '192k', '-movflags', '+faststart', '-t', total.toFixed(2), out], { stdio: 'inherit' });
 console.error(`${total.toFixed(1)} s → ${out}`);
 const timeline = scenes.map((s, i) => `${new Date(starts[i] * 1000).toISOString().slice(14, 19)}  ${s.id}`).join('\n');
 fs.writeFileSync(out.replace(/\.mp4$/, '.timeline.txt'), `${timeline}\n`);

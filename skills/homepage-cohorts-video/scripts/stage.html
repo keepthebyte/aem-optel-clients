@@ -103,6 +103,99 @@ body { font-family: var(--font); color: #fff; }
 .hold .a { background: var(--accent); color: var(--dark); display: flex; align-items: center; padding-left: 40px; }
 .hold .b { flex: 1; background: #fff; color: var(--dark); display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 10px; font-size: 24px; line-height: 1.15; }
 .hold .cap { font-size: 34px; color: var(--soft); margin-top: 34px; }
+
+/* brands: four sites become one */
+.br-card { position: absolute; top: 250px; width: 380px; }
+.br-card .shot { width: 380px; height: 300px; border-radius: 6px; overflow: hidden; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+.br-card .shot img { width: 380px; display: block; }
+.br-card .nm { font-family: var(--serif); font-size: 44px; margin-top: 26px; line-height: 1.1; }
+.br-card .dm { font-size: 22px; color: var(--soft); margin-top: 6px; }
+.br-card .now { display: inline-block; margin-top: 18px; padding: 6px 14px; border-radius: 3px; background: var(--accent); color: var(--dark); font-size: 24px; font-weight: 700; }
+/* five or more cards: narrower, smaller type */
+.br-many .br-card, .br-many .br-card .shot, .br-many .br-card .shot img { width: 336px; }
+.br-many .br-card .shot { height: 265px; }
+.br-many .br-card .nm { font-size: 27px; white-space: nowrap; }
+.br-many .br-card .dm { font-size: 20px; }
+.br-many .br-card .now { font-size: 20px; padding: 5px 11px; }
+.br-many .br-one .lines { font-size: 25px; }
+.br-many .br-one .lines span { padding: 0 22px; }
+.br-many .br-one .lines small { font-size: 18px; }
+.br-ttl { position: absolute; left: 140px; top: 110px; font-family: var(--serif); font-size: 60px; }
+.br-one { position: absolute; left: 0; right: 0; top: 330px; text-align: center; }
+.br-one .w { font-family: var(--serif); font-size: 180px; line-height: 1; letter-spacing: -2px; }
+.br-one .lines { display: flex; justify-content: center; gap: 0; margin-top: 50px; font-size: 30px; font-weight: 600; }
+.br-one .lines span { padding: 0 34px; border-left: 2px solid var(--soft); }
+.br-one .lines span:first-child { border-left: 0; }
+.br-one .lines small { display: block; font-size: 20px; font-weight: 400; color: var(--soft); margin-top: 6px; }
+.br-quote { position: absolute; left: 0; right: 0; top: 820px; text-align: center; font-family: var(--serif); font-size: 40px; font-style: italic; color: var(--soft); }
+
+/* bars */
+.bars-s { position: absolute; left: 180px; right: 180px; top: 120px; }
+.bars-s .ttl { font-family: var(--serif); font-size: 60px; }
+.bars-s .sub2 { font-size: 26px; color: var(--soft); margin-top: 8px; margin-bottom: 40px; }
+.brow { display: grid; grid-template-columns: 380px 1fr; align-items: center; gap: 28px; margin-top: 18px; }
+.brow .lb { font-size: 32px; font-weight: 600; text-align: right; }
+.brow .lb small { display: block; font-size: 19px; font-weight: 400; color: var(--soft); }
+.brow .bb { height: 54px; border-radius: 3px; background: var(--accent); color: var(--dark); display: flex; align-items: center; padding-left: 16px; font-size: 26px; font-weight: 700; white-space: nowrap; min-width: 6px; }
+.brow .bb.muted { background: var(--soft); }
+.brow .bb.neg { background: #ff8a7a; }
+.brow .bb.out { background: transparent !important; color: #fff; padding-left: 0; }
+.bars-s .foot2 { font-size: 22px; color: var(--soft); margin-top: 34px; }
+
+/* pillars */
+.pil { position: absolute; left: 140px; right: 140px; top: 110px; }
+.pil .ttl { font-family: var(--serif); font-size: 60px; margin-bottom: 44px; }
+.pil .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 34px; }
+.pcol { border-top: 6px solid var(--soft); padding-top: 26px; position: relative; }
+.pcol .h { font-family: var(--serif); font-size: 64px; line-height: 1; }
+.pcol .k { font-size: 24px; color: var(--soft); margin-top: 10px; min-height: 60px; }
+.pcol ul { margin: 22px 0 0; padding: 0; list-style: none; }
+.pcol li { font-size: 27px; line-height: 1.3; padding: 14px 0; border-top: 1px solid rgba(206,236,255,.25); }
+.pcol .tag { position: absolute; right: 0; top: 30px; padding: 6px 14px; border-radius: 3px; background: var(--accent); color: var(--dark); font-size: 22px; font-weight: 700; }
+
+/* space: the topic space, its addressable part, who owns it, the play per part, how to track it */
+.spc { position: absolute; left: 180px; right: 180px; top: 80px; }
+.spc .ttl { font-family: var(--serif); font-size: 60px; }
+.spc .sub2 { font-size: 26px; color: var(--soft); margin-top: 8px; }
+.spc .all { position: relative; height: 104px; margin-top: 74px; border: 2px dashed rgba(206,236,255,.45); border-radius: 4px; }
+.spc .all-l { position: absolute; left: 0; top: -34px; font-size: 22px; color: var(--soft); }
+.spc .all .out { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font-size: 22px; color: var(--soft); line-height: 1.25; }
+.spc .all .o0 { left: 24px; width: 27%; }
+.spc .all .o1 { right: 24px; width: 27%; justify-content: flex-end; text-align: right; }
+.spc .addr { position: absolute; left: 31%; width: 38%; top: -2px; bottom: -2px; background: rgba(206,236,255,.16); border: 2px solid var(--soft); border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; }
+.spc .addr small { font-size: 20px; font-weight: 400; color: var(--soft); }
+.spc .fun { height: 56px; margin: 0 0; background: linear-gradient(to bottom, rgba(206,236,255,.16), rgba(206,236,255,.03)); clip-path: polygon(31% 0, 69% 0, 100% 100%, 0 100%); }
+.spc .segs { display: flex; }
+.spc .seg { padding-right: 8px; min-width: 0; }
+.spc .seg:last-child { padding-right: 0; }
+.spc .fill { position: relative; height: 116px; border-radius: 3px; overflow: hidden; transform-origin: left center; display: flex; align-items: center; justify-content: flex-end; padding-right: 22px; font-family: var(--serif); font-size: 50px; font-weight: 600; color: var(--dark); background: color-mix(in srgb, var(--accent) 55%, var(--dark)); }
+.spc .fill i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--accent); }
+.spc .fill b { position: relative; }
+.spc .seg.other .fill { background: color-mix(in srgb, var(--soft) 80%, var(--dark)); }
+.spc .seg.other .fill i { background: #fff; }
+.spc .seg.open .fill { background: transparent; border: 3px dashed #fff; color: #fff; }
+.spc .sl { font-size: 28px; font-weight: 700; margin-top: 14px; }
+.spc .sl small { display: block; font-size: 21px; font-weight: 400; color: var(--soft); margin-top: 4px; line-height: 1.3; min-height: 56px; }
+.spc .play { margin-top: 20px; border-top: 4px solid var(--accent); padding-top: 12px; font-size: 21px; color: var(--soft); line-height: 1.3; }
+.spc .play b { display: block; font-family: var(--serif); font-size: 40px; color: var(--accent); font-weight: 600; }
+.spc .steps { margin-top: 56px; display: flex; align-items: center; gap: 14px; font-size: 24px; }
+.spc .st-l { color: var(--soft); margin-right: 10px; }
+.spc .step { padding: 9px 18px; border: 2px solid var(--soft); border-radius: 30px; font-weight: 600; }
+.spc .step.on { background: var(--soft); color: var(--dark); }
+.spc .arr { color: var(--soft); }
+
+/* strip: full pages side by side */
+.strip { position: absolute; left: 80px; right: 80px; top: 40px; }
+.strip .ttl { font-family: var(--serif); font-size: 48px; }
+.strip .sub2 { font-size: 24px; color: var(--soft); margin-top: 4px; }
+.strip .row { display: flex; gap: 14px; margin-top: 22px; align-items: flex-start; width: max-content; }
+.sp { position: relative; flex: 1 1 0; }
+.sp .lbl { font-size: 20px; font-weight: 700; line-height: 1.2; height: 52px; }
+.sp .lbl b { font-size: 26px; }
+.sp .lbl b { display: block; color: var(--accent); font-size: 22px; }
+.sp .img { position: relative; margin-top: 8px; border-radius: 4px; overflow: hidden; background: #fff; }
+.sp .img img { width: 100%; display: block; }
+.sp .slot { position: absolute; left: 0; right: 0; border: 3px solid var(--accent); box-shadow: 0 0 0 3px rgba(255,191,0,.35); }
 </style></head>
 <body><div id="stage"></div>
 <script>
@@ -111,7 +204,8 @@ const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const ease = (x) => { x = clamp(x); return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; };
 const lerp = (a, b, k) => a + (b - a) * k;
 const esc = (s) => String(s ?? '').replace(/&(?![a-z#0-9]+;)/gi, '&amp;').replace(/</g, '&lt;');
-const html = (s) => String(s ?? ''); // storyboard text that may carry <b>/<em>/<br>
+const html = (s) => String(s ?? '');
+const SCENE_DUR = (sc) => sc.dur || 20; // storyboard text that may carry <b>/<em>/<br>
 
 let SB; let CAP; let REVIEW; let SVG; let SCENES = [];
 const BW = 1600; // browser content width
@@ -343,8 +437,122 @@ TYPES.holdout = {
   frame: (sc, el, t) => { $('.hold', el).style.opacity = ramp(t, 0.1, 0.6); },
 };
 
+/* ---------- brands: four site cards, renamed, then merged into one wordmark ---------- */
+TYPES.brands = {
+  build: (sc) => `<div class="br-ttl">${html(sc.title || '')}</div>
+    ${sc.cards.map((c, i) => `<div class="br-card" data-c="${i}"><div class="shot"><img src="${CAP[c.page].src}"></div><div class="nm">${html(c.name)}</div><div class="dm">${esc(c.domain)}</div>${c.now ? `<div class="now">${html(c.now)}</div>` : ''}</div>`).join('')}
+    <div class="br-one"><div class="w">${html(sc.one || '')}</div><div class="lines">${(sc.lines || []).map((l) => `<span>${html(l)}</span>`).join('')}</div></div>
+    ${sc.quote ? `<div class="br-quote">${html(sc.quote)}</div>` : ''}`,
+  frame: (sc, el, t) => {
+    const n = sc.cards.length; const many = n > 4; el.classList.toggle('br-many', many); const W = many ? 336 : 380; const gap = many ? 30 : 60; const x0 = (1920 - (n * W + (n - 1) * gap)) / 2;
+    const kM = ramp(t, at(sc, sc.mergeAt || 'merge', 1e9), 1.4);
+    $('.br-ttl', el).style.opacity = ramp(t, 0.1, 0.6) * (1 - kM);
+    sc.cards.forEach((c, i) => {
+      const e = $(`[data-c="${i}"]`, el);
+      const kIn = ramp(t, 0.3 + i * 0.35, 0.6);
+      const x = lerp(x0 + i * (W + gap), (1920 - W) / 2, kM);
+      e.style.left = `${x}px`; e.style.opacity = kIn * (1 - kM);
+      e.style.transform = `translateY(${(1 - kIn) * 30}px) scale(${lerp(1, 0.6, kM)})`;
+      const now = $('.now', e); if (now) now.style.opacity = ramp(t, at(sc, c.nowAt || 'renamed', 1e9) + i * 0.4, 0.5);
+    });
+    const one = $('.br-one', el); one.style.opacity = ramp(t, at(sc, sc.mergeAt || 'merge', 1e9) + 0.6, 0.8);
+    one.style.transform = `scale(${lerp(0.94, 1, ramp(t, at(sc, sc.mergeAt || 'merge', 1e9) + 0.6, 1.2))})`;
+    one.querySelectorAll('.lines span').forEach((s, i) => { s.style.opacity = ramp(t, at(sc, sc.mergeAt || 'merge', 1e9) + 1.4 + i * 0.3, 0.5); });
+    const q = $('.br-quote', el); if (q) q.style.opacity = ramp(t, at(sc, sc.quoteAt || 'quote', 1e9), 0.6);
+  },
+};
+
+/* ---------- bars: horizontal, one per row, appear at cues or staggered ---------- */
+TYPES.bars = {
+  build: (sc) => {
+    const max = Math.max(...sc.rows.map((r) => Math.abs(r.v)));
+    return `<div class="bars-s"><div class="ttl">${html(sc.title)}</div><div class="sub2">${html(sc.sub || '')}</div>
+      ${sc.rows.map((r, i) => `<div class="brow" data-b="${i}"><div class="lb">${html(r.label)}${r.small ? `<small>${html(r.small)}</small>` : ''}</div>
+        <div><div class="bb${r.muted ? ' muted' : ''}${r.v < 0 ? ' neg' : ''}" data-w="${Math.abs(r.v) / max}">${esc(r.text)}</div></div></div>`).join('')}
+      ${sc.foot ? `<div class="foot2">${html(sc.foot)}</div>` : ''}</div>`;
+  },
+  frame: (sc, el, t) => {
+    $('.bars-s .ttl', el).style.opacity = ramp(t, 0.1, 0.6); $('.bars-s .sub2', el).style.opacity = ramp(t, 0.3, 0.6);
+    sc.rows.forEach((r, i) => {
+      const a = r.at != null ? at(sc, r.at) : 0.8 + i * 0.5;
+      const row = $(`[data-b="${i}"]`, el); row.style.opacity = ramp(t, a, 0.4);
+      const b = $('.bb', row); const w = Number(b.dataset.w) * ramp(t, a, 1);
+      b.style.width = `${Math.max(0.004, w) * 100}%`; b.classList.toggle('out', Number(b.dataset.w) < 0.12);
+    });
+    const f = $('.foot2', el); if (f) f.style.opacity = ramp(t, at(sc, sc.footAt || 'foot', 1e9), 0.6);
+  },
+};
+
+/* ---------- pillars: three columns, then one in focus ---------- */
+TYPES.pillars = {
+  build: (sc) => `<div class="pil"><div class="ttl">${html(sc.title)}</div><div class="cols">${sc.cols.map((c, i) => `<div class="pcol" data-p="${i}"><div class="h">${html(c.h)}</div><div class="k">${html(c.k || '')}</div>${c.tag ? `<div class="tag">${html(c.tag)}</div>` : ''}<ul>${c.items.map((x) => `<li>${html(x)}</li>`).join('')}</ul></div>`).join('')}</div></div>`,
+  frame: (sc, el, t) => {
+    $('.pil .ttl', el).style.opacity = ramp(t, 0.1, 0.6);
+    const kF = ramp(t, at(sc, 'focus', 1e9), 0.7);
+    sc.cols.forEach((c, i) => {
+      const e = $(`[data-p="${i}"]`, el); const k = ramp(t, at(sc, c.at, 0.5 + i * 0.6), 0.6);
+      const focus = i === sc.focus;
+      e.style.opacity = k * (focus ? 1 : lerp(1, 0.35, kF));
+      e.style.transform = `translateY(${(1 - k) * 30}px)`;
+      e.style.borderTopColor = focus && kF > 0.01 ? 'var(--accent)' : '';
+      const tag = $('.tag', e); if (tag) tag.style.opacity = kF;
+    });
+  },
+};
+
+/* ---------- strip: every variation as a full page, side by side ---------- */
+TYPES.strip = {
+  build: (sc) => `<div class="strip"><div class="ttl">${html(sc.title || '')}</div><div class="sub2">${html(sc.sub || '')}</div>
+    <div class="row">${sc.pages.map((p, i) => `<div class="sp" data-sp="${i}"><div class="lbl">${p.share ? `<b>${esc(p.share)}</b>` : ''}${html(p.label)}</div>
+      <div class="img"><img src="${CAP[p.page].src}">${CAP[p.page].marks?.slot ? '<div class="slot"></div>' : ''}</div></div>`).join('')}</div></div>`,
+  frame: (sc, el, t) => {
+    $('.strip .ttl', el).style.opacity = ramp(t, 0.1, 0.6); $('.strip .sub2', el).style.opacity = ramp(t, 0.3, 0.6);
+    // every page at the full available height; when they don't fit, the row pans from first to last
+    const H = sc.height || 850; const gap = 18; const avail = 1920 - 160;
+    let total = 0;
+    sc.pages.forEach((p, i) => {
+      const e = $(`[data-sp="${i}"]`, el); const c = CAP[p.page];
+      const s = H / c.height; const w = c.width * s; total += w + (i ? gap : 0);
+      Object.assign(e.style, { flex: `0 0 ${w}px`, width: `${w}px` });
+      $('.img', e).style.width = `${w}px`;
+      const k = ramp(t, at(sc, p.at, 0.6 + i * (sc.stagger ?? 0.25)), 0.6);
+      e.style.opacity = k; e.style.transform = `translateY(${(1 - k) * 40}px)`;
+      const slot = $('.slot', e);
+      if (slot) { const b = c.marks.slot; Object.assign(slot.style, { top: `${b.y * s}px`, height: `${b.h * s}px`, opacity: ramp(t, at(sc, 'slots', 1e9), 0.6) }); }
+    });
+    const row = $('.strip .row', el); row.style.gap = `${gap}px`;
+    const over = Math.max(0, total - avail);
+    const a = at(sc, sc.panAt || 'pan', 2); const b = at(sc, sc.panEnd || 'end', SCENE_DUR(sc) - 2);
+    row.style.transform = `translateX(${-over * clamp((t - a) / Math.max(1, b - a))}px)`;
+  },
+};
+
+/* ---------- space: all AI questions → the addressable part → who owns it → the play → how to track ---------- */
+TYPES.space = {
+  build: (sc) => `<div class="spc"><div class="ttl">${html(sc.title)}</div><div class="sub2">${html(sc.sub || '')}</div>
+    <div class="all"><span class="all-l">${html(sc.all)}</span>${(sc.out || []).map((o, i) => `<span class="out o${i}">${html(o)}</span>`).join('')}<div class="addr">${html(sc.addr)}<small>${html(sc.addrSmall || '')}</small></div></div>
+    <div class="fun"></div>
+    <div class="segs">${sc.segs.map((g, i) => `<div class="seg ${g.cls || ''}" data-g="${i}" style="flex:${g.v} 0 0"><div class="fill">${g.inner ? `<i style="width:${(g.inner / g.v) * 100}%"></i>` : ''}<b>${esc(g.text)}</b></div><div class="sl">${html(g.label)}<small>${html(g.small || '')}</small></div><div class="play"><b>${html(g.play)}</b>${html(g.playSmall || '')}</div></div>`).join('')}</div>
+    <div class="steps"><span class="st-l">${html(sc.stepsLabel || '')}</span>${(sc.steps || []).map((x, i) => `<span class="step${i === 0 ? ' on' : ''}">${html(x)}</span>`).join('<span class="arr">→</span>')}</div></div>`,
+  frame: (sc, el, t) => {
+    $('.spc .ttl', el).style.opacity = ramp(t, 0.1, 0.6); $('.spc .sub2', el).style.opacity = ramp(t, 0.3, 0.6);
+    $('.spc .all', el).style.opacity = ramp(t, at(sc, sc.allAt || 'all', 0.8), 0.6);
+    const ka = ramp(t, at(sc, sc.addrAt || 'addr', 1e9), 0.6);
+    $('.spc .addr', el).style.opacity = ka; el.querySelectorAll('.spc .out').forEach((o) => { o.style.opacity = ka; });
+    $('.spc .fun', el).style.opacity = ramp(t, at(sc, sc.segs[0].at, 1e9) - 0.3, 0.6);
+    sc.segs.forEach((g, i) => {
+      const e = $(`[data-g="${i}"]`, el); const a = at(sc, g.at, 1e9);
+      $('.fill', e).style.opacity = ramp(t, a, 0.3); $('.fill', e).style.transform = `scaleX(${Math.max(0.001, ramp(t, a, 0.9))})`;
+      $('.sl', e).style.opacity = ramp(t, a + 0.4, 0.5);
+      const inner = $('.fill i', e); if (inner) inner.style.opacity = ramp(t, at(sc, g.innerAt, a + 1), 0.5);
+      $('.play', e).style.opacity = ramp(t, at(sc, g.playAt, 1e9), 0.6);
+    });
+    $('.spc .steps', el).style.opacity = ramp(t, at(sc, sc.stepsAt || 'track', 1e9), 0.6);
+  },
+};
+
 /* ---------- runtime ---------- */
-window.init = async ({ storyboard, captures, svg, review, cues }) => {
+window.init = async ({ storyboard, captures, svg, review, cues, durs }) => {
   SB = storyboard; CAP = captures; SVG = svg; REVIEW = review;
   if (SB.brand) Object.entries(SB.brand).forEach(([k, v]) => document.documentElement.style.setProperty(`--${k}`, v));
   if (SB.fonts) {
@@ -353,7 +561,7 @@ window.init = async ({ storyboard, captures, svg, review, cues }) => {
   }
   const stage = $('#stage');
   SCENES = SB.scenes.map((sc0) => {
-    const sc = { ...sc0, cues: cues[sc0.id] || {} };
+    const sc = { ...sc0, cues: cues[sc0.id] || {}, dur: (durs || {})[sc0.id] };
     const T = TYPES[sc.type];
     if (!T) throw new Error(`unknown scene type ${sc.type}`);
     const el = document.createElement('div');

@@ -83,6 +83,11 @@ not frames of a screen recording, which come out soft next to the page captures.
 in `work/captures/index.json` with their `width`, `height` and the `marks` the rings use. After
 pushing code, hard-reload the canvas before shooting: the preview iframe keeps the old CSS.
 
+A page of a site you do not control (the site as it is today) usually opens with a cookie
+banner: `"consent": true` clicks its accept button, as a visitor would, before the shot. A
+screenshot that already exists is registered with `"image": "shot.png"` instead of by hand.
+`"width"` sets the window for a page that is not 1920 wide (a chart at 1320).
+
 ## 3. Storyboard and voice
 
 Copy a template and fill it from step 1. Write the narration first, scene by scene, short
@@ -101,6 +106,7 @@ Voice (`storyboard.voice`):
 
 ```bash
 node tts.js --storyboard storyboard.json --out work/audio             # cached per scene: re-voices only edited scenes
+node tts.js --storyboard storyboard.json --out work/audio --final 1   # voice.final instead of the draft voice
 ```
 
 For a pitch to a team that is leaving, show what changed and let the page make the case:
@@ -117,6 +123,7 @@ node render.js --storyboard storyboard.json --work work --stills            # a 
 node render.js --storyboard storyboard.json --work work --stills mix paths  # some scenes only
 node render.js --storyboard storyboard.json --work work                     # the video
 node render.js --storyboard storyboard.json --work work --only results      # re-render scenes, reuse the other clips
+node render.js --storyboard storyboard.json --work work --hq 1 --out final.mp4   # the final: drawn at 2x, scaled down; several times slower
 ```
 
 Review the stills before the full render (a 4-minute video takes a few minutes). Look for:

@@ -1,0 +1,15 @@
+{
+  "firm": "Example Group",
+  "scope": "US, all AI engines, [month]",
+  "states": {"lead": "The firm leads", "comp": "A competitor leads part", "open": "Open, or thin"},
+  "note": "Invented numbers, to show the shape. asked and prompts: name the tool, the date pulled and the competitors compared. wanted: name the document and its date. job and experience are proposals, not decisions.",
+  "themes": [
+    {"id": "health", "state": "lead", "prompts": 900000, "asked": "The firm leads, 70 mentions against 45. Split over three brand names.", "wanted": "Named growth area: health care", "job": ["Defend"], "experience": "One row on the homepage, answered by every business"},
+    {"id": "people", "state": "lead", "prompts": 2500000, "asked": "Leads the theme, absent from its largest topic.", "wanted": "", "job": ["Defend", "Win"], "experience": "A research finding page that names its source in the sentence"},
+    {"id": "risk", "state": "comp", "prompts": 3000000, "asked": "A narrow lead for a competitor, 60 against 50.", "wanted": "", "job": ["Defend"], "experience": "The market index published openly"},
+    {"id": "ai-data", "state": "open", "prompts": 800000, "asked": "Nobody compared is named on the largest topics.", "wanted": "Named growth area: digital infrastructure", "job": ["Claim"], "experience": "One theme page across the businesses"},
+    {"id": "cyber", "state": "open", "prompts": 2000000, "asked": "Vendors are named, advisers are not.", "wanted": "", "job": ["Claim"], "experience": "A buyer's guide per question"},
+    {"id": "energy", "state": "open", "prompts": 1500000, "asked": "Open for everyone compared.", "wanted": "Named growth area: energy", "job": ["Claim"], "experience": "One theme page across the businesses"},
+    {"id": "growth", "state": "comp", "prompts": 1200000, "asked": "Strategy firms lead; the firm is named on pricing.", "wanted": "", "job": ["Win"], "experience": "Named authors on every article"}
+  ]
+}
