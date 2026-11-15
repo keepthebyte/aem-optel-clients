@@ -11,6 +11,9 @@ change report shapes or classification results; read **Changed** before upgradin
 ## [Unreleased]
 
 ### Brand visibility
+- `brand-visibility-video`: optional scenes for the fourth read (`fetch`), the human side (`human`,
+  `cohorts`), a pivot variation of the story, and `templates/deck-extras.css` (four-up columns and
+  cards, tight bars).
 - The three-reads picture takes an optional fourth read, what assistants fetch: `attempts` and
   `fetched` per theme, `fetchedNote` and `title` in `reads.json`. `references/reads.md` says how to
   pull citation attempts (agents ending in `-User`) and join them with visits.
