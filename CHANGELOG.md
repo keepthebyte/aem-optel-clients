@@ -29,6 +29,8 @@ change report shapes or classification results; read **Changed** before upgradin
 - `capture.js`: `consent` accepts the cookie banner of a site you do not control, `image`
   registers an existing screenshot, `width` / `height` set the window, top-level `hq` captures
   at 2x. A `click` is followed by a scroll back to the top.
+- A slide template over the stage: `storyboard.css` (a stylesheet), `storyboard.deck` (logo and
+  footer on every scene) and a `cls` per scene.
 
 ## [0.6.0] - 2026-11-14
 

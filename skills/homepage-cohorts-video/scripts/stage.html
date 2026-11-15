@@ -14,6 +14,7 @@ html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; backgro
 body { font-family: var(--font); color: #fff; }
 #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: radial-gradient(1400px 900px at 70% 10%, var(--dark2) 0%, var(--dark) 60%, color-mix(in srgb, var(--dark) 75%, #000) 100%); }
 .layer { position: absolute; inset: 0; display: none; }
+.chrome { position: absolute; inset: 0; display: none; pointer-events: none; z-index: 30; }
 
 /* title */
 .card-title { position: absolute; left: 200px; right: 200px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; }
@@ -559,16 +560,27 @@ window.init = async ({ storyboard, captures, svg, review, cues, durs }) => {
     const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = SB.fonts;
     await new Promise((res) => { l.onload = res; l.onerror = res; document.head.append(l); });
   }
+  if (SB.cssText) { const st = document.createElement('style'); st.textContent = SB.cssText; document.head.append(st); }
+  if (SB.deck) document.body.classList.add('deck');
   const stage = $('#stage');
   SCENES = SB.scenes.map((sc0) => {
     const sc = { ...sc0, cues: cues[sc0.id] || {}, dur: (durs || {})[sc0.id] };
     const T = TYPES[sc.type];
     if (!T) throw new Error(`unknown scene type ${sc.type}`);
     const el = document.createElement('div');
-    el.className = `layer ${T.layer || ''}`;
+    el.className = `layer t-${sc.type} ${T.layer || ''} ${sc.cls || ''}`;
     el.innerHTML = T.build(sc);
     stage.append(el);
-    return { sc, el, T };
+    // deck chrome: logo and footer of the slide template, outside the layer so a scaled layer leaves them in place
+    let chrome = null;
+    if (SB.deck) {
+      chrome = document.createElement('div'); chrome.className = `chrome t-${sc.type} ${sc.cls || ''}`;
+      const light = /\bred\b/.test(sc.cls || '');
+      const logo = (light && SB.deck.logoLight) || SB.deck.logo;
+      chrome.innerHTML = `${logo ? `<img class="deck-logo" src="${logo}">` : ''}<div class="deck-foot">${html(SB.deck.footer || '')}</div>`;
+      stage.append(chrome);
+    }
+    return { sc, el, T, chrome };
   });
   await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
   const cs = getComputedStyle(document.documentElement);
@@ -577,7 +589,7 @@ window.init = async ({ storyboard, captures, svg, review, cues, durs }) => {
   return SCENES.length;
 };
 window.render = (i, t) => {
-  SCENES.forEach((s, j) => { s.el.style.display = j === i ? 'block' : 'none'; });
+  SCENES.forEach((s, j) => { s.el.style.display = j === i ? 'block' : 'none'; if (s.chrome) s.chrome.style.display = j === i ? 'block' : 'none'; });
   const s = SCENES[i]; s.T.frame(s.sc, s.el, t);
 };
 </script>

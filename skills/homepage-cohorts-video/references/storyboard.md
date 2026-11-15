@@ -24,7 +24,14 @@ light to read on white, e.g. a yellow).
 `{ "provider": "say" }` and keep the ElevenLabs voice for the final in the same file. Its
 `settings` are passed as `voice_settings` (`stability`, `similarity_boost`, `style`, `speed`).
 
-`sankey` and `review` are paths relative to the storyboard. `host` is shown in the browser
+A slide template: `"css": "deck.css"` lays a stylesheet of your own over the stage, and
+`"deck": { "logo": "logo.png", "logoLight": "logo-white.png", "footer": "© ..." }` draws a logo
+and a footer line on every scene (`.deck-logo`, `.deck-foot`, placed by your stylesheet; the
+body gets the class `deck`). Every scene's layer carries `t-<type>` and the scene's own `cls`,
+so the stylesheet can restyle one type or one scene; `"cls": "red"` also picks the light logo.
+Keep a company's template and logo files beside the storyboard, not in a shared repository.
+
+`sankey`, `review`, `css` and the `deck` images are paths relative to the storyboard. `host` is shown in the browser
 address bar before each page's `url`; a `url` that starts with a host
 (`main--site--org.aem.live/`) is shown as it is. Show the brand's host on captures of the
 live site and the delivery host on the rebuilt or cohort pages, so the address bar never
@@ -39,6 +46,7 @@ claims a page is something it is not.
 | `narration` | text with `{cue}` markers; scene length = narration + 1.3 s |
 | `duration` | seconds, for scenes without narration (default 4) |
 | `hold` | extra seconds after the narration (let the last element sit) |
+| `cls` | class names on the scene's layer, for a `css` of your own |
 
 Scenes crossfade into each other (0.5 s).
 

@@ -31,6 +31,11 @@ const sb = JSON.parse(fs.readFileSync(sbFile, 'utf8'));
 const work = path.resolve(args.work || 'work');
 const rel = (p) => (p ? path.resolve(sbDir, p) : null);
 
+// storyboard.css: a stylesheet laid over the stage (a slide template). storyboard.deck: { logo, logoLight, footer },
+// drawn on every scene; scenes pick the light logo with "cls": "red" or "dark".
+if (sb.css) sb.cssText = fs.readFileSync(rel(sb.css), 'utf8');
+const dataUrl = (p) => `data:image/${path.extname(p).slice(1).replace('svg', 'svg+xml')};base64,${fs.readFileSync(rel(p)).toString('base64')}`;
+if (sb.deck) ['logo', 'logoLight'].forEach((k) => { if (sb.deck[k]) sb.deck[k] = dataUrl(sb.deck[k]); });
 const captures = JSON.parse(fs.readFileSync(path.join(work, 'captures/index.json'), 'utf8'));
 Object.values(captures).forEach((c) => { c.src = pathToFileURL(path.join(work, 'captures', c.file)).href; });
 const svg = sb.sankey ? fs.readFileSync(rel(sb.sankey), 'utf8') : '';
