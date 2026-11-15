@@ -105,3 +105,19 @@ test('the picture: the measured read joined with the written ones', async () => 
   assert.ok(html.includes('"firm":"Example Group"'));
   assert.equal(html.split('</script>').length, 2); // text from the reads file cannot close the script
 });
+
+test('scope, a one-theme site, and the theme of a homepage click', async () => {
+  const click = (host, p, target) => { const b = view(host, p, { ref: '' }); b.events.push({ checkpoint: 'click', target, source: 'a', timeDelta: 900 }); return b; };
+  const d = {
+    group: [...times(4, () => click(group.host, '/', `https://${group.host}/insights/cyber-risk-outlook`)), ...times(3, () => view(group.host, '/de/insights/cyber-risk', { ref: '' }))],
+    shop: [...times(5, () => view(shop.host, '/products/annual-plan', { ref: '' }))],
+    pro: [],
+  };
+  const scoped = { ...rules, sites: rules.sites.map((s) => (s.id === 'group' ? { ...s, scope: '^/(?!de/)' } : s)) };
+  const r = await visitsByTheme(o, merge, scoped, { ...themes, sites: { shop: 'health' } }, (site) => d[site.id]);
+  assert.equal(r.themes.cyber.visits, 400); // homepage visits, by their click; /de is out of scope
+  assert.equal(r.sites[0].outOfScope, 300);
+  assert.equal(r.sites[0].visits, 400);
+  assert.equal(r.themes.health.visits, 500); // the one-theme site
+  assert.equal(r.unmatched.visits, 0);
+});

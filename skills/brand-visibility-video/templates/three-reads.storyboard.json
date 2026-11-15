@@ -204,6 +204,37 @@
       "narration": "Read two: what people ask. {all}[The whole space.] {addr}[The part that matters to the firm.] {s1}[Where it leads.] {s2}[Where others lead.] {s3}[What is open.] {plays}Three states, three jobs. {track}[One line to track them.]"
     },
     {
+      "id": "fetch",
+      "type": "bars",
+      "cls": "tight",
+      "hold": 0.4,
+      "title": "Optional read · what assistants fetch",
+      "sub": "Citation attempts on [site] pages · [window] · [what is not tracked]",
+      "rows": [
+        {
+          "at": "b1",
+          "label": "[theme]",
+          "v": 80,
+          "text": "80"
+        },
+        {
+          "at": "b2",
+          "label": "[theme]",
+          "v": 60,
+          "text": "60"
+        },
+        {
+          "at": "lo",
+          "label": "[theme the firm wants]",
+          "small": "[why it matters]",
+          "v": 5,
+          "text": "5"
+        }
+      ],
+      "foot": "[total attempts in the window, and where most of them go]",
+      "narration": "[What a citation attempt is, in one sentence.] {b1}[What is read most.] {b2}[The surprise.] {lo}[What the firm wants and assistants do not open.] {foot}[The total.]"
+    },
+    {
       "id": "wants",
       "type": "pillars",
       "hold": 0.3,
@@ -424,6 +455,57 @@
       "narration": "So write the finding the other way round. {claim}One sentence that names the firm and the report. {cite}[How to cite it.]"
     },
     {
+      "id": "human",
+      "type": "stats",
+      "hold": 0.4,
+      "title": "The human side · [page], [views] views in [period]",
+      "stats": [
+        {
+          "at": "s1",
+          "n": "[n]%",
+          "t": "of views click nothing"
+        },
+        {
+          "at": "s2",
+          "n": "[n]%",
+          "t": "from [source] click nothing ([share] of views)"
+        },
+        {
+          "at": "s3",
+          "n": "[n]%",
+          "t": "from [source] click nothing ([share] of views)"
+        }
+      ],
+      "narration": "That is the visibility plan. The other half is what happens when a person arrives. {s1}[Share that clicks nothing.] {s2}[The worst source.] {s3}[The best.] One page, very different visitors."
+    },
+    {
+      "id": "cohorts",
+      "type": "strip",
+      "hold": 0.6,
+      "stagger": 0.18,
+      "height": 800,
+      "title": "One homepage, a version for each visitor",
+      "sub": "Each a full page · sized on [page], [period]",
+      "pages": [
+        {
+          "page": "c-default",
+          "label": "No signal",
+          "share": "[share]"
+        },
+        {
+          "page": "c-search",
+          "label": "Searched a product",
+          "share": "[share]"
+        },
+        {
+          "page": "c-answer",
+          "label": "From an assistant",
+          "share": "[share]"
+        }
+      ],
+      "narration": "So the homepage has a version for each of them. {slots}The frame marks what changes first. [Two versions, one sentence each.] {pan}[The rest.] {end}Each version is sized on real traffic, and judged the way a person judges a page: did I find my reason to stay?"
+    },
+    {
       "id": "measure",
       "type": "stats",
       "hold": 0.3,
@@ -456,5 +538,6 @@
       "sub": "Who arrives, what people ask and what the firm wants, merged by client theme. [Period and sources]: a starting point.",
       "narration": "So that's the model. Brand visibility isn't search, or AI, or the website. It's three reads of the same firm, merged into one plan, and one experience that carries it out."
     }
-  ]
+  ],
+  "css": "deck-extras.css"
 }

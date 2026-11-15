@@ -34,8 +34,13 @@ Rules that keep it honest:
   return 429. Retry a 429 after a pause.
 - A full-text volume for a query (`tab: 'stats'`) is too fuzzy to quote; sum close topics.
 - Totals are directional. Say so, and name the largest topic when it carries the total.
-- Who is named: the `brands` tab of a topic, or the mention counts per topic from the same
-  tool. Compare with a fixed, short list of competitors and state the list.
+- Who is named: the `brands` tab takes a free-text `query`, not a topic, and its result is
+  fuzzy (a product query also returns the leaders of the wider category). Use a specific
+  query per theme, read the top rows, and find the firm's own rows with `textFilter`. Quote
+  it as directional, with the query. The firm's own tracked topics and mentions, where the
+  customer has them set up, are the better source.
+- The sandbox has no timers: run the calls one after another and keep each run to a few
+  queries; retry a 429 in a later run.
 
 ## Read 2 from Semrush
 
@@ -58,6 +63,28 @@ Rules that keep it honest:
 
 Count the firm's brands together and separately. A lead that only exists when several
 brand names are added up is a finding in itself: it is lost if the names stop being cited.
+
+## Optional: what assistants fetch (citation attempts)
+
+When the firm has agentic traffic in Adobe Brand Visibility, add a fourth read. A citation
+attempt is a page load by an agent whose name ends in `-User` (ChatGPT-User, Claude-User,
+Perplexity-User): an assistant loading the page to answer a person. Filter on those agents, not
+on the whole "Chatbots" agent type.
+
+- `GET /adobe/brand-visibility/v1/sites/{siteId}/agentic-traffic/by-url` with
+  `datePreset: 'custom'`, `startDate`, `endDate`, `userAgent`, `limit: 100`, `pageOffset`,
+  `sortBy: 'total_hits'`; the rows are under `body.data.rows`. One pass per agent, summed by path.
+- Join with visits per page from the bundles, for the same window. Pages with many attempts and
+  few visits are answered about more than they are visited.
+- Read the most fetched pages. Their headings tell you which questions sent the assistant
+  there; say that the questions are inferred. Prompts that cite a URL exist only when the brand
+  has tracked prompts (URL Inspector).
+- Use attempts to rank pages and themes inside one window, not as a trend: how assistants fetch
+  changes on their side.
+
+In `reads.json`, a theme takes `attempts` (a number) and `fetched` (one line), and the file
+`fetchedNote` (the tile text) and `title` (the heading, e.g. "Four reads, one plan"). The
+picture then draws a "Fetched" line per theme and a fourth tile.
 
 ## Read 3 from public statements
 

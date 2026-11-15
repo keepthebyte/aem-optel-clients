@@ -38,6 +38,7 @@ export function themeMatcher(themes) {
   };
 }
 
+const pathOfTarget = (t) => { try { return new URL(String(t || ''), 'https://x.invalid').pathname; } catch { return ''; } };
 const TOP = 12;
 const top = (pages) => Object.entries(pages).sort((a, b) => b[1] - a[1]).slice(0, TOP);
 
@@ -55,7 +56,7 @@ export async function visitsByTheme(o, lib, rules, themes, bundlesOf) {
   const sites = []; const meta = { visits: 0, topical: 0, themed: 0 };
   let from = ''; let to = '';
   for (const site of rules.sites) {
-    const S = { id: site.id, name: site.host.replace(/^www\./, ''), visits: 0, topical: 0, themed: 0 };
+    const S = { id: site.id, name: site.label || site.host.replace(/^www\./, '') + (site.scopeLabel ? ` ${site.scopeLabel}` : ''), visits: 0, topical: 0, themed: 0 };
     for await (const b of bundlesOf(site)) {
       if (o.isBot(b) || !o.isPageView(b) || !o.isVisit(b)) continue;
       const w = b.weight || 0;
@@ -63,9 +64,14 @@ export async function visitsByTheme(o, lib, rules, themes, bundlesOf) {
       if (day) { if (!from || day < from) from = day; if (day > to) to = day; }
       S.visits += w;
       const v = lib.classifyVisit(o, rules, site, b, needOf);
+      if (site.scope && !new RegExp(site.scope, 'i').test(v.path)) { S.outOfScope = (S.outOfScope || 0) + w; S.visits -= w; continue; }
       if (!topical.has(v.need)) continue;
       S.topical += w;
-      const id = themeOf(v.path);
+      // a homepage visit has no theme of its own: it takes the theme of the first click that has one;
+      // a site that is about one thing (themes.sites) gives that theme to what is left
+      let id = themeOf(v.path);
+      if (!id && v.viaHome) id = o.events(b, 'click').map((e) => pathOfTarget(e.target)).map(themeOf).find(Boolean);
+      if (!id && themes.sites && themes.sites[site.id]) id = themes.sites[site.id];
       const row = id === 'excluded' ? excluded : (T[id] || none);
       if (T[id]) S.themed += w;
       row.visits += w;
@@ -98,9 +104,12 @@ export function threeReads(visits, reads) {
   reads.themes.forEach((t) => { if (!known.has(t.id)) throw new Error(`reads: theme "${t.id}" is not in the theme rules`); });
   return {
     firm: reads.firm || 'the firm',
+    title: reads.title || '',
     scope: reads.scope || '',
     states: { lead: 'The firm leads', comp: 'A competitor leads part', open: 'Open, or thin', ...reads.states },
     note: reads.note || '',
+    wantedNote: reads.wantedNote || '',
+    fetchedNote: reads.fetchedNote || '',
     meta: visits.meta,
     sites: visits.sites,
     themes: reads.themes.map((t) => ({ prompts: 0, asked: '', wanted: '', job: [], experience: '', state: 'open', ...t, ...visits.themes[t.id] })),

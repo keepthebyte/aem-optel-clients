@@ -36,4 +36,10 @@ export default {
    * Leave the same subjects out of the topic demand, or the two reads do not compare.
    */
   exclude: 'personal|private client|family office',
+
+  /*
+   * Optional. A site that is about one theme altogether (a product brand with its own domain):
+   * its topical visits that match no words get that theme. { siteId: themeId }
+   */
+  // sites: { shop: 'health' },
 };

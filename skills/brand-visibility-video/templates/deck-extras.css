@@ -1,0 +1,13 @@
+/* Layouts the stage does not have by default. Append to a slide template's stylesheet, or use as "css". */
+/* "cls": "four" — four columns in a pillars scene, four cards in a stats scene */
+.four .pil .cols { grid-template-columns: repeat(4, 1fr); gap: 24px; }
+.four .stat { width: 392px; padding: 30px 30px 34px; }
+.four .stat .n { font-size: 82px; }
+.four .stat .t { font-size: 27px; }
+/* "cls": "tight" — a bars scene with eight or more rows, kept above a footer */
+.tight .bars-s { top: 96px; }
+.tight .bars-s .sub2 { margin-bottom: 18px; }
+.tight .brow { margin-top: 10px; }
+.tight .brow .bb { height: 44px; font-size: 24px; }
+.tight .brow .lb { font-size: 28px; line-height: 1.05; }
+.tight .brow .lb small { font-size: 17px; }

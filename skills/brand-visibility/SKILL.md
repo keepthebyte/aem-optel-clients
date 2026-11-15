@@ -42,7 +42,13 @@ node scripts/three-reads.js --visits out/visits-by-theme.json --reads reads.json
 #   → out/three-reads.html       the picture
 ```
 
-Copy `theme-rules.js` and `reads.example.json` next to the project and edit them.
+Copy `theme-rules.js` and `reads.example.json` next to the project and edit them. If the
+project's `package.json` is not `"type": "module"`, put one that is beside the rules files.
+
+Scope: a site entry in `merge-rules.js` can carry `scope` (a path pattern, `'^/us-en(/|\\.|$)'`)
+and `scopeLabel` (`'/us-en'`), and a short `label` for the picture when the hostname is long; visits that land outside it are left out of this read and
+counted as `outOfScope`. A site that is about one theme altogether is named in `sites` of the
+theme rules. A visit that lands on a homepage takes the theme of its first click that has one.
 
 ## Read 1: who arrives
 
@@ -53,7 +59,7 @@ the landing page path. Check before you quote:
 - Read `top` of every theme. Word rules misread: an article about "the cost of capital" is not
   about capital markets. Fix the words, mind the order (first match wins), rerun.
 - `unmatched` should be under a third of topical visits. Its top pages show the missing theme
-  or the missing word. Homepages and section fronts have no theme and stay there.
+  or the missing word. Homepage visits that click nothing with a theme stay there.
 - `excluded` is what you left out on purpose. Say so wherever the totals are shown.
 - Visits are sampled; a theme with a few hundred sampled views is a direction, not a number.
 
@@ -75,7 +81,9 @@ Semrush and the rules that keep the totals honest. Into `reads.json` per theme:
 
 Only what the firm has said in public, with the source and date kept: growth areas named by
 management, a rebrand, a reorganisation. `wanted` stays empty for a theme the firm has not
-named; do not infer strategy from the size of a business. An account team's knowledge of the
+named; do not infer strategy from the size of a business. When part of it comes from somewhere
+else (the customer's own brief), mark those lines and say so in `wantedNote`, the line under
+the third tile of the picture. An account team's knowledge of the
 customer goes in a separate note, not into this read.
 
 ## One plan: a job for each theme
