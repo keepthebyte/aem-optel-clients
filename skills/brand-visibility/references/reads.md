@@ -64,6 +64,28 @@ Rules that keep it honest:
 Count the firm's brands together and separately. A lead that only exists when several
 brand names are added up is a finding in itself: it is lost if the names stop being cited.
 
+## Optional: what assistants fetch (citation attempts)
+
+When the firm has agentic traffic in Adobe Brand Visibility, add a fourth read. A citation
+attempt is a page load by an agent whose name ends in `-User` (ChatGPT-User, Claude-User,
+Perplexity-User): an assistant loading the page to answer a person. Filter on those agents, not
+on the whole "Chatbots" agent type.
+
+- `GET /adobe/brand-visibility/v1/sites/{siteId}/agentic-traffic/by-url` with
+  `datePreset: 'custom'`, `startDate`, `endDate`, `userAgent`, `limit: 100`, `pageOffset`,
+  `sortBy: 'total_hits'`; the rows are under `body.data.rows`. One pass per agent, summed by path.
+- Join with visits per page from the bundles, for the same window. Pages with many attempts and
+  few visits are answered about more than they are visited.
+- Read the most fetched pages. Their headings tell you which questions sent the assistant
+  there; say that the questions are inferred. Prompts that cite a URL exist only when the brand
+  has tracked prompts (URL Inspector).
+- Use attempts to rank pages and themes inside one window, not as a trend: how assistants fetch
+  changes on their side.
+
+In `reads.json`, a theme takes `attempts` (a number) and `fetched` (one line), and the file
+`fetchedNote` (the tile text) and `title` (the heading, e.g. "Four reads, one plan"). The
+picture then draws a "Fetched" line per theme and a fourth tile.
+
 ## Read 3 from public statements
 
 Sources, newest first: the last earnings call and release, the annual report and investor

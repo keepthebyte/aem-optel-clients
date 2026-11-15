@@ -104,10 +104,12 @@ export function threeReads(visits, reads) {
   reads.themes.forEach((t) => { if (!known.has(t.id)) throw new Error(`reads: theme "${t.id}" is not in the theme rules`); });
   return {
     firm: reads.firm || 'the firm',
+    title: reads.title || '',
     scope: reads.scope || '',
     states: { lead: 'The firm leads', comp: 'A competitor leads part', open: 'Open, or thin', ...reads.states },
     note: reads.note || '',
     wantedNote: reads.wantedNote || '',
+    fetchedNote: reads.fetchedNote || '',
     meta: visits.meta,
     sites: visits.sites,
     themes: reads.themes.map((t) => ({ prompts: 0, asked: '', wanted: '', job: [], experience: '', state: 'open', ...t, ...visits.themes[t.id] })),

@@ -7,7 +7,7 @@
 <style>
   :root { --ink:#0b1533; --muted:#5b6478; --hair:#dfe3ec; --bg:#fafaf8; --card:#fff; --navy:#000f47;
     --defend:#0a6b4f; --win:#b3541e; --claim:#6a4bc4;
-    --ask:#7b879f; --want:#c79a00; }
+    --ask:#7b879f; --want:#c79a00; --fetch:#2a7f86; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system, "Noto Sans", system-ui, sans-serif; }
   main { max-width:1320px; margin:0 auto; padding:32px 24px 48px; }
@@ -36,7 +36,7 @@
 </head>
 <body>
 <main>
-  <h1>Three reads, one plan</h1>
+  <h1 id="h1">Three reads, one plan</h1>
   <p class="sub" id="sub"></p>
   <div class="tiles" id="tiles"></div>
   <div class="legend" id="legend"></div>
@@ -62,7 +62,8 @@ const SHOW = ['arrive','ask','want','plan'].indexOf(new URLSearchParams(location
 const lv = (n, k) => { if (k > SHOW) n.setAttribute('visibility', 'hidden'); return n; };
 const themes = DATA.themes;
 const themed = themes.reduce((a,t) => a + t.visits, 0);
-const W = 1280, ROW = 92, TOP = 8, XL = 172, XLW = 12, XT = 560, XTW = 14, XR = 596;
+const HAS_F = themes.some((t) => t.attempts || t.fetched); // optional: pages assistants load to answer (citation attempts)
+const W = 1280, ROW = HAS_F ? 109 : 92, TOP = 8, XL = 172, XLW = 12, XT = 560, XTW = 14, XR = 596;
 const H = TOP + themes.length * ROW + 8;
 svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
 const maxV = Math.max(...themes.map((t) => t.visits)) || 1;
@@ -117,18 +118,22 @@ themes.forEach((t) => {
   svg.append(head);
   const line = (yy, key, txt, color, k) => { const x = lv(el('text', { x: XR, y: t.y + yy, class:'t-line' }), k); x.append(el('tspan', { class:'k', fill: color }, key + ' '), el('tspan', {}, txt)); svg.append(x); };
   line(35, 'Asked', `${fmtP(t.prompts)} prompts a month. ${t.asked}`, css('--ask'), 1);
-  if (t.wanted) line(52, 'Wanted', t.wanted, '#8a6a00', 2);
-  const jy = t.wanted ? 69 : 52; let jx = XR;
+  const F = HAS_F ? 17 : 0;
+  if (t.attempts || t.fetched) line(52, 'Fetched', `${t.attempts ? fmt(t.attempts) + ' citation attempts. ' : ''}${t.fetched || ''}`, css('--fetch'), 1);
+  if (t.wanted) line(52 + F, 'Wanted', t.wanted, '#8a6a00', 2);
+  const jy = (t.wanted ? 69 : 52) + F; let jx = XR;
   t.job.forEach((j) => { const w = j.length * 7.6 + 16; svg.append(lv(el('rect', { x: jx, y: t.y + jy - 13, width: w, height: 18, rx: 9, fill: css(JOB[j].slice(4, -1)) }), 3)); svg.append(lv(el('text', { x: jx + w / 2, y: t.y + jy, 'text-anchor':'middle', 'font-size': 11.5, 'font-weight': 700, style:'fill:#fff' }, j), 3)); jx += w + 6; });
   svg.append(lv(el('text', { x: jx + 4, y: t.y + jy, class:'t-line' }, t.experience), 3));
 });
 // header bits
+if (DATA.title) { document.getElementById('h1').textContent = DATA.title; document.title = DATA.title; }
 document.getElementById('sub').textContent = 'The same firm, read three ways and merged by what a client is trying to solve. Visits are measured on the ' + SITES.length + ' sites; what people ask AI and what the firm wants are joined on, one line per theme.';
 const shared = themes.filter((t) => SITES.filter(([id]) => (t.sites[id] || 0) >= 0.1 * t.visits).length > 1);
-document.getElementById('tiles').innerHTML = '';
+document.getElementById('tiles').innerHTML = ''; if (HAS_F) document.getElementById('tiles').style.gridTemplateColumns = 'repeat(4,1fr)';
 [['Who arrives', fmt(themed), `visits land on a page about one of ${themes.length} client themes (${Math.round(100 * themed / DATA.meta.visits)}% of all visits)`],
  ['What people ask', fmtP(themes.reduce((a,t) => a + t.prompts, 0)), `AI prompts a month on these themes; ${themes.filter((t) => t.state === 'open').length} of ${themes.length} themes are open, or thin for everyone compared`],
- ['What the firm wants', `${want.length} of ${themes.length}`, DATA.wantedNote || `themes are a growth area ${DATA.firm} names publicly`]].forEach(([b, s, d]) => {
+ ['What the firm wants', `${want.length} of ${themes.length}`, DATA.wantedNote || `themes are a growth area ${DATA.firm} names publicly`]]
+ .concat(HAS_F ? [['What assistants fetch', fmt(themes.reduce((a,t) => a + (t.attempts || 0), 0)), DATA.fetchedNote || 'citation attempts on pages about these themes']] : []).forEach(([b, s, d]) => {
   const t = document.createElement('div'); t.className = 'tile'; const B = document.createElement('b'); B.textContent = b; const S = document.createElement('strong'); S.textContent = s; const D = document.createElement('span'); D.textContent = d; t.append(B, S, D); document.getElementById('tiles').append(t); });
 const lg = document.getElementById('legend');
 [...SITES.map(([id, n]) => [COLOR[id], n]), [css('--ask'), 'AI prompts a month (own scale)'], [css('--want'), 'Named by the firm (one band per theme)']].forEach(([c, n]) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = c; s.append(i, n); lg.append(s); });

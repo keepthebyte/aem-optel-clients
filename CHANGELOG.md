@@ -11,6 +11,9 @@ change report shapes or classification results; read **Changed** before upgradin
 ## [Unreleased]
 
 ### Brand visibility
+- The three-reads picture takes an optional fourth read, what assistants fetch: `attempts` and
+  `fetched` per theme, `fetchedNote` and `title` in `reads.json`. `references/reads.md` says how to
+  pull citation attempts (agents ending in `-User`) and join them with visits.
 - New skill `brand-visibility`: three reads of a firm merged by client theme. Read 1, who arrives:
   `scripts/visits-by-theme.js` reads the theme of every topical visit from the words of its
   landing page (`theme-rules.js`: whole words, first match wins, exclusions counted), on the
