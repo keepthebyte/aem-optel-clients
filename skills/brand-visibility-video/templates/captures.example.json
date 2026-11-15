@@ -1,0 +1,16 @@
+{
+  "base": "https://main--site--org.aem.page",
+  "hq": true,
+  "pages": [
+    { "id": "reads-arrive", "path": "file:///abs/path/out/three-reads.html?show=arrive", "width": 1320, "marks": { "chart": "#chart", "arrive": "#g-arrive" } },
+    { "id": "reads-ask", "path": "file:///abs/path/out/three-reads.html?show=ask", "width": 1320, "marks": { "chart": "#chart", "ask": "#g-ask" } },
+    { "id": "reads-want", "path": "file:///abs/path/out/three-reads.html?show=want", "width": 1320, "marks": { "chart": "#chart", "want": "#g-want" } },
+    { "id": "reads-plan", "path": "file:///abs/path/out/three-reads.html?show=plan", "width": 1320, "marks": { "chart": "#chart", "health": "#t-health", "ai": "#t-ai-data", "people": "#t-people" } },
+    { "id": "merge", "path": "file:///abs/path/out/sankey.html", "width": 1320, "marks": { "chart": "#chart" } },
+    { "id": "old-group", "path": "https://www.example.com/", "width": 1440, "height": 1200, "viewport": true, "consent": true },
+    { "id": "old-shop", "path": "https://www.example-shop.com/", "width": 1440, "height": 1200, "viewport": true, "consent": true },
+    { "id": "old-pro", "path": "https://www.example-pro.com/", "width": 1440, "height": 1200, "viewport": true, "consent": true },
+    { "id": "theme-page", "path": "/themes/ai-and-data", "marks": { "row": "main .section:first-child" } },
+    { "id": "finding", "path": "/research/annual-study/finding", "marks": { "claim": "main h1 + p", "cite": ".cite" } }
+  ]
+}

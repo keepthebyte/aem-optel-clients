@@ -20,7 +20,18 @@ reaches `{stat1}`, `"stat1+1.5"` is 1.5 s later, a number is seconds from the sc
 `serif`, and `accentInk` (the accent on white cards and chips; set it when the accent is too
 light to read on white, e.g. a yellow).
 
-`sankey` and `review` are paths relative to the storyboard. `host` is shown in the browser
+`voice.final` holds a second voice, used by `tts.js --final 1`: draft with
+`{ "provider": "say" }` and keep the ElevenLabs voice for the final in the same file. Its
+`settings` are passed as `voice_settings` (`stability`, `similarity_boost`, `style`, `speed`).
+
+A slide template: `"css": "deck.css"` lays a stylesheet of your own over the stage, and
+`"deck": { "logo": "logo.png", "logoLight": "logo-white.png", "footer": "© ..." }` draws a logo
+and a footer line on every scene (`.deck-logo`, `.deck-foot`, placed by your stylesheet; the
+body gets the class `deck`). Every scene's layer carries `t-<type>` and the scene's own `cls`,
+so the stylesheet can restyle one type or one scene; `"cls": "red"` also picks the light logo.
+Keep a company's template and logo files beside the storyboard, not in a shared repository.
+
+`sankey`, `review`, `css` and the `deck` images are paths relative to the storyboard. `host` is shown in the browser
 address bar before each page's `url`; a `url` that starts with a host
 (`main--site--org.aem.live/`) is shown as it is. Show the brand's host on captures of the
 live site and the delivery host on the rebuilt or cohort pages, so the address bar never
@@ -35,6 +46,7 @@ claims a page is something it is not.
 | `narration` | text with `{cue}` markers; scene length = narration + 1.3 s |
 | `duration` | seconds, for scenes without narration (default 4) |
 | `hold` | extra seconds after the narration (let the last element sit) |
+| `cls` | class names on the scene's layer, for a `css` of your own |
 
 Scenes crossfade into each other (0.5 s).
 
@@ -85,6 +97,33 @@ from `review.json`: `not enough data yet` and `no clear difference yet` are show
 `zoomTo` (`"capture.mark"`), `zoomAt` (cue), `facts: [{ at, text }]`.
 
 **`holdout`**: the split. `title`, `split` (default 90), `caption`.
+
+**`brands`**: the sites today as cards, renamed, then merged into one wordmark.
+`title`, `cards: [{ page, name, domain, now, nowAt }]` (`page` a capture id; `now` the line
+that appears at cue `renamed`, or at `nowAt`), `one` (the wordmark) and `lines` (HTML, what
+sits under it) shown at cue `merge` (or `mergeAt`), `quote` at cue `quote` (or `quoteAt`).
+Five or more cards are drawn narrower.
+
+**`bars`**: horizontal bars, one per row. `title`, `sub` (source, scope, date),
+`rows: [{ at, label, small, v, text, muted }]` (`v` sets the length against the largest row,
+`text` is what is written on it, `muted` greys a comparison; rows without `at` appear one
+after another), `foot` at cue `foot` (or `footAt`).
+
+**`pillars`**: columns of a model. `title`, `cols: [{ at, h, k, tag, items }]` (`h` the small
+head, `k` the name, `items` a short list). At cue `focus` the column with index `focus` stays
+lit, the others dim, and its `tag` appears.
+
+**`strip`**: full pages side by side, e.g. every variation of one page. `title`, `sub`,
+`pages: [{ page, label, share, at }]`, `stagger` (seconds between pages, default 0.25),
+`height` (default 850). A row wider than the screen pans from cue `pan` to cue `end` (or
+`panAt`, `panEnd`). A capture with a mark named `slot` gets that area outlined at cue `slots`.
+
+**`space`**: a market narrowed in steps: everything, the addressable part, who holds it, the
+play for each part, how to track it. `title`, `sub`, `all` (label of the whole, at cue `all`),
+`out` (up to two lines for what is left out) and `addr` / `addrSmall` at cue `addr`,
+`segs: [{ at, v, text, label, small, inner, innerAt, play, playSmall, playAt, cls }]` (`v` the
+share that sets the width, `inner` a part of it drawn darker), `stepsLabel` and `steps` at
+cue `track` (or `stepsAt`).
 
 ## Writing it
 

@@ -24,7 +24,9 @@ const args = {};
 for (let i = 0; i < argv.length; i += 1) if (argv[i].startsWith('--')) args[argv[i].slice(2)] = argv[i + 1]?.startsWith('--') ? true : argv[(i += 1)];
 if (!args.storyboard) { console.error('usage: node tts.js --storyboard storyboard.json [--out work/audio] [--provider say]'); process.exit(1); }
 const sb = JSON.parse(fs.readFileSync(args.storyboard, 'utf8'));
-const voice = { provider: 'say', ...sb.voice, ...(args.provider ? { provider: args.provider } : {}) };
+// --final: the storyboard's voice.final (ElevenLabs) instead of the draft voice
+const voice = args.final && sb.voice?.final ? { ...sb.voice.final } : { provider: 'say', ...sb.voice, ...(args.provider ? { provider: args.provider } : {}) };
+delete voice.final;
 const out = args.out || 'work/audio';
 fs.mkdirSync(out, { recursive: true });
 

@@ -20,6 +20,10 @@
  * css (extra CSS for the shot), keepSticky (see below), session / local (storage set before
  * any page script runs, e.g. a dismissed consent or demo dialog: { "demo-ack": "1" }; also at the
  * top level for every page).
+ * Also per page: width / height (the window, in CSS pixels, captured at 2x), consent (true, or a
+ * selector: clicks the accept button of a cookie banner on a site you do not control, then hides
+ * what is left), image (a screenshot that already exists, registered as a capture; scale 2 for a
+ * 2x shot). Top level: hq (capture every page at 2x, for render.js --hq).
  *
  * Scroll-driven sections (a sticky stage inside a box several screens tall) come out as a frame
  * followed by screens of empty background in a full-page shot. Unless keepSticky is set, every
@@ -58,11 +62,24 @@ const MUA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/
 
 const index = fs.existsSync(path.join(out, 'index.json')) ? JSON.parse(fs.readFileSync(path.join(out, 'index.json'), 'utf8')) : {};
 const browser = await chromium.launch({ args: ['--disable-blink-features=AutomationControlled'] });
+const { execFileSync } = await import('node:child_process');
+// buttons that accept a cookie banner, tried in order (page.consent: true, or a selector of your own)
+const ACCEPT = ['#onetrust-accept-btn-handler', '#truste-consent-button', 'button:has-text("Accept All")', 'button:has-text("Accept all")', 'button:has-text("Accept")'];
 for (const pg of cfg.pages) {
+  if (pg.image) {
+    // an existing screenshot (a crawl, an authoring canvas): copied in as is, width in CSS pixels (scale 2 for a 2x shot)
+    const file = path.join(out, `${pg.id}.jpg`);
+    execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-i', path.resolve(pg.image), '-q:v', '3', file]);
+    const [w, h] = execFileSync('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file]).toString().trim().split(',').map(Number);
+    const sc = pg.scale || 1;
+    index[pg.id] = { width: w / sc, height: h / sc, header: pg.header || 0, scale: sc, marks: {}, file: `${pg.id}.jpg`, path: pg.image };
+    console.error(`${pg.id}: image ${w}x${h}`);
+    continue;
+  }
   const mobile = !!pg.mobile;
   const ctx = await browser.newContext(mobile
     ? { viewport: { width: 390, height: 844 }, userAgent: MUA, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }
-    : { viewport: { width: 1920, height: 1080 }, userAgent: UA, deviceScaleFactor: 1 });
+    : { viewport: { width: pg.width || 1920, height: pg.height || 1080 }, userAgent: UA, deviceScaleFactor: cfg.hq || pg.width ? 2 : 1 });
   // every capture starts as a new visitor (no memory, no stored experiment arm)
   await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('capture-kept')) { localStorage.clear(); sessionStorage.setItem('capture-kept', '1'); } } catch (e) { /* noop */ } });
   // storage set before any page script runs, e.g. a dismissed consent or demo dialog: { "session": { "key": "1" }, "local": {...} }
@@ -75,6 +92,17 @@ for (const pg of cfg.pages) {
   await page.goto(new URL(pg.path, cfg.base).href, { waitUntil: 'networkidle', timeout: 20000 })
     .catch(async (e) => { if (!/Timeout/.test(e.message)) throw e; console.error(`${pg.id}: no networkidle after 20 s, continuing after load`); });
   await page.waitForTimeout(pg.wait || 1200);
+  if (pg.consent) {
+    // a third-party site with a cookie banner: accept it the way a visitor would, then hide what is left of it
+    let clicked = null;
+    for (const sel of (typeof pg.consent === 'string' ? [pg.consent] : ACCEPT)) {
+      const b = page.locator(sel).first();
+      if (await b.isVisible().catch(() => false)) { await b.click().catch(() => {}); clicked = sel; break; }
+    }
+    await page.waitForTimeout(1500);
+    await page.addStyleTag({ content: '#onetrust-consent-sdk, #onetrust-banner-sdk { display: none !important; }' }).catch(() => {});
+    console.error(`${pg.id}: consent ${clicked ? `accepted (${clicked})` : 'banner not found'}`);
+  }
   if (!pg.viewport) {
     // scroll through once so lazy images load, then back to the top
     const h = await page.evaluate(() => document.body.scrollHeight);
@@ -102,7 +130,7 @@ for (const pg of cfg.pages) {
   }
   if (pg.css) await page.addStyleTag({ content: pg.css });
   if (!pg.keepPanel && !pg.click?.includes('cohort')) await page.evaluate(() => document.querySelector('.cohort-panel')?.remove());
-  if (pg.click) { await page.click(pg.click); await page.waitForTimeout(700); }
+  if (pg.click) { await page.click(pg.click); await page.waitForTimeout(700); await page.evaluate(() => window.scrollTo(0, 0)); await page.waitForTimeout(300); }
   const meta = await page.evaluate((marks) => {
     const fixedOf = (el) => { for (let e = el; e; e = e.parentElement) { const p = getComputedStyle(e).position; if (p === 'fixed' || p === 'sticky') return true; } return false; };
     const box = (sel) => {

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Three reads, one plan</title>
+<style>
+  :root { --ink:#0b1533; --muted:#5b6478; --hair:#dfe3ec; --bg:#fafaf8; --card:#fff; --navy:#000f47;
+    --defend:#0a6b4f; --win:#b3541e; --claim:#6a4bc4;
+    --ask:#7b879f; --want:#c79a00; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system, "Noto Sans", system-ui, sans-serif; }
+  main { max-width:1320px; margin:0 auto; padding:32px 24px 48px; }
+  h1 { font-size:26px; margin:0 0 6px; }
+  .sub { color:var(--muted); max-width:86ch; margin:0 0 20px; }
+  .tiles { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:18px; }
+  .tile { background:var(--card); border:1px solid var(--hair); border-radius:8px; padding:14px 16px; }
+  .tile b { display:block; font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); font-weight:600; }
+  .tile strong { font-size:24px; }
+  .tile span { display:block; font-size:13px; color:var(--muted); }
+  .card { background:var(--card); border:1px solid var(--hair); border-radius:8px; padding:20px 20px 8px; }
+  .heads { display:grid; grid-template-columns:330px 250px 1fr; font-size:11.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  svg { display:block; width:100%; height:auto; }
+  svg text { font-family:inherit; fill:var(--ink); }
+  .g-title { font-weight:700; font-size:14px; }
+  .g-sub { font-size:11.5px; fill:var(--muted); }
+  .n-label { font-size:12.5px; }
+  .t-label { font-weight:700; font-size:14.5px; }
+  .t-meta { font-size:12px; fill:var(--muted); }
+  .t-line { font-size:12.5px; }
+  .k { font-weight:700; }
+  .note { color:var(--muted); font-size:12px; max-width:100ch; margin-top:14px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin:0 0 12px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Three reads, one plan</h1>
+  <p class="sub" id="sub"></p>
+  <div class="tiles" id="tiles"></div>
+  <div class="legend" id="legend"></div>
+  <div class="card">
+    <div class="heads"><span>Three reads</span><span>Merge by client theme</span><span>One plan: the job per theme, and where it shows</span></div>
+    <div id="chart"><svg id="svg" role="img" aria-labelledby="svgt"><title id="svgt">Three reads of the same firm, merged by client theme: who arrives on the sites, what people ask AI assistants, and what the firm says it wants.</title></svg></div>
+  </div>
+  <p class="note" id="note"></p>
+</main>
+<script>
+const DATA = /*DATA*/null;
+const NS = 'http://www.w3.org/2000/svg';
+const PALETTE = ['#2f78d8','#ee6a3a','#1fae7c','#eaa20b','#ea7aa6','#7a5cd0','#3aa6b9','#8a8f9c'];
+const SITES = DATA.sites.map((s) => [s.id, s.name]);
+const COLOR = Object.fromEntries(DATA.sites.map((s, i) => [s.id, s.color || PALETTE[i % PALETTE.length]]));
+const STATES = ['lead','comp','open'].map((id) => [id, DATA.states[id]]);
+const JOB = { Defend:'var(--defend)', Win:'var(--win)', Claim:'var(--claim)' };
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (n) => n >= 1e6 ? (n/1e6).toFixed(1)+'M' : n >= 1e4 ? Math.round(n/1e3)+'k' : n >= 1e3 ? (n/1e3).toFixed(1)+'k' : String(n);
+function el(tag, attrs, text) { const n = document.createElementNS(NS, tag); Object.entries(attrs||{}).forEach(([k,v]) => n.setAttribute(k, v)); if (text != null) n.textContent = text; return n; }
+const svg = document.getElementById('svg');
+const SHOW = ['arrive','ask','want','plan'].indexOf(new URLSearchParams(location.search).get('show') || 'plan');
+const lv = (n, k) => { if (k > SHOW) n.setAttribute('visibility', 'hidden'); return n; };
+const themes = DATA.themes;
+const themed = themes.reduce((a,t) => a + t.visits, 0);
+const W = 1280, ROW = 92, TOP = 8, XL = 172, XLW = 12, XT = 560, XTW = 14, XR = 596;
+const H = TOP + themes.length * ROW + 8;
+svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+const maxV = Math.max(...themes.map((t) => t.visits)) || 1;
+const px = (v) => v / maxV * 40;            // visits → px, one scale for both ends
+const maxP = Math.max(...themes.map((t) => t.prompts)) || 1;
+const pp = (v) => Math.max(v / maxP * 22, 2); // prompts → px, a scale of its own
+const fmtP = (n) => n >= 1e6 ? (n/1e6).toFixed(1)+'M' : Math.round(n/1e3)+'K';
+// theme rows
+themes.forEach((t, i) => { t.y = TOP + i * ROW; t.cursor = t.y + 4; });
+// ---- left groups
+const want = [...new Set(themes.filter((t) => t.wanted).map((t) => t.id))];
+const groups = [];
+// 1 who arrives
+let y = TOP + 34;
+const g1 = { title:'Who arrives', sub:`Optel · ${fmt(themed)} visits with a theme`, y: TOP };
+const siteNodes = SITES.map(([id, name]) => { const v = themes.reduce((a,t) => a + (t.sites[id]||0), 0); const n = { id, name, v, y, h: Math.max(px(v), 2), cursor:y }; y += n.h + 16; return n; });
+groups.push(g1);
+// 2 what people ask
+y += 34; const g2 = { title:'What people ask AI', sub:`${DATA.scope ? DATA.scope.split(',')[0] + ' · ' : ''}${fmtP(themes.reduce((a,t) => a + t.prompts, 0))} prompts a month · who is named`, y: y - 6 }; y += 28;
+const stateNodes = STATES.map(([id, name]) => { const k = themes.filter((t) => t.state === id); const v = k.reduce((a,t) => a + t.prompts, 0); const n = { id, name: `${name} ${fmtP(v)}`, k, y, h: k.reduce((a,t) => a + pp(t.prompts), 0), cursor: y }; y += n.h + 16; return n; });
+groups.push(g2);
+// 3 what the firm wants
+y += 34; const g3 = { title:'What the firm wants', sub:'Public statements · named growth areas', y: y - 6 }; y += 28;
+const wantNode = { y, h: want.length * 7 + 4, cursor: y + 2 };
+groups.push(g3);
+groups.forEach((g, gi) => { svg.append(el('rect', { id: ['g-arrive','g-ask','g-want'][gi], x: 0, y: g.y, width: XL + XLW + 6, height: (groups[gi + 1] ? groups[gi + 1].y - 22 : wantNode.y + wantNode.h + 10) - g.y, fill: 'none' })); if (gi > SHOW) return; svg.append(el('text', { x: 0, y: g.y + 14, class:'g-title' }, g.title), el('text', { x: 0, y: g.y + 30, class:'g-sub' }, g.sub)); });
+const ribbon = (x0, y0, x1, y1, h0, h1, fill, op) => { const m = (x0 + x1) / 2; return el('path', { d:`M${x0},${y0} C${m},${y0} ${m},${y1} ${x1},${y1} L${x1},${y1+h1} C${m},${y1+h1} ${m},${y0+h0} ${x0},${y0+h0} Z`, fill, opacity: op }); };
+const links = el('g'); svg.append(links);
+// visits: site → theme, sorted so ribbons cross as little as possible
+siteNodes.forEach((s) => {
+  svg.append(el('rect', { x: XL, y: s.y, width: XLW, height: s.h, fill: COLOR[s.id], rx: 2 }));
+  svg.append(el('text', { x: XL - 8, y: s.y + Math.max(s.h / 2, 5) + 4, 'text-anchor':'end', class:'n-label' }, `${s.name} ${fmt(s.v)}`));
+});
+themes.forEach((t) => SITES.forEach(([id]) => { const v = t.sites[id] || 0; if (v < 0.001 * themed) return; const s = siteNodes.find((n) => n.id === id); const h = px(v);
+  links.append(ribbon(XL + XLW, s.cursor, XT, t.cursor, h, h, COLOR[id], 0.42)); s.cursor += h; t.cursor += h; }));
+themes.forEach((t) => { t.cursor += 5; });
+// asked: state → theme (one thin band per theme, not a volume)
+stateNodes.forEach((s) => { if (SHOW < 1) return; svg.append(el('rect', { x: XL, y: s.y, width: XLW, height: s.h, fill: css('--ask'), rx: 2 }));
+  svg.append(el('text', { x: XL - 8, y: s.y + s.h / 2 + 4, 'text-anchor':'end', class:'n-label' }, s.name)); });
+themes.forEach((t) => { const s = stateNodes.find((n) => n.id === t.state); const h = pp(t.prompts); links.append(lv(ribbon(XL + XLW, s.cursor, XT, t.cursor, h, h, css('--ask'), 0.5), 1)); s.cursor += h; t.cursor += h + 4; });
+// wanted
+svg.append(lv(el('rect', { x: XL, y: wantNode.y, width: XLW, height: wantNode.h, fill: css('--want'), rx: 2 }), 2));
+svg.append(lv(el('text', { x: XL - 8, y: wantNode.y + wantNode.h / 2 + 4, 'text-anchor':'end', class:'n-label' }, 'Growth areas'), 2));
+themes.forEach((t) => { if (!t.wanted) return; links.append(lv(ribbon(XL + XLW, wantNode.cursor, XT, t.cursor, 5, 5, css('--want'), 0.75), 2)); wantNode.cursor += 7; t.cursor += 8; });
+// theme nodes and text
+themes.forEach((t) => {
+  svg.append(el('rect', { x: XT, y: t.y + 2, width: XTW, height: ROW - 12, fill: css('--navy'), rx: 2 }));
+  svg.append(el('rect', { id: 't-' + t.id, x: XT - 6, y: t.y - 4, width: W - XT + 6, height: ROW - 8, fill: 'none' }));
+  const n = SITES.filter(([id]) => (t.sites[id] || 0) >= 0.1 * t.visits).length;
+  const head = el('text', { x: XR, y: t.y + 16 });
+  head.append(el('tspan', { class:'t-label' }, t.label), el('tspan', { class:'t-meta', dx: 8 }, `${fmt(t.visits)} visits · ${n === 1 ? 'one site brings them' : n + ' sites bring them'} · ${fmt(t.search)} from search · ${fmt(t.ai)} from AI`));
+  svg.append(head);
+  const line = (yy, key, txt, color, k) => { const x = lv(el('text', { x: XR, y: t.y + yy, class:'t-line' }), k); x.append(el('tspan', { class:'k', fill: color }, key + ' '), el('tspan', {}, txt)); svg.append(x); };
+  line(35, 'Asked', `${fmtP(t.prompts)} prompts a month. ${t.asked}`, css('--ask'), 1);
+  if (t.wanted) line(52, 'Wanted', t.wanted, '#8a6a00', 2);
+  const jy = t.wanted ? 69 : 52; let jx = XR;
+  t.job.forEach((j) => { const w = j.length * 7.6 + 16; svg.append(lv(el('rect', { x: jx, y: t.y + jy - 13, width: w, height: 18, rx: 9, fill: css(JOB[j].slice(4, -1)) }), 3)); svg.append(lv(el('text', { x: jx + w / 2, y: t.y + jy, 'text-anchor':'middle', 'font-size': 11.5, 'font-weight': 700, style:'fill:#fff' }, j), 3)); jx += w + 6; });
+  svg.append(lv(el('text', { x: jx + 4, y: t.y + jy, class:'t-line' }, t.experience), 3));
+});
+// header bits
+document.getElementById('sub').textContent = 'The same firm, read three ways and merged by what a client is trying to solve. Visits are measured on the ' + SITES.length + ' sites; what people ask AI and what the firm wants are joined on, one line per theme.';
+const shared = themes.filter((t) => SITES.filter(([id]) => (t.sites[id] || 0) >= 0.1 * t.visits).length > 1);
+document.getElementById('tiles').innerHTML = '';
+[['Who arrives', fmt(themed), `visits land on a page about one of ${themes.length} client themes (${Math.round(100 * themed / DATA.meta.visits)}% of all visits)`],
+ ['What people ask', fmtP(themes.reduce((a,t) => a + t.prompts, 0)), `AI prompts a month on these themes; ${themes.filter((t) => t.state === 'open').length} of ${themes.length} themes are open, or thin for everyone compared`],
+ ['What the firm wants', `${want.length} of ${themes.length}`, `themes are a growth area ${DATA.firm} names publicly`]].forEach(([b, s, d]) => {
+  const t = document.createElement('div'); t.className = 'tile'; const B = document.createElement('b'); B.textContent = b; const S = document.createElement('strong'); S.textContent = s; const D = document.createElement('span'); D.textContent = d; t.append(B, S, D); document.getElementById('tiles').append(t); });
+const lg = document.getElementById('legend');
+[...SITES.map(([id, n]) => [COLOR[id], n]), [css('--ask'), 'AI prompts a month (own scale)'], [css('--want'), 'Named by the firm (one band per theme)']].forEach(([c, n]) => { const s = document.createElement('span'); const i = document.createElement('i'); i.style.background = c; s.append(i, n); lg.append(s); });
+document.getElementById('note').textContent = `Visits are entry page views, bots excluded, sampled, on pages about a subject, by client theme read from the words of the path. Period ${DATA.meta.period}. Ribbons from the sites are drawn to visit volume, the grey bands to monthly AI prompts on a scale of their own (${DATA.scope ? DATA.scope + '; ' : ''}topics that closely match the theme, directional); the bands from the firm's statements mark a link, not a volume. Jobs and experiences are proposals. ${shared.length} themes get a real share (a tenth or more) of their visits from more than one site. ${DATA.note}`;
+</script>
+</body>
+</html>
