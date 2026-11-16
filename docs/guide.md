@@ -26,7 +26,7 @@ before you move on.
 | [2. First look](#2-first-look-at-the-traffic) | `aem-optel` | the key | what the site records, the homepage brief |
 | [3. Several sites as one](#3-several-sites-as-one-optional) (optional) | `site-merge` | a key per site | the merge Sankey, the audiences |
 | [4. The visibility plan](#4-the-visibility-plan-three-reads) | `brand-visibility` | step 2 or 3, prompt research, public statements | `reads.json`, the three-reads picture |
-| [5. The cohort homepage](#5-the-cohort-homepage) | `homepage-cohorts` | an Edge Delivery site, the homepage bundles | rules, `cohorts.json`, the Sankey, the `/new` page |
+| [5. The cohort homepage](#5-the-cohort-homepage) | `homepage-cohorts`, `stardust` | an Edge Delivery site, the homepage bundles | rules, `cohorts.json`, the Sankey, the `/new` page |
 | [6. The video](#6-the-video) | `brand-visibility-video`, `homepage-cohorts-video` | the files of steps 4 and 5 | an MP4 and its storyboard |
 | [7. Go live and review](#7-go-live-and-review) | `homepage-cohorts` | the customer's go-ahead | a 90/10 experiment, a monthly review |
 
@@ -68,7 +68,9 @@ OPTEL_DOMAIN_KEY=open node ~/Code/aem-optel-clients/optel-client.js --domain emi
 ```
 
 For the page (step 5) also add Adobe's Edge Delivery skills in Claude Code:
-`/plugin marketplace add adobe/skills`, then install `aem-edge-delivery-services`.
+`/plugin marketplace add adobe/skills`, then install `aem-edge-delivery-services` (building the
+page) and [`stardust`](https://github.com/adobe/skills/tree/main/plugins/stardust) (designing the
+versions in the site's existing design).
 
 ### Access you will need
 
@@ -216,7 +218,8 @@ writes code, into an Edge Delivery Services site repository.
 
 **Which repository?** For a customer's own Edge Delivery site, work on a branch of their repo.
 For a pitch or a prospect, build a demo copy of the homepage in a repository of your own
-(the `create-site` and `page-import` skills of `aem-edge-delivery-services` do this). A demo
+(`stardust:replica`, or the `create-site` and `page-import` skills of
+`aem-edge-delivery-services`, do this). A demo
 copy of someone's brand needs three things: a private repository, a page that is never
 indexed (`Robots: noindex`, preview only), and a visible notice that it is not the brand's
 website.
@@ -243,14 +246,37 @@ what each gets first, what goes away for it. Feed in the plan of step 4: a theme
 job "win" or "claim" is a candidate for a section, and visits from AI assistants are usually
 a small cohort that behaves differently enough to get its own.
 
-### 5b. Build the page
+### 5b. Design the versions with Stardust
+
+Each cohort's version should look like the site it belongs to. The Stardust skills read the
+existing design from the live site and propose new sections in it, so a version is a
+rearrangement and extension of the brand, not a new look.
+
+1. `stardust:extract` captures the current site: design tokens, typography, components,
+   voice, and the homepage's content.
+2. `stardust:direct` sets the direction. Give it the evidence per cohort from `cohorts.json`
+   (`today.topClicks`, `didNothing`, dead taps) and the experiences agreed in 5a.
+3. `stardust:prototype` renders one prototype per experience. Ask for a comment at the top of
+   each that maps every section to a block: that comment becomes the section table of `/new`.
+
+> Use stardust to extract the design of www.example.com, then prototype one homepage version
+> per experience in cohorts.json, in the existing design. Reuse copy, offers and prices
+> exactly as they are on the site; new copy only for labels. Map each section to a block.
+
+Review the prototypes with the page owner before building. Details, including what to do when
+the site itself was rebuilt with Stardust:
+[`references/content-model.md`](../skills/homepage-cohorts/references/content-model.md), "Designs from Stardust".
+For a demo copy of a site you do not have the code of, `stardust:replica` rebuilds its pages
+in Edge Delivery keeping the current design.
+
+### 5c. Build the page
 
 The agent follows [`references/install.md`](../skills/homepage-cohorts/references/install.md)
 and [`references/content-model.md`](../skills/homepage-cohorts/references/content-model.md):
 
 1. Install the AEM Experimentation plugin and the cohort engine, and wire `scripts.js`.
-2. Create `/new` as an unchanged copy of the homepage, then add the cohort sections. Section
-   Metadata says which cohorts see a section.
+2. Create `/new` as an unchanged copy of the homepage, then add the cohort sections from the
+   prototypes of 5b. Section Metadata says which cohorts see a section.
 3. Give every cohort section an `Insight`: the finding behind it, in one sentence with its
    number. This is what the explain mode shows.
 4. Page metadata of `/new`: `Cohorts: on`, `Robots: noindex`, `Canonical: /`.
@@ -260,7 +286,7 @@ and [`references/content-model.md`](../skills/homepage-cohorts/references/conten
 Content is authored in Experience Workspace like any other page; the Cohorts panel
 (install.md, section 7) shows authors who sees which section while they edit.
 
-### 5c. Check and demo it
+### 5d. Check and demo it
 
 - `https://{branch}--{repo}--{org}.aem.page/new?demo` opens the presenter dock: **Visitor**
   switches between cohorts and shows what Optel says about each, **Explain sections** shows
