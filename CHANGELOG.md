@@ -10,6 +10,11 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Docs
+- `docs/guide.md`: the whole sequence step by step, from setup and a domain key to the traffic
+  picture, the brand visibility plan, the cohort homepage, the video and the monthly review. The
+  README installs all skills by linking them.
+
 ### Brand visibility
 - `brand-visibility-video`: optional scenes for the fourth read (`fetch`), the human side (`human`,
   `cohorts`), a pivot variation of the story, and `templates/deck-extras.css` (four-up columns and

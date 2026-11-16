@@ -6,6 +6,9 @@ a Node script, an Experience Workspace extension, or an agent.
 Reference: [Operational Telemetry on aem.live](https://www.aem.live/developer/operational-telemetry) (what is collected,
 sampling, privacy, checkpoints).
 
+New here? Start with the **[step-by-step guide](docs/guide.md)**: from a domain key to a traffic
+picture, a brand visibility plan, a cohort homepage and a narrated video, in the order to do them.
+
 What is here:
 
 | | |
@@ -67,17 +70,20 @@ apps should go through a small proxy that adds the key (pass its URL as `endpoin
 
 ## Use the skill
 
-Claude Code: copy the skill and the client next to each other.
+Claude Code: clone the repository and link every skill. The skills find the client and each
+other by their place in the repository, and `git pull` updates them.
+
+```bash
+git clone https://github.com/keepthebyte/aem-optel-clients ~/Code/aem-optel-clients
+mkdir -p ~/.claude/skills
+for s in ~/Code/aem-optel-clients/skills/*/; do ln -sfn "$s" ~/.claude/skills/"$(basename "$s")"; done
+```
+
+To copy only the first skill instead, keep the client next to it:
 
 ```bash
 mkdir -p ~/.claude/skills/aem-optel
 cp skills/aem-optel/SKILL.md optel-client.js ~/.claude/skills/aem-optel/
-```
-
-The homepage skills read the client from the `aem-optel` skill next to them:
-
-```bash
-cp -R skills/homepage-cohorts skills/homepage-cohorts-video skills/site-merge ~/.claude/skills/
 ```
 
 Other agents: point them at `skills/aem-optel/SKILL.md`. It is plain Markdown with
