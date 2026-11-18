@@ -22,7 +22,7 @@ guide.html ─ build.js ──────▶ <Customer>-Demo-Guide.pdf + checks
 ```
 
 Needs Node 18+ and Chrome (or Chromium; `CHROME=/path` if it is not found). The captures need
-Playwright, as in `homepage-cohorts-video`.
+Playwright, as in `homepage-cohorts-video`, and ffmpeg to crop and scale them.
 
 ## 1. Is the demo ready to hand over?
 
@@ -63,6 +63,13 @@ For a step that needs a driver there is often a self-serve half: the test cannot
 but the control and the challenger are two pages that can be opened side by side. Use that half as
 the stop and say plainly why the rest is not running.
 
+A use case is only a stop if the reader can see it. An arrival that matches a rule but whose
+page looks like the default (the rule only reorders something far down, or changes nothing
+visible) is left out: the reader would click, see the same page and doubt the rest.
+
+Some demos have no run sheets. Then the repo cannot say what is normally shown live: ask the
+user what they present with the editor open, rather than guessing the "better with a guide" list.
+
 Prefer the links a real visitor would arrive with (campaign tags, a referrer stand-in) over a
 parameter that forces an experience: the point of the demo is that the page works it out. Keep the
 forcing parameter for the cheat sheet.
@@ -80,8 +87,9 @@ Order them the way a presenter would:
 3. **Things to click**: a calculator, a builder, a form. Say that nothing is sent.
 4. **What the site remembers**: browse something, go back to the homepage.
 5. **The newer ideas**: AI visitors, partners, content inside another app, a test.
-6. **A last page**: a cheat sheet of the URL parameters, the list that needs a driver, and how to
-   get unstuck (a private window; a site with memory keeps showing the last experience).
+6. **The last page**: the final stop on top, and under it a cheat sheet of the URL parameters,
+   the list that needs a driver, and how to get unstuck (a private window; a site with memory
+   keeps showing the last experience). The cheat sheet alone leaves half a page empty.
 
 Every stop has the same parts, because the reader learns the pattern on the first one:
 
@@ -106,16 +114,36 @@ C=~/Code/aem-optel-clients/skills/homepage-cohorts-video/scripts
 node $C/capture.js --config captures.json --out shots
 ```
 
-- One capture per stop, plus one per card of the arrivals grid, at `"width": 1360, "height": 850,
-  "viewport": true`: a first screen at a size that stays readable when it is 3.5 inches wide.
+- **Find where the change is before choosing the shot.** Capture each arrival as a full page
+  first and look at them side by side. Where the hero changes, the first screen is the shot
+  (`"viewport": true`). Where the hero is the same for everyone and the difference sits under it
+  (a band, a section moved up), first screens all look alike: crop the full page around what
+  changed instead.
+- Captures are at `"width": 1360, "height": 850`, a size that stays readable when it is
+  3.5 inches wide.
 - Dismiss the demo or consent dialog with `"session"` / `"local"` (the storage key the site sets
-  when it is acknowledged), so it is not in every shot. Leave a "this is a demo" badge in: the
-  reader will see it too.
-- A state behind a click (an open panel) takes `"click"`. A part further down the page takes a
-  full-page capture with a `mark` on the element; its position is in `shots/index.json`; crop
-  around it (`sips -c <height> <width> --cropOffset <y> 0 shot.jpg` on macOS).
-- Check the log: `cohort=` is the experience you meant for that link. Then look at every image.
-  A capture of the wrong state is worse than none.
+  when it is acknowledged), so it is not in every shot. On a first screen leave the "this is a
+  demo" badge in: the reader will see it too. On a full page hide it
+  (`"css": ".demo-badge{display:none}"`): a fixed badge lands in the middle of the page and
+  covers what the crop is about.
+- A state behind one click (an open panel) takes `"click"`. A part further down the page takes
+  a `mark` on the element; its position is in `shots/index.json`.
+- **Crop and scale with ffmpeg.** capture.js writes at 2x (2720 px wide for a 1360 window): a
+  dozen captures are 10 MB and more, and the PDF does not need them. Positions in `index.json`
+  are in CSS pixels, so double them for the crop, then scale to 1360:
+
+  ```bash
+  # the 574 px starting 560 px down the page (a card of the arrivals grid is 1360 x 574)
+  ffmpeg -loglevel error -y -i shots/f-arrival.jpg -vf "crop=2720:1148:0:1120,scale=1360:-1" -q:v 3 shots/g-arrival.jpg
+  ffmpeg -loglevel error -y -i shots/home.jpg -vf "scale=1360:-1" -q:v 3 shots/g-home.jpg    # scale only
+  ```
+
+  (`sips -c … --cropOffset` on macOS crops somewhere else than asked: do not use it.)
+- A state behind several clicks (a form two steps in) is more than capture.js does. Write a few
+  lines of Playwright for that one shot: the same window and `deviceScaleFactor: 2`, the storage
+  key set in `addInitScript`, the clicks, then `page.screenshot`.
+- Check the log: `cohort=` is the experience you meant for that link. Then look at every image,
+  cropped, before placing it. A capture of the wrong state is worse than none.
 
 ## 5. Write and lay out
 
@@ -127,6 +155,9 @@ served: every committed file of an EDS repo is public, so a folder covered by `.
   stylesheet, and load the site's fonts. The guide should look like it belongs to the demo.
 - **Host**: the `demo-host` meta tag. Links are written as `<a data-p="/path?query">`, so the host
   is in one place and every link in the PDF is clickable.
+- **Cover**: dark (the default) or light (`class="page cover light"`). Choose the one the
+  homepage screenshot stands out on: a site whose first screen is dark disappears into a dark
+  cover of the same colour.
 - **Pages**: Letter, one `<section class="page">` each. The template has the cover, a stop with
   steps and a screenshot, the arrivals grid, two stops on one page, a side-by-side, and the last
   page. Reuse them; delete what the demo doesn't have.
@@ -181,5 +212,8 @@ committed, if they aren't.
   think they left the demo.
 - **Editor steps written as if anyone could do them**: the reader hits a sign-in and stops
   reading. They belong in the driver list.
+- **Passing the build is not looking right.** `build.js` checks overflow, images and links. It
+  cannot see a screenshot that blends into its background or a crop that misses the point: look
+  at every page of the PDF.
 - **Too much**: every scenario of the switcher as its own card. Pick the ones with a visibly
   different first screen; the switcher shows the rest.
