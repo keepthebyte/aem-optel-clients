@@ -10,6 +10,13 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Demo guide
+- New skill `demo-guide`: a self-paced guide (PDF) to send a customer with the link to a demo site.
+  `templates/guide.html` is the layout (cover, stops, arrivals grid, side-by-side, cheat sheet) with
+  the brand in a few CSS variables; `scripts/build.js` prints it with headless Chrome and fails on a
+  page that overflows, an image that did not load, a placeholder left in or a link that does not
+  answer 200. Screenshots come from `capture.js` of `homepage-cohorts-video`.
+
 ### Docs
 - `docs/guide.md`: the whole sequence step by step, from setup and a domain key to the traffic
   picture, the brand visibility plan, the cohort homepage, the video and the monthly review. The

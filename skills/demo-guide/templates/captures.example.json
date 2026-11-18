@@ -1,0 +1,26 @@
+{
+  "base": "https://main--site--org.aem.page",
+  "session": { "demo-acknowledged": "1" },
+  "pages": [
+    { "id": "home", "path": "/", "width": 1360, "height": 850, "viewport": true },
+    {
+      "id": "switcher",
+      "path": "/new?demo&ref=compare.example.com",
+      "width": 1360, "height": 850, "viewport": true,
+      "click": ".cohort-visitor"
+    },
+    {
+      "id": "explain",
+      "path": "/new?demo&insights&ref=compare.example.com",
+      "width": 1360, "height": 850, "keepPanel": true,
+      "marks": { "note": ".cohort-insight" }
+    },
+    { "id": "ad", "path": "/new?utm_source=tiktok&utm_medium=paid-social&utm_campaign=product_a", "width": 1360, "height": 850, "viewport": true },
+    { "id": "compare", "path": "/new?ref=compare.example.com", "width": 1360, "height": 850, "viewport": true },
+    { "id": "email", "path": "/new?utm_source=crm&utm_medium=email&utm_campaign=xsell_product_b", "width": 1360, "height": 850, "viewport": true },
+    { "id": "assistant", "path": "/new?utm_source=chatgpt.com", "width": 1360, "height": 850, "viewport": true },
+    { "id": "agent", "path": "/new?agent=chatgpt-agent", "width": 1360, "height": 850, "viewport": true },
+    { "id": "builder", "path": "/new", "width": 1360, "height": 850, "marks": { "builder": "#builder" } },
+    { "id": "product", "path": "/product-a", "width": 1360, "height": 850, "viewport": true }
+  ]
+}
