@@ -16,6 +16,10 @@ change report shapes or classification results; read **Changed** before upgradin
   the brand in a few CSS variables; `scripts/build.js` prints it with headless Chrome and fails on a
   page that overflows, an image that did not load, a placeholder left in or a link that does not
   answer 200. Screenshots come from `capture.js` of `homepage-cohorts-video`.
+- `demo-guide` after a second guide: a light cover (`cover light`) for sites whose first screen is
+  dark; crops and scaling with ffmpeg (the `sips` crop was wrong); full-page captures first, to find
+  where an arrival differs before choosing the shot; an arrival that looks like the default is not a
+  stop; a note for states behind several clicks and for demos without run sheets.
 
 ### Docs
 - `docs/guide.md`: the whole sequence step by step, from setup and a domain key to the traffic

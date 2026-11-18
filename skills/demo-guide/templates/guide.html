@@ -82,6 +82,15 @@ code { font: 700 8.8pt/1 ui-monospace, Menlo, monospace; background: var(--tint)
 .cover .before p { font-size: 9.2pt; line-height: 1.4; color: var(--muted); }
 .cover .before .head { grid-column: 1 / -1; font: 800 7.6pt/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: -0.12in; }
 
+/* light cover: for a site whose first screen is dark and would disappear in the dark cover */
+.cover.light { background: var(--tint); color: var(--ink); }
+.cover.light .kicker { color: var(--accent); }
+.cover.light h1 em { color: var(--accent); }
+.cover.light .lede { color: var(--muted); opacity: 1; }
+.cover.light .url span { opacity: 1; color: var(--muted); }
+.cover.light .shot { box-shadow: 0 16px 40px rgb(0 0 0 / 22%); }
+.cover.light .before { border-top: 1px solid var(--hair); }
+
 .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2in 0.3in; margin-top: 0.2in; }
 .card .shot { height: 1.52in; }
 .card h3 { margin: 8px 0 3px; font-size: 12.6pt; }
@@ -95,7 +104,8 @@ td:first-child { white-space: nowrap; font-weight: 700; }
 </head>
 <body>
 
-<!-- ============ COVER: the promise, the one link, what to know first ============ -->
+<!-- ============ COVER: the promise, the one link, what to know first ============
+     class="page cover light" if the homepage screenshot is as dark as the cover. -->
 <section class="page cover">
   <p class="kicker">{{Customer}} prototype · self-guided tour</p>
   <h1>{{The idea in three words.}}<br><em>{{And its twist.}}</em></h1>
@@ -235,7 +245,7 @@ td:first-child { white-space: nowrap; font-weight: 700; }
   <div class="foot"><span>{{Customer}} demo · field guide</span><span>5</span></div>
 </section>
 
-<!-- ============ THE LAST PAGE: cheat sheet, what needs a driver, getting unstuck ============ -->
+<!-- ============ THE LAST PAGE: the final stop, then cheat sheet, what needs a driver, getting unstuck ============ -->
 <section class="page">
   <p class="stop"><b>Stop 6</b> {{Name}} <i>· {{2}} min</i></p>
   <h2>{{The last stop.}} <em>{{Briefly.}}</em></h2>
