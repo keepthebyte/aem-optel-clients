@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{Customer}} demo: a field guide</title>
+<!-- The demo host, once. Links are written <a data-p="/path?query"> and get this in front. -->
+<meta name="demo-host" content="https://main--site--org.aem.page">
+<!--
+  Build:  node <skills>/demo-guide/scripts/build.js --guide guide.html --out Customer-Demo-Guide.pdf
+  Every {{placeholder}} must be replaced: the build fails on any that is left.
+  Pages are Letter. One <section class="page"> per page; content must end above its .foot.
+-->
+<style>
+/* 1. BRAND: the site's own fonts and colours (from its styles.css / fonts.css). Load the fonts
+   from the repo (a relative path) or from the demo host. */
+/* @font-face { font-family: 'Site Serif'; src: url('../../fonts/site-serif.woff2') format('woff2'); } */
+/* @font-face { font-family: 'Site Sans'; font-weight: 400; src: url('../../fonts/site-sans-400.woff2') format('woff2'); } */
+/* @font-face { font-family: 'Site Sans'; font-weight: 700; src: url('../../fonts/site-sans-700.woff2') format('woff2'); } */
+:root {
+  --ink: #17151c;          /* text */
+  --paper: #fbfaf7;        /* page */
+  --tint: #f2f0ea;         /* note boxes */
+  --hair: #d5d2cb;         /* rules, image borders */
+  --muted: #55525c;        /* secondary text */
+  --accent: #1f5fd0;       /* the site's accent: links, stop labels, the second half of a headline */
+  --accent-deep: #0f2a5c;  /* cover background */
+  --accent-mist: #e6eefc;  /* "try this" boxes */
+  --accent-soft: #a9c4f2;  /* accent on the dark cover */
+  --flag: #f5b62a;         /* the cover button, "new" tags */
+  --serif: georgia, 'Times New Roman', serif;   /* headings */
+  --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;  /* body */
+}
+
+/* 2. LAYOUT: no need to change below */
+@page { size: 8.5in 11in; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font: 400 10.6pt/1.5 var(--sans); color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.page { width: 8.5in; height: 11in; padding: 0.6in 0.65in 0.7in; background: var(--paper); position: relative; overflow: hidden; page-break-after: always; }
+.page:last-of-type { page-break-after: auto; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 27pt; line-height: 1.08; }
+h2 em, h1 em { font-style: normal; color: var(--accent); }
+h3 { font-size: 13.5pt; line-height: 1.2; }
+p { margin: 0; }
+a { color: inherit; }
+.foot { position: absolute; left: 0.65in; right: 0.65in; bottom: 0.32in; display: flex; justify-content: space-between; font-size: 7.8pt; color: var(--muted); letter-spacing: 0.02em; }
+/* the label of a stop: number, name, minutes */
+.stop { display: inline-flex; align-items: center; gap: 8px; font: 800 7.6pt/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 9px; }
+.stop b { background: var(--accent); color: #fff; padding: 4px 7px; letter-spacing: 0.08em; }
+.stop i { font-style: normal; color: var(--muted); font-weight: 700; }
+.lede { font-size: 11.6pt; line-height: 1.45; color: var(--muted); margin-top: 9px; max-width: 6.2in; }
+/* a screenshot: shown whole. Only .card crops it (to the top of the page). */
+.shot { display: block; width: 100%; border: 1px solid var(--hair); background: #fff; object-fit: cover; object-position: top left; }
+.go { display: inline-block; font: 700 8.6pt/1.25 var(--sans); color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-soft); word-break: break-all; }
+.go::before { content: '→ '; }
+.look { font-size: 9.6pt; line-height: 1.42; color: var(--muted); }
+.look b { color: var(--ink); }
+.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.steps li { counter-increment: s; position: relative; padding: 0 0 9px 30px; font-size: 10.4pt; line-height: 1.42; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 20px; height: 20px; border: 1px solid var(--ink); border-radius: 50%; font: 700 8.6pt/19px var(--sans); text-align: center; }
+.tip { background: var(--accent-mist); padding: 10px 13px; font-size: 9.6pt; line-height: 1.42; }  /* try this */
+.tip b:first-child { color: var(--accent); }
+.note { background: var(--tint); padding: 10px 13px; font-size: 9.4pt; line-height: 1.42; color: var(--muted); }  /* good to know */
+.note b { color: var(--ink); }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3in; align-items: start; }
+.rule { border: 0; border-top: 1px solid var(--ink); margin: 0.24in 0 0.2in; }
+code { font: 700 8.8pt/1 ui-monospace, Menlo, monospace; background: var(--tint); padding: 2px 4px; }
+.tag { display: inline-block; font: 800 6.8pt/1 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; background: var(--flag); padding: 3px 5px; vertical-align: 2px; margin-left: 4px; }
+
+.cover { background: var(--accent-deep); color: #fff; padding: 0.7in 0.65in 0; }
+.cover .kicker { font: 800 8pt/1 var(--sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--flag); }
+.cover h1 { font-size: 52pt; line-height: 0.98; margin-top: 16px; }
+.cover h1 em { color: var(--accent-soft); }
+.cover .lede { color: #fff; opacity: 0.82; font-size: 13pt; max-width: 5.6in; margin-top: 16px; }
+.cover .url { margin-top: 22px; display: flex; align-items: center; gap: 14px; }
+.cover .url a { background: var(--flag); color: var(--ink); font: 800 10.6pt/1 var(--sans); padding: 12px 15px; text-decoration: none; }
+.cover .url span { font-size: 9pt; opacity: 0.75; }
+.cover .shot { margin-top: 0.34in; border: 0; height: 4.2in; box-shadow: 0 18px 50px rgb(0 0 0 / 40%); }
+.cover .before { position: absolute; left: 0; right: 0; bottom: 0; background: var(--paper); color: var(--ink); padding: 0.26in 0.65in 0.62in; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.3in; }
+.cover .before h3 { font-size: 11.6pt; margin-bottom: 4px; }
+.cover .before p { font-size: 9.2pt; line-height: 1.4; color: var(--muted); }
+.cover .before .head { grid-column: 1 / -1; font: 800 7.6pt/1 var(--sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: -0.12in; }
+
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.2in 0.3in; margin-top: 0.2in; }
+.card .shot { height: 1.52in; }
+.card h3 { margin: 8px 0 3px; font-size: 12.6pt; }
+.card .look { margin-bottom: 4px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 9.4pt; line-height: 1.38; }
+td, th { text-align: left; vertical-align: top; padding: 6px 10px 6px 0; border-top: 1px solid var(--hair); }
+th { font: 800 7.4pt/1.2 var(--sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-top: 1px solid var(--ink); }
+td:first-child { white-space: nowrap; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER: the promise, the one link, what to know first ============ -->
+<section class="page cover">
+  <p class="kicker">{{Customer}} prototype · self-guided tour</p>
+  <h1>{{The idea in three words.}}<br><em>{{And its twist.}}</em></h1>
+  <p class="lede">A field guide to the {{Customer}} demo: {{eight}} stops, about {{20}} minutes, no login. Click the links, poke at things, try to break it.</p>
+  <div class="url">
+    <a data-p="{{/new?demo}}">Start here: open the demo</a>
+    <span>{{main--site--org.aem.page}}</span>
+  </div>
+  <img class="shot" src="shots/home.jpg" alt="">
+  <div class="before">
+    <p class="head">Before you set off</p>
+    <div><h3>It says it’s a demo. Loudly.</h3><p>{{What the reader sees first (a notice, a badge) and how to get past it.}}</p></div>
+    <div><h3>Nothing is real.</h3><p>{{What is illustrative: prices, offers, partners. What goes nowhere: quotes, log-ins, checkout. Nothing typed is sent or stored.}}</p></div>
+    <div><h3>Use a normal browser.</h3><p>Chrome, Safari, Edge, phone or laptop. Every link in this guide is clickable. A private window gives you a clean start.</p></div>
+  </div>
+</section>
+
+<!-- ============ A STOP: steps on the left, the state to reach on the right ============ -->
+<section class="page">
+  <p class="stop"><b>Stop 1</b> {{Name of the stop}} <i>· {{3}} min</i></p>
+  <h2>{{What happens}} <em>{{in the reader’s words.}}</em></h2>
+  <p class="lede">{{One or two sentences: why this matters to them.}}</p>
+
+  <div class="cols" style="margin-top:0.24in">
+    <div>
+      <ol class="steps">
+        <li>Open <a class="go" data-p="{{/new?demo}}">{{/new?demo}}</a>. {{What appears.}}</li>
+        <li>{{Click <b>the control</b>. What changes.}}</li>
+        <li>{{The next thing to do.}}</li>
+      </ol>
+      <p class="tip"><b>Try this.</b> {{A small experiment with a visible result.}}</p>
+    </div>
+    <img class="shot" src="shots/switcher.jpg" alt="">
+  </div>
+
+  <img class="shot" src="shots/explain.jpg" alt="" style="margin-top:0.3in">
+  <p class="note" style="margin-top:0.14in"><b>Where the numbers come from.</b> {{Source, site and period of any figure the demo shows. No invented numbers.}}</p>
+
+  <div class="foot"><span>{{Customer}} demo · field guide</span><span>2</span></div>
+</section>
+
+<!-- ============ THE ARRIVALS GRID: four to six cards, each a link with real signals ============ -->
+<section class="page">
+  <p class="stop"><b>Stop 2</b> Arrive like a real visitor <i>· {{5}} min</i></p>
+  <h2>{{Six}} ways in. <em>{{Six}} different pages.</em></h2>
+  <p class="lede">Each link below carries what a real click would carry (campaign tags, a referring site), and the page works out the rest.</p>
+
+  <div class="cards">
+    <div class="card">
+      <img class="shot" src="shots/ad.jpg" alt="">
+      <h3>{{Who they are, in plain words}}</h3>
+      <p class="look"><b>Look for:</b> {{the one thing on the first screen that proves the page changed.}}</p>
+      <a class="go" data-p="{{/new?utm_source=...}}">Open as this visitor</a>
+    </div>
+    <div class="card">
+      <img class="shot" src="shots/compare.jpg" alt="">
+      <h3>{{Who they are}}</h3>
+      <p class="look"><b>Look for:</b> {{what to notice.}}</p>
+      <a class="go" data-p="{{/new?ref=...}}">Open as this visitor</a>
+    </div>
+    <div class="card">
+      <img class="shot" src="shots/email.jpg" alt="">
+      <h3>{{Who they are}}</h3>
+      <p class="look"><b>Look for:</b> {{what to notice.}} Swap <code>{{a}}</code> for <code>{{b}}</code> in the link and reload.</p>
+      <a class="go" data-p="{{/new?utm_medium=email...}}">Open as this visitor</a>
+    </div>
+    <div class="card">
+      <img class="shot" src="shots/home.jpg" alt="">
+      <h3>Nobody in particular</h3>
+      <p class="look"><b>Look for:</b> the default. No signal, no guessing.</p>
+      <a class="go" data-p="{{/new}}">Open as this visitor</a>
+    </div>
+  </div>
+
+  <div class="foot"><span>{{Customer}} demo · field guide</span><span>3</span></div>
+</section>
+
+<!-- ============ TWO SHORT STOPS ON ONE PAGE ============ -->
+<section class="page">
+  <p class="stop"><b>Stop 3</b> {{Name}} <i>· {{2}} min</i></p>
+  <h2>{{What happens,}} <em>{{briefly.}}</em></h2>
+  <div class="cols" style="margin-top:0.18in">
+    <div>
+      <ol class="steps">
+        <li>Open <a class="go" data-p="{{/new#builder}}">{{the thing}}</a>. {{What they see.}}</li>
+        <li>{{Change something. What follows.}}</li>
+        <li>{{The last click.}} Nothing is sent.</li>
+      </ol>
+      <p class="tip"><b>Try this.</b> {{An experiment.}}</p>
+    </div>
+    <img class="shot" src="shots/builder.jpg" alt="">
+  </div>
+
+  <hr class="rule">
+
+  <p class="stop"><b>Stop 4</b> {{Name}} <i>· {{3}} min</i></p>
+  <h2>{{What happens}} <em>{{briefly.}}</em></h2>
+  <div class="cols" style="margin-top:0.18in">
+    <img class="shot" src="shots/product.jpg" alt="">
+    <div>
+      <ol class="steps">
+        <li>Open a private window (a clean visitor).</li>
+        <li>Read about <a class="go" data-p="{{/product-a}}">{{a product}}</a>.</li>
+        <li>Now go to the <a class="go" data-p="{{/new}}">homepage</a>. {{What it has become.}}</li>
+      </ol>
+      <p class="note"><b>No login, no profile.</b> {{How it is remembered, and where.}}</p>
+    </div>
+  </div>
+
+  <div class="foot"><span>{{Customer}} demo · field guide</span><span>4</span></div>
+</section>
+
+<!-- ============ A SIDE-BY-SIDE: two states, two links ============ -->
+<section class="page">
+  <p class="stop"><b>Stop 5</b> {{Name}} <i>· {{3}} min</i></p>
+  <h2>{{Two things}} <em>{{that look alike and aren’t.}}</em></h2>
+  <p class="lede">{{What the difference is, in one or two sentences.}}</p>
+
+  <div class="cols" style="margin-top:0.24in">
+    <div>
+      <img class="shot" src="shots/assistant.jpg" alt="">
+      <h3 style="margin:11px 0 4px">{{The first}}</h3>
+      <p class="look">{{What the page does for them.}}</p>
+      <p style="margin-top:6px"><a class="go" data-p="{{/new?utm_source=chatgpt.com}}">Open as this visitor</a></p>
+    </div>
+    <div>
+      <img class="shot" src="shots/agent.jpg" alt="">
+      <h3 style="margin:11px 0 4px">{{The second}} <span class="tag">New</span></h3>
+      <p class="look">{{What the page does for them.}}</p>
+      <p style="margin-top:6px"><a class="go" data-p="{{/new?agent=chatgpt-agent}}">Open as this visitor</a></p>
+    </div>
+  </div>
+
+  <p class="tip" style="margin-top:0.26in"><b>Try this.</b> {{An experiment.}}</p>
+  <p class="note" style="margin-top:0.18in"><b>Good to know.</b> {{Where the demo stands in for what production would do differently.}}</p>
+
+  <div class="foot"><span>{{Customer}} demo · field guide</span><span>5</span></div>
+</section>
+
+<!-- ============ THE LAST PAGE: cheat sheet, what needs a driver, getting unstuck ============ -->
+<section class="page">
+  <p class="stop"><b>Stop 6</b> {{Name}} <i>· {{2}} min</i></p>
+  <h2>{{The last stop.}} <em>{{Briefly.}}</em></h2>
+  <p class="lede">{{What it is.}}</p>
+  <p class="note" style="margin-top:0.14in"><b>{{Why you see this and not the running thing.}}</b> {{What is switched off between sessions and why. If there are no results, say there are none.}}</p>
+
+  <hr class="rule">
+
+  <div class="cols">
+    <div>
+      <p class="stop" style="margin-bottom:7px">Cheat sheet</p>
+      <table>
+        <tr><th>Add to the address</th><th>What it does</th></tr>
+        <tr><td><code>{{?demo}}</code></td><td>{{Shows the visitor switcher}}</td></tr>
+        <tr><td><code>{{?cohort=rule-id}}</code></td><td>{{Force one experience by name}}</td></tr>
+      </table>
+      <p class="look" style="margin-top:8px">All of these work on <a class="go" data-p="{{/new}}">{{/new}}</a>, the page that adapts.</p>
+    </div>
+    <div>
+      <p class="stop" style="margin-bottom:7px">Better with a guide</p>
+      <p class="look" style="font-size:10pt">{{These happen in the editor, which needs a sign-in. We’ll happily drive:}}</p>
+      <ol class="steps" style="margin-top:9px">
+        <li><b>{{Change something}}</b> {{and watch the site follow.}}</li>
+        <li><b>{{Set something up}}</b> {{end to end, and how long it takes.}}</li>
+      </ol>
+      <p class="tip"><b>Stuck in one experience?</b> The site remembers you, as it should. Open a private window{{, or pick “New visitor” in the switcher}}.</p>
+    </div>
+  </div>
+
+  <div class="foot"><span>{{Customer}} demo · for {{Customer}} only, for discussion · prices, offers, statistics and names are illustrative</span><span>6</span></div>
+</section>
+
+<!-- Keep this script: it writes the links, and with ?check it measures the pages for build.js. -->
+<script>
+(() => {
+  const host = (document.querySelector('meta[name="demo-host"]')?.content || '').replace(/\/$/, '');
+  document.querySelectorAll('a[data-p]').forEach((a) => { a.href = host + a.dataset.p; });
+  if (!new URLSearchParams(window.location.search).has('check')) return;
+
+  const measure = () => {
+    const pages = [...document.querySelectorAll('.page')].map((page, i) => {
+      const top = page.getBoundingClientRect().top;
+      const kids = [...page.children];
+      const placed = kids.filter((c) => getComputedStyle(c).position === 'absolute');
+      // content must end above the footer and above any block pinned to the page
+      const limit = Math.min(page.clientHeight, ...placed.map((c) => c.getBoundingClientRect().top - top));
+      const bottom = Math.max(0, ...kids.filter((c) => !placed.includes(c)).map((c) => c.getBoundingClientRect().bottom - top));
+      return { page: i + 1, bottom: Math.round(bottom), limit: Math.round(limit) };
+    });
+    const anchors = [...document.querySelectorAll('a')];
+    const result = {
+      pages,
+      links: anchors.map((a) => a.href).filter(Boolean),
+      empty: anchors.filter((a) => !a.getAttribute('href') || a.dataset.p === '').map((a) => a.textContent.trim()),
+      images: [...document.images].filter((img) => !img.naturalWidth).map((img) => img.getAttribute('src')),
+      placeholders: [...new Set((`${document.title} ${document.body.innerText} ${anchors.map((a) => a.dataset.p || '').join(' ')} ${host}`).match(/\{\{[^}]*\}\}/g) || [])],
+    };
+    const out = document.createElement('script');
+    out.type = 'application/json';
+    out.id = 'guide-check';
+    out.textContent = JSON.stringify(result).replace(/</g, '\\u003c');
+    document.body.append(out);
+  };
+  const ready = () => (document.fonts ? document.fonts.ready.then(measure) : measure());
+  if (document.readyState === 'complete') ready(); else window.addEventListener('load', ready);
+})();
+</script>
+</body>
+</html>
