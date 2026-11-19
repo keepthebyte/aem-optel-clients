@@ -10,6 +10,20 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: Experience Workspace panel
+- New layout for the side panel: a one-line variation switcher with a share strip replaces the
+  grid of cards (365px to about 56px), Everyone else first as the baseline; Page, Overview and
+  Checks tabs; the issue count in the header; rows open in place from the canvas cursor or a click.
+- Row actions for the picked variation (hide, remove, move up, show, delete, draft a version),
+  sent to the Experience Workspace assistant as one exact Section Metadata request and confirmed
+  in the live document, with Undo and a copy fallback. New `edits.js`, with tests. Add a section
+  by dragging it into the page (`makeDraggable`) or at the cursor; Review opens the comparison
+  against live; actions follow the `editable` flag.
+- Spectrum 2 tokens (`@adobe/spectrum-wc` `tokens.css`, pinned) with fallbacks, including the
+  size-scale setup the tokens need; no text below 12px. Focus and open sections survive live
+  updates; rows and tabs work with the keyboard; headings keep the space at a `<br>`.
+- Removed the `actions.scrollTo` call: the SDK has no such action.
+
 ### Data report
 - New skill `data-report`: the follow-up PDF after a brand visibility session, findings only. The
   funnel and RoBV, a coverage page that marks each stage Collected, Directional, Partial or Not in

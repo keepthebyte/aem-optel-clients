@@ -188,12 +188,21 @@ test('portal visitors are customers', () => assert.equal(matchRule(rules, s({ re
 
 ## 7. Experience Workspace panel: who sees which section
 
-`engine/ew-panel/` is a tool panel for the cohort page: pick a page variation (most visitors
-first) and see the sections that visitor gets, in their order, with the interest variants
-explained (where an interest comes from, what it swaps); put the cursor in a section to see who
-it is for; a matrix of every section by every variation; and checks for what the canvas cannot show (a `Cohorts` value
-no rule produces, a slot with no default, a key the engine ignores, and the holdout check: the
-default view of the page against the homepage, section for section).
+`engine/ew-panel/` is a tool panel for the cohort page, laid out for a ~340px side panel:
+
+- **Header** (sticky): live / read-only status, the issue count, a one-line switcher for the
+  page variation (Everyone else first as the baseline, then most visitors first; a strip under it
+  shows every share; arrow keys step through) and three tabs.
+- **Page**: the picked variation's sections in their order. Putting the cursor in a section, or
+  clicking its row, opens it in place: who sees it, the `Insight` behind it, and what the author
+  can do for this variation (hide, remove, move up, show, delete, draft a version for it).
+  Sections the variation does not get are listed under "Not on this page".
+- **Overview**: every variation with its share and the rules that lead to it, and a matrix of
+  every section by every variation.
+- **Checks**: what the canvas cannot show (a `Cohorts` value no rule produces, a slot with no
+  default, a key the engine ignores, and the holdout check: the default view of the page against
+  the homepage, section for section).
+- **Dock**: add a section for the picked variation, and review the changes against live.
 
 It runs the site's own `apply()` from `scripts/cohorts.js` with the site's
 `scripts/cohort-rules.js`, so it shows what visitors get rather than a second copy of the
@@ -202,7 +211,7 @@ imports those two files, and `*.aem.page` / `*.aem.live` send no CORS headers fo
 
 | From | To |
 | --- | --- |
-| `engine/ew-panel/index.html`, `panel.js`, `model.js`, `cohorts.css` | `tools/cohorts/` |
+| `engine/ew-panel/index.html`, `panel.js`, `model.js`, `edits.js`, `cohorts.css` | `tools/cohorts/` |
 
 Register it with a `library` row in the site's Experience Workspace config
 (`https://da.live/config#/{org}/{site}/`):
@@ -233,9 +242,28 @@ panel can be tried before it reaches `main`.
   the published page head; a change there shows in the panel after publishing.
 - **After a code push**, hard-reload the canvas: the preview iframe keeps the block CSS it
   loaded, so a fix can look missing in Layout view while `*.aem.live` already has it.
-- **Jumping** to a section uses `actions.scrollTo` when the host has it (not in production
-  `da.live` yet); rows stay clickable and highlight the section in the panel either way.
-- **Standalone**: `/tools/cohorts/index.html?path=/new` works outside Experience Workspace.
+- **Edits go through the assistant.** The SDK can replace only the node under the author's
+  cursor (`sendHTML(html, { replace: true })`), the panel cannot move that cursor, and Section
+  Metadata tables are not blocks (`selection.blockIndex` is `null` in them). So a row action sends
+  one exact request to the Experience Workspace assistant (`setPrompt`, auto-sent: "edit the
+  Section Metadata table of section 4 (the cards block, starting "…") only: set the "Hide For"
+  row to: …"), then confirms it in the live document (`subscribeLiveDocument`, and
+  `subscribeChatTurnCompleted` when the host advertises `chatTurnCompleted`). Confirmed: a note
+  with the new value and Undo (the reverse request). Not seen within the turn (or 2 minutes):
+  the exact change to make by hand, with Copy. Needs chat enabled for the site (not
+  `ew.disableChat`); `edits.js` holds the requests and the check, with tests.
+- **New sections** for a variation are dragged into the page (`makeDraggable`; the host places
+  them where the author releases) or inserted at the cursor (`sendHTML`), as a section with
+  `Cohorts: <id>` in DA table form. "Draft a version" pre-fills a request in the chat without
+  sending it. **Review** opens the comparison against live (`openComparison`).
+- **Read-only**: actions are off when the live document says `editable: false`.
+- **Spectrum 2**: styles use the `--swc-*` tokens from `@adobe/spectrum-wc` `tokens.css`, linked
+  pinned from jsDelivr in `index.html`, with a fallback value on every alias (the panel still
+  reads well without the sheet). `cohorts.css` also carries the three-line size-scale setup from
+  `swc.css`: without it every size token is invalid ("14px 17px") and text falls back to 16px.
+- **Jumping**: the SDK has no action to move the canvas to a section; rows open in the panel.
+- **Standalone**: `/tools/cohorts/index.html?path=/new` works outside Experience Workspace; row
+  actions then copy the change to paste.
 - Its model has tests (`test/ew-panel.test.mjs` in this repo); copy them next to the site's rule
   tests if the site changes the panel.
 

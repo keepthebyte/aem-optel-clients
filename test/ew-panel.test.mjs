@@ -95,3 +95,29 @@ test('audience lists read as words', async () => {
   assert.equal(audienceText(rules, ['prospect:support']), 'Prospect · Support');
   assert.equal(audienceText(rules, ['default']), 'Everyone else');
 });
+
+test('edits: one metadata change, its prompt, its check and its undo', async () => {
+  const {
+    metaEdit, deleteEdit, reverse, applied, promptFor, manualText, newSectionHtml, versionPrompt,
+  } = await import('../skills/homepage-cohorts/engine/ew-panel/edits.js');
+  const s = S(3, { hideFor: 'customer' }, [{ name: 'cards', variants: [] }], 'Plans for every team');
+  const e = metaEdit(s, 'hideFor', 'add', 'prospect', 'Hide section 4 for Prospect');
+  assert.deepEqual(e.after, ['customer', 'prospect']);
+  assert.equal(applied([s], e), false);
+  const edited = { ...s, meta: { hideFor: 'prospect, customer' } };
+  assert.equal(applied([edited], e), true, 'order of ids does not matter');
+  // the section is found by its blocks and heading when its index moved
+  assert.equal(applied([S(0), { ...edited, i: 4 }], e), true);
+  const u = reverse(e, 'Undo');
+  assert.deepEqual(u.after, ['customer']);
+  assert.equal(applied([s], u), true);
+  assert.match(promptFor(e, s), /section 4 \(the cards block, starting "Plans for every team"\) only: set the "Hide For" row to: customer, prospect\./);
+  const rm = metaEdit({ ...s, meta: { promote: 'prospect' } }, 'promote', 'remove', 'prospect', 'x');
+  assert.match(promptFor(rm, s), /remove the "Promote" row/);
+  assert.equal(manualText(rm, s), 'Section 4, Section Metadata: remove the Promote row');
+  assert.equal(applied([], deleteEdit(s, 'd')), true);
+  assert.equal(applied([s], deleteEdit(s, 'd')), false);
+  assert.match(newSectionHtml('prospect', 'Prospect'), /<td>Cohorts<\/td><td>prospect<\/td>/);
+  assert.match(versionPrompt({ ...s, meta: { slot: 'hero' } }, 'customer', 'Customer'), /"Slot: hero" and "Cohorts: customer"\.$/);
+  assert.match(versionPrompt(s, 'customer', 'Customer'), /add "customer" to the original section's "Hide For" row/);
+});
