@@ -90,6 +90,8 @@ export function parsePage(doc) {
     const content = s.cloneNode(true);
     [...content.children].filter((c) => ['metadata', 'section metadata'].includes(blockOf(c).name)
       && (c.tagName === 'TABLE' || c.classList.length)).forEach((c) => c.remove());
+    // a line break inside a heading separates words: "Every<br>morning" reads "Every morning"
+    content.querySelectorAll('br').forEach((br) => br.replaceWith(' '));
     const h = content.querySelector('h1, h2, h3, h4');
     // icons are :name: in the editor and <span class="icon"> once published
     const firstText = text([...content.querySelectorAll('p, li')].find((p) => text(p).length > 3))
@@ -243,7 +245,10 @@ export function holdout(originalSections, defaultOrder, sections) {
 /** Preview URL for an experience: the first rule that leads to it, forced with ?cohort= */
 export function previewUrl(origin, path, exp, rules) {
   // everyone else gets the original page: that is the homepage itself, not a forced rule
-  if (exp.id === 'default') return new URL('/', origin).toString();
+  // variations on the homepage itself: ?cohort=original pins it, whatever the visit matches
+  if (exp.id === 'default') {
+    return new URL(rules.pocPath === '/' ? '/?cohort=original&demo' : '/', origin).toString();
+  }
   const u = new URL(path || '/', origin);
   {
     const r = (rules.rules || []).find((x) => x.experience === exp.experience && (!exp.intent || x.intent === 'utm')) || (rules.rules || []).find((x) => x.experience === exp.experience);
