@@ -1,0 +1,27 @@
+{
+  "customer": "Example Insurance",
+  "short": "Example",
+  "subtitle": "about how people and AI find Example",
+  "preparedFor": "Example Insurance, personal lines",
+  "period": "September to November 2026",
+  "logo": "adobe-logo-white.png",
+  "names": ["Example", "Example Pets"],
+  "pulled": "15 Nov 2026",
+  "wantedSources": "2025 annual report, Q3 2026 results call",
+  "askNote": "Mass-market carriers are named most in every theme. \"Named most\" compares Example with the specialist peers listed in each row.",
+  "reads": "reads.json",
+  "visits": "out/visits-by-theme.json",
+  "fetch": "fetch-join.json",
+  "fetchPages": "personal",
+  "pathPrefix": "/personal",
+  "cohorts": [
+    { "file": "cohorts/www-cohorts.json", "title": "example.com homepage", "conversion": "Start a quote" }
+  ],
+  "clickLabels": {
+    "header .nav-login": "Customer sign-in",
+    "form.quote button": "Quote form"
+  },
+  "coverage": {
+    "attempts": { "text": "Page loads by assistants on example.com in four weeks. The pet site is not connected to Brand Visibility." }
+  }
+}

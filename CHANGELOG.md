@@ -10,6 +10,16 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Data report
+- New skill `data-report`: the follow-up PDF after a brand visibility session, findings only. The
+  funnel and RoBV, a coverage page that marks each stage Collected, Directional, Partial or Not in
+  this read, the merged sankey, one page per read, the theme-by-theme table, one cohort page per
+  `cohorts.json` and the notes. `scripts/build.js` reduces the inputs named in `report.json`
+  (dropping the plan and the proposed experiences), prints with headless Chrome and fails on an
+  overflowing page, a script error or a missing logo. `scripts/fetch-join.js` joins a Brand
+  Visibility agentic-traffic export with Optel visits per page and section. Pages without data
+  drop out.
+
 ### Demo guide
 - New skill `demo-guide`: a self-paced guide (PDF) to send a customer with the link to a demo site.
   `templates/guide.html` is the layout (cover, stops, arrivals grid, side-by-side, cheat sheet) with
