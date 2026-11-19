@@ -1,0 +1,630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What the data shows</title>
+<!--
+  Data report (skill data-report of keepthebyte/aem-optel-clients). Build: node build.js --config report.json.
+  The numbers come from report.data.js, which build.js writes from report.json. Findings only: no plan, no proposals.
+  Wording the config does not cover can be edited here: this copy belongs to the customer's workspace.
+-->
+<style>
+@font-face { font-family: 'Adobe Clean'; font-weight: 300; src: local('AdobeClean-Light'), local('Adobe Clean Light'); }
+@font-face { font-family: 'Adobe Clean'; font-weight: 400; src: local('AdobeClean-Regular'), local('Adobe Clean'); }
+@font-face { font-family: 'Adobe Clean'; font-weight: 700; src: local('AdobeClean-Bold'), local('Adobe Clean Bold'); }
+@font-face { font-family: 'Adobe Clean'; font-weight: 900; src: local('AdobeClean-Black'), local('AdobeClean-ExtraBold'), local('AdobeClean-Bold'); }
+:root {
+  --ink: #1b1b1b; --soft: #4b4b4b; --dim: #6e6e6e; --hair: #dcdcdc; --wash: #f4f4f4; --paper: #fff;
+  --red: #eb1000;
+  /* sources, as on the funnel */
+  --src-semrush: #5b3fd1; --src-synth: #e0332b; --src-cdn: #1b1b1b; --src-optel: #12856a; --src-aa: #d4650f; --src-agent: #1f5fd6;
+  /* sites (in the order of visits-by-theme.json), answer states, named by the customer, cohort signals */
+  --k-site0: #2f7de1; --k-site1: #d4479a; --k-site2: #12a08a; --k-site3: #8a5cd6;
+  --k-lead: #3a3a3a; --k-comp: #a3a3a3; --k-open: #d6d6d6; --k-want: #e1a500;
+  --k-link: #2f7de1; --k-memory: #12a08a; --k-none: #b9b9b9;
+  --sans: 'Adobe Clean', -apple-system, system-ui, sans-serif;
+}
+@page { size: 11in 8.5in; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #888; }
+body { font: 400 10pt/1.42 var(--sans); color: var(--ink); -webkit-print-color-adjust: exact; print-color-adjust: exact; -webkit-font-smoothing: antialiased; }
+@media screen { .page { margin: 24px auto; box-shadow: 0 4px 20px rgb(0 0 0 / 30%); } }
+.page { position: relative; width: 11in; height: 8.5in; padding: 0.5in 0.6in 0.62in; background: var(--paper); overflow: hidden; page-break-after: always; display: flex; flex-direction: column; }
+.page:last-of-type { page-break-after: auto; }
+h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -0.012em; }
+h2 { font-size: 23pt; line-height: 1.08; font-weight: 900; }
+h3 { font-size: 11.5pt; line-height: 1.2; }
+p { margin: 0; }
+b, strong { font-weight: 700; }
+.kick { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 8pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+.kick i { font-style: normal; color: var(--red); }
+.lede { margin-top: 7px; max-width: 8.6in; font-size: 11.2pt; line-height: 1.42; color: var(--soft); }
+.foot { position: absolute; left: 0.6in; right: 0.6in; bottom: 0.28in; display: flex; justify-content: space-between; gap: 24px; font-size: 7.4pt; color: var(--dim); }
+.src { margin-top: auto; padding-top: 8px; font-size: 7.6pt; line-height: 1.35; color: var(--dim); }
+.chip { display: inline-block; padding: 1px 8px 1.5px; border-radius: 9px; font-size: 7.4pt; font-weight: 700; white-space: nowrap; line-height: 1.45; vertical-align: 1px; letter-spacing: 0.02em; }
+.c-semrush { background: #ece8fb; color: var(--src-semrush); }
+.c-synth { background: #fde7e5; color: #b8231c; }
+.c-cdn { background: var(--src-cdn); color: #fff; }
+.c-optel { background: #e1f3ee; color: #0c6b55; }
+.c-aa { background: #fdecdc; color: #a24a07; }
+.c-agent { background: #e3ebfb; color: var(--src-agent); }
+.c-want { background: #fdf3d6; color: #8a6500; }
+.st { display: inline-block; padding: 1px 8px 1.5px; border-radius: 3px; font-size: 7.2pt; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+.st-collected { background: #1b1b1b; color: #fff; }
+.st-directional { background: #fff; color: #1b1b1b; box-shadow: inset 0 0 0 1.2px #1b1b1b; }
+.st-partial { background: #fff; color: var(--soft); box-shadow: inset 0 0 0 1px #9a9a9a; }
+.st-none { background: var(--wash); color: var(--dim); }
+
+/* ---------- cover ---------- */
+.cover { padding: 0.75in 0.8in; background: #111; color: #fff; }
+.cover .logo { display: block; width: 1.05in; height: auto; }
+.cover h1 { margin-top: auto; font-size: 50pt; line-height: 1.0; font-weight: 900; letter-spacing: -0.025em; max-width: 8.4in; }
+.cover h1 span { color: #9a9a9a; font-weight: 300; }
+.cover .sub { margin-top: 18px; max-width: 7.4in; font-size: 14pt; line-height: 1.4; color: #cfcfcf; font-weight: 300; }
+.cover .meta { display: flex; gap: 40px; margin-top: 44px; padding-top: 16px; border-top: 1px solid #3a3a3a; font-size: 9pt; color: #a8a8a8; }
+.cover .meta > div { flex: 1; }
+.cover .meta b { display: block; margin-bottom: 3px; font-size: 7.4pt; letter-spacing: 0.14em; text-transform: uppercase; color: #fff; }
+
+/* ---------- funnel ---------- */
+.fun-wrap { display: grid; grid-template-columns: 1fr 2.05in; gap: 26px; margin-top: 14px; flex: 1; min-height: 0; }
+.fun { display: flex; flex-direction: column; gap: 6px; }
+.st-row { display: flex; gap: 6px; }
+.stage { position: relative; flex: 1; display: grid; grid-template-columns: 1.6in 1fr auto; align-items: center; gap: 4px 14px; padding: 7px 12px 7px 14px; background: #fff; border: 1px solid var(--hair); border-left: 4px solid var(--c, #1b1b1b); border-radius: 4px; }
+.stage h3 { font-size: 11pt; }
+.stage p { font-size: 8.3pt; line-height: 1.3; color: var(--soft); }
+.stage .chips { display: flex; gap: 4px; justify-content: flex-end; flex-wrap: wrap; }
+.stage.col { grid-template-columns: 1fr auto; align-content: start; }
+.stage.col p { grid-column: 1 / -1; }
+.stage .tag { margin-left: 6px; padding: 0 5px; border: 1px solid currentcolor; border-radius: 3px; font-size: 6.4pt; font-weight: 700; letter-spacing: 0.08em; vertical-align: 2px; }
+.ref { display: grid; grid-template-columns: 1.05in 1fr auto; gap: 2px 10px; align-items: center; margin-top: 4px; padding-top: 5px; border-top: 1px solid #ececec; grid-column: 1 / -1; font-size: 8pt; }
+.ref b { display: flex; align-items: center; gap: 6px; font-size: 8.4pt; }
+.ref b::before { content: ''; width: 8px; height: 8px; background: var(--c); border-radius: 1px; }
+.ref > span:not(.chip) { color: var(--soft); line-height: 1.25; }
+.robv { display: flex; flex-direction: column; padding-left: 18px; border-left: 2px solid var(--ink); }
+.robv .k { font-size: 7.6pt; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.robv .big { margin-top: auto; font-size: 50pt; line-height: 0.95; font-weight: 900; letter-spacing: -0.03em; }
+.robv h3 { margin-top: 6px; font-size: 12pt; }
+.robv code { display: block; margin: 10px 0; padding: 8px 10px; background: var(--wash); border-radius: 4px; font: 8.6pt/1.35 ui-monospace, Menlo, monospace; }
+.robv p { font-size: 8.8pt; line-height: 1.4; color: var(--soft); }
+.robv .k:last-child { margin-top: auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--hair); font-size: 8pt; color: var(--soft); }
+.legend span::before { content: ''; display: inline-block; width: 9px; height: 9px; margin-right: 6px; border-radius: 1px; background: var(--c); vertical-align: -1px; }
+
+/* ---------- tables ---------- */
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 4px 8px; text-align: left; vertical-align: top; }
+thead th { padding-bottom: 5px; border-bottom: 1.5px solid var(--ink); font-size: 7.4pt; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); vertical-align: bottom; }
+thead th small { display: block; font-size: 7pt; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--dim); }
+tbody td, tbody th { border-bottom: 1px solid #e7e7e7; font-size: 8.8pt; }
+tbody th { font-weight: 700; }
+tfoot td, tfoot th { padding-top: 6px; border-top: 1.5px solid var(--ink); font-size: 8.8pt; font-weight: 700; }
+.n { text-align: right; white-space: nowrap; }
+.dim { color: var(--dim); }
+.note { font-size: 8pt; color: var(--soft); line-height: 1.3; }
+.cov td { padding: 5px 8px; }
+.cov td:first-child { width: 1.55in; font-weight: 700; }
+.cov td:nth-child(2) { width: 1.55in; }
+.cov td:nth-child(3) { width: 1.05in; }
+.tight tbody td, .tight tbody th, .tight tfoot td, .tight tfoot th { padding-top: 2.5px; padding-bottom: 2.5px; font-size: 8.4pt; }
+
+/* ---------- reads pages ---------- */
+.two { display: grid; grid-template-columns: 1fr 2.75in; gap: 26px; flex: 1; min-height: 0; margin-top: 12px; }
+.sankey { position: relative; width: 100%; }
+.sankey svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.facts { display: flex; flex-direction: column; gap: 12px; }
+.fact b { display: block; font-size: 25pt; line-height: 1; font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.fact span { display: block; margin-top: 3px; font-size: 9pt; line-height: 1.3; color: var(--soft); }
+.fact.sm b { font-size: 17pt; }
+.bar { position: relative; height: 12px; background: var(--wash); border-radius: 2px; min-width: 0.9in; }
+.bar i { position: absolute; inset: 0 auto 0 0; width: calc(100% * var(--f)); min-width: 1.5px; background: var(--c, var(--ink)); border-radius: 2px; }
+.space { display: flex; height: 30px; gap: 2px; margin: 6px 0 6px; }
+.space i { display: block; border-radius: 2px; }
+.key { display: grid; grid-template-columns: 12px 1fr auto; gap: 3px 8px; align-items: center; font-size: 8.6pt; }
+.key i { width: 10px; height: 10px; border-radius: 2px; }
+.key b { text-align: right; font-variant-numeric: tabular-nums; }
+.method { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+.method.three { grid-template-columns: repeat(3, 1fr); margin-top: 18px; }
+.method div { padding: 9px 11px; background: var(--wash); border-top: 3px solid var(--c); border-radius: 0 0 4px 4px; }
+.method h3 { font-size: 10pt; }
+.method p { margin-top: 3px; font-size: 8.4pt; line-height: 1.32; color: var(--soft); }
+.method small { display: block; margin-top: 5px; font-size: 7.6pt; color: var(--dim); }
+.secs { display: flex; height: 24px; gap: 2px; margin: 6px 0 4px; }
+.secs i { display: flex; align-items: center; padding-left: 5px; overflow: hidden; border-radius: 2px; font-size: 7.4pt; font-style: normal; font-weight: 700; color: #fff; white-space: nowrap; }
+.path { font-family: ui-monospace, Menlo, monospace; font-size: 7.8pt; word-break: break-all; }
+.lowflag { font-size: 7pt; font-weight: 700; color: var(--dim); letter-spacing: 0.04em; text-transform: uppercase; }
+.quote { padding: 9px 12px; border-left: 3px solid var(--k-want); background: #fdf8e9; font-size: 9pt; line-height: 1.38; }
+.quote small { display: block; margin-top: 3px; font-size: 7.6pt; color: var(--dim); }
+</style>
+</head>
+<body>
+
+<!-- cover -->
+<section class="page cover">
+  <img class="logo" id="logo" alt="Adobe" hidden>
+  <h1><span id="c-title" style="color:#fff;font-weight:900"></span> <span id="c-sub"></span></h1>
+  <p class="sub" id="c-lede"></p>
+  <div class="meta" id="c-meta"></div>
+</section>
+
+<!-- the funnel: the model, the same for every customer -->
+<section class="page">
+  <div class="kick"><i></i> The model</div>
+  <h2>Your AI discovery-to-revenue funnel</h2>
+  <p class="lede">Six stages, people and their personal agents in one funnel, and one bottom-line KPI: <b>Return on Brand Visibility (RoBV)</b>, the AI-search analog to ROAS. Each stage has its own source of evidence, shown on the right of each box.</p>
+  <div class="fun-wrap">
+    <div>
+      <div class="fun">
+        <div class="stage" style="--c:var(--src-semrush)"><h3>Addressable topics</h3><p>The brand-relevant slice of all the topics Semrush tracks across AI assistants.</p><div class="chips"><span class="chip c-semrush">Semrush panel</span></div></div>
+        <div class="stage" style="--c:var(--src-synth); margin-left:0.18in; margin-right:0.18in"><h3>Mentions</h3><p>The brand surfaces in an AI answer.</p><div class="chips"><span class="chip c-synth">Synthetic prompting</span><span class="chip c-semrush">Semrush</span></div></div>
+        <div class="stage" style="--c:var(--src-cdn); margin-left:0.36in; margin-right:0.36in"><h3>Citation attempts</h3><p>An assistant fetches a page in real time to answer a person (ChatGPT-User and other *-User agents).</p><div class="chips"><span class="chip c-cdn">CDN logs</span></div></div>
+        <div class="st-row" style="margin-left:0.54in; margin-right:0.54in">
+          <div class="stage col" style="--c:var(--src-synth)"><h3>Citations</h3><div class="chips"><span class="chip c-synth">Synthetic</span><span class="chip c-semrush">Semrush</span></div><p>The page is shown as a source in the answer.</p></div>
+          <div class="stage col" style="--c:var(--src-agent)"><h3>Transaction attempts<span class="tag" style="color:var(--src-agent)">NEW</span></h3><div class="chips"><span class="chip c-cdn">CDN logs</span></div><p>A personal agent asks the site whether it can transact directly.</p></div>
+        </div>
+        <div class="st-row" style="margin-left:0.72in; margin-right:0.72in">
+          <div class="stage col" style="--c:var(--src-cdn); flex:1.35"><h3>Site referrals<span class="tag">PEOPLE</span></h3><span></span><p>A person clicks through. Three levels of evidence:</p>
+            <div class="ref" style="--c:var(--src-cdn)"><b>Trackable</b><span>Click-throughs from an AI answer, referrer intact</span><span><span class="chip c-cdn">CDN logs</span> <span class="chip c-optel">Optel</span></span></div>
+            <div class="ref" style="--c:var(--src-optel)"><b>Claimable</b><span>Untagged AI-app clicks that land as direct</span><span class="chip c-optel">Optel</span></div>
+            <div class="ref" style="--c:var(--src-semrush)"><b>AI-influenced</b><span>Used an assistant, then came via Google or another path</span><span class="chip c-semrush">Semrush panel</span></div>
+          </div>
+          <div class="stage col" style="--c:var(--src-agent)"><h3>Agent visits<span class="tag" style="color:var(--src-agent)">AGENTS</span></h3><span></span><p>The person's agent comes to the site in a cloud browser and does the task: search, compare, fill the form. No referrer, no click from a person. Counted from signed agent requests, so a floor.</p><div class="chips" style="grid-column:1/-1; justify-content:flex-start; margin-top:4px"><span class="chip c-cdn">CDN logs</span><span class="chip c-optel">Optel</span></div></div>
+        </div>
+        <div class="stage" style="--c:var(--src-aa); margin-left:1.6in; margin-right:1.6in"><h3>Conversions</h3><p>Orders, bookings and leads, whether the person or their agent completes them.</p><div class="chips"><span class="chip c-aa">AA + CJA</span></div></div>
+      </div>
+      <div class="legend">
+        <span style="--c:var(--src-semrush)">Semrush panel</span><span style="--c:var(--src-synth)">Synthetic prompting</span><span style="--c:var(--src-cdn)">CDN logs</span><span style="--c:var(--src-optel)">AEM Operational Telemetry (Optel)</span><span style="--c:var(--src-aa)">Adobe Analytics + CJA</span><span style="--c:var(--src-agent)">Personal agent signals</span>
+      </div>
+    </div>
+    <aside class="robv">
+      <span class="k">Brand visibility</span>
+      <span class="big">RoBV</span>
+      <h3>Return on Brand Visibility</h3>
+      <code>Revenue ÷ cost to own topics</code>
+      <p>The AI-search analog to ROAS: revenue over what it costs to own your topics (a top-three share of voice). It counts the sale whether a person clicked through or their agent did the task.</p>
+      <span class="k">Revenue</span>
+    </aside>
+  </div>
+</section>
+
+<!-- coverage -->
+<section class="page">
+  <div class="kick"><i></i> How we collected it</div>
+  <h2 id="h-cov"></h2>
+  <p class="lede">No single tool sees the whole funnel. We read as many stages as the available sources allowed, and marked the rest. The numbers in this report come from the stages marked <span class="st st-collected">Collected</span>, <span class="st st-directional">Directional</span> or <span class="st st-partial">Partial</span>.</p>
+  <table class="cov" style="margin-top:12px">
+    <thead><tr><th>Stage</th><th>Source</th><th>Status</th><th>What we have</th></tr></thead>
+    <tbody id="cov"></tbody>
+  </table>
+  <p class="src" id="s-cov"></p>
+</section>
+
+<!-- the frame: every source on the same themes -->
+<section class="page">
+  <div class="kick"><i></i> One frame for every source</div>
+  <h2 id="h-all"></h2>
+  <p class="lede">Each source counts something different: visits, prompts, page fetches, statements. To compare them we sorted all of it into the same themes, by what a client is trying to solve. The flow joins the reads on those themes; the next pages light them up one at a time.</p>
+  <div class="sankey" id="sk-all" style="height:3.75in; margin-top:10px"></div>
+  <div class="method" id="m-all"></div>
+</section>
+
+<!-- read 1 -->
+<section class="page">
+  <div class="kick"><i></i> Who arrives <span class="chip c-optel">Optel</span></div>
+  <h2 id="h-arrive"></h2>
+  <div class="two">
+    <div style="display:flex; flex-direction:column; min-height:0">
+      <div class="sankey" id="sk-arrive" style="height:3.1in"></div>
+      <table class="tight" style="margin-top:10px" id="t-arrive"></table>
+    </div>
+    <div class="facts" id="f-arrive"></div>
+  </div>
+  <p class="src" id="s-arrive"></p>
+</section>
+
+<!-- read 2 -->
+<section class="page">
+  <div class="kick"><i></i> What people ask AI <span class="chip c-semrush">Semrush via Adobe Brand Visibility</span></div>
+  <h2 id="h-ask"></h2>
+  <div class="two">
+    <div style="display:flex; flex-direction:column; min-height:0">
+      <div class="sankey" id="sk-ask" style="height:2.85in"></div>
+      <table class="tight" style="margin-top:10px" id="t-ask"></table>
+    </div>
+    <div class="facts" id="f-ask"></div>
+  </div>
+  <p class="src" id="s-ask"></p>
+</section>
+
+<!-- read 3, optional: needs "fetch" in report.json -->
+<section class="page" data-needs="fetch">
+  <div class="kick"><i></i> What assistants fetch <span class="chip c-cdn">CDN logs via Adobe Brand Visibility</span></div>
+  <h2 id="h-fetch"></h2>
+  <div class="two" style="grid-template-columns: 1fr 1fr">
+    <div id="fetch-themes">
+      <h3>Citation attempts by theme</h3>
+      <table style="margin-top:6px" id="t-fetch"></table>
+    </div>
+    <div>
+      <h3 id="h-secs"></h3>
+      <div class="secs" id="secs"></div>
+      <div class="note" id="secs-note"></div>
+      <h3 style="margin-top:14px" id="h-pages"></h3>
+      <table class="tight" style="margin-top:6px" id="t-pages"></table>
+      <h3 style="margin-top:14px">Which assistants fetch</h3>
+      <table class="tight" style="margin-top:6px" id="t-agents"></table>
+    </div>
+  </div>
+  <p class="src" id="s-fetch"></p>
+</section>
+
+<!-- read 4, optional: needs at least one theme with "wanted" in reads.json -->
+<section class="page" data-needs="wanted">
+  <div class="kick"><i></i> What the firm has said <span class="chip c-want">Public statements</span></div>
+  <h2 id="h-want"></h2>
+  <div class="two">
+    <div class="sankey" id="sk-want" style="height:4.4in"></div>
+    <div class="facts" id="f-want"></div>
+  </div>
+  <p class="src" id="s-want"></p>
+</section>
+
+<!-- all reads, one row per theme -->
+<section class="page">
+  <div class="kick"><i></i> All reads together</div>
+  <h2>The funnel, theme by theme</h2>
+  <p class="lede">The stages we could read, side by side for each theme: what people ask, whether the brand is named, how often assistants load its pages, and the visits. Periods differ by source, so read each row as a profile, not a conversion rate.</p>
+  <table style="margin-top:12px" id="t-line"></table>
+  <div class="method three" id="f-line"></div>
+  <p class="src" id="s-line"></p>
+</section>
+
+<!-- visitor cohorts: one page per entry of "cohorts" in report.json -->
+<template id="cohort-page">
+  <section class="page" data-cohort>
+    <div class="kick"><i></i> <span data-k></span> <span class="chip c-optel">Optel</span></div>
+    <h2 data-h></h2>
+    <p class="lede" data-l></p>
+    <div data-body></div>
+    <p class="src" data-s></p>
+  </section>
+</template>
+
+<!-- notes -->
+<section class="page" id="notes">
+  <div class="kick"><i></i> Notes</div>
+  <h2>Sources, periods and how to read the numbers</h2>
+  <table style="margin-top:14px" id="t-notes"></table>
+</section>
+
+<script src="report.data.js"></script>
+<script>
+const CHECK = { errors: [] };
+window.addEventListener('error', (e) => CHECK.errors.push(`script error: ${e.message}`));
+(() => {
+  const D = window.D;
+  if (!D) { CHECK.errors.push('report.data.js did not load: run build.js'); return; }
+  const { cfg: C, reads: R, fetch: F } = D;
+  const T = R.themes; const N = T.length;
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const num = (n) => Math.round(n).toLocaleString('en-US');
+  const fmt = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M` : n >= 1e4 ? `${Math.round(n / 1e3)}k` : n >= 1e3 ? `${(n / 1e3).toFixed(1).replace(/\.0$/, '')}k` : String(Math.round(n)));
+  const pct = (x, d = 0) => `${(x * 100).toFixed(d)}%`;
+  const sum = (l, f) => l.reduce((a, x) => a + (f(x) || 0), 0);
+  const date = (s) => new Date(s).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const span = (a, b) => `${date(a)} to ${date(b)}`;
+  const weeks = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 6048e5);
+  const words = (n) => (['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'][n] || String(n));
+  const bar = (f, c) => `<div class="bar" style="--f:${Math.max(0, Math.min(1, f)).toFixed(3)};--c:${c}"><i></i></div>`;
+  const drop = (sel) => document.querySelectorAll(sel).forEach((e) => e.remove());
+
+  const themed = R.meta.themed || sum(T, (t) => t.visits); const prompts = sum(T, (t) => t.prompts);
+  const hasFetch = !!F && T.some((t) => t.attempts != null);
+  const attempts = sum(T, (t) => t.attempts); const aiThemes = sum(T, (t) => t.ai);
+  const lead = T.filter((t) => t.state === 'lead'); const wanted = T.filter((t) => t.wanted);
+  const leadP = sum(lead, (t) => t.prompts); const wantCompP = sum(wanted.filter((t) => t.state !== 'lead'), (t) => t.prompts);
+  const SITE = Object.fromEntries(R.sites.map((s, i) => [s.id, { ...s, c: `var(--k-site${i % 4})` }]));
+  const top = (t) => R.sites.map((s) => [s.id, t.sites[s.id] || 0]).sort((a, b) => b[1] - a[1])[0];
+  const where = (t) => { const [id, v] = top(t); return v > t.visits / 2 ? SITE[id] : null; };
+  const vPeriod = R.meta.period ? R.meta.period.split(' to ').map(date).join(' to ') : '';
+  const fPeriod = F ? span(...F.window.split('..')) : '';
+  const siteNames = R.sites.map((s) => s.name);
+  const list = (l) => (l.length < 2 ? l.join('') : `${l.slice(0, -1).join(', ')} and ${l[l.length - 1]}`);
+  const SHORT = C.short;
+  const hasWanted = wanted.length > 0;
+
+  if (!F) drop('[data-needs="fetch"]');
+  if (!hasWanted) drop('[data-needs="wanted"]');
+
+  /* ---------- the merged sankey: the reads on the left, one row per theme on the right ---------- */
+  function sankey(el, lit) {
+    const W = el.clientWidth; const H = el.clientHeight; const NS = 'http://www.w3.org/2000/svg';
+    const topY = 4; const bot = H - 2; const nw = 9; const WB = 4;
+    const x0 = 150; const x2 = W - 300;
+    const rh = (bot - topY) / N;
+    const room = Math.max(8, rh - 8 - 10 - WB);
+    const maxV = Math.max(...T.map((t) => t.visits)); const maxP = Math.max(...T.map((t) => t.prompts), 1);
+    const vh = (v) => Math.max((v / maxV) * room * 0.62, 0.8);
+    const ph = (p) => Math.max((p / maxP) * room * 0.38, 1.2);
+    const shown = (t, s) => (t.sites[s.id] || 0) >= 0.001 * themed;
+    const rows = T.map((t, i) => ({ t, y: topY + i * rh, cur: topY + i * rh + 4 }));
+    const sites = R.sites.map((s) => ({ key: 's', id: s.id, c: SITE[s.id].c, label: s.name, val: fmt(sum(T, (t) => t.sites[s.id])), h: sum(T.filter((t) => shown(t, s)), (t) => vh(t.sites[s.id])) }));
+    const SC = { lead: 'var(--k-lead)', comp: 'var(--k-comp)', open: 'var(--k-open)' };
+    const states = Object.entries(R.states).filter(([id]) => T.some((t) => t.state === id)).map(([id, label]) => {
+      const k = T.filter((t) => t.state === id);
+      return { key: 'a', id, c: SC[id] || 'var(--k-comp)', label, val: fmt(sum(k, (t) => t.prompts)), h: sum(k, (t) => ph(t.prompts)) };
+    });
+    const want = { key: 'w', c: 'var(--k-want)', label: `Named by ${SHORT}`, val: `${wanted.length} of ${N}`, h: Math.max(wanted.length * (WB + 1) - 1, 2) };
+    const groups = [{ k: 's', hd: 'Who arrives · visits', nodes: sites }, { k: 'a', hd: 'What people ask AI · prompts a month', nodes: states }];
+    if (hasWanted) groups.push({ k: 'w', hd: `What ${SHORT} has said`, nodes: [want] });
+    const HD = 22;
+    groups.forEach((g) => { let y = HD; g.nodes.forEach((n, i) => { if (i) { const p = g.nodes[i - 1]; y += Math.max(8, 18 - (p.h + n.h) / 2); } n.dy = y; y += n.h; }); g.h = Math.max(y, HD + 12); });
+    const gap = Math.max(0, bot - topY - sum(groups, (g) => g.h)) / groups.length;
+    let gy = topY + gap / 2;
+    groups.forEach((g) => { g.y = gy; g.nodes.forEach((n) => { n.y = gy + n.dy; n.cur = n.y; }); gy += g.h + gap; });
+    const band = (sx, sy, tx, ty, h) => { const m = (sx + tx) / 2; return `M${sx},${sy}C${m},${sy} ${m},${ty} ${tx},${ty}L${tx},${ty + h}C${m},${ty + h} ${m},${sy + h} ${sx},${sy + h}Z`; };
+    const links = [];
+    const add = (n, row, h) => { links.push({ k: n.key, c: n.c, d: band(x0 + nw, n.cur, x2, row.cur, h) }); n.cur += h; row.cur += h; };
+    rows.forEach((row) => { sites.forEach((s) => { if (shown(row.t, s)) add(s, row, vh(row.t.sites[s.id])); }); row.cur += 3; });
+    rows.forEach((row) => { const s = states.find((n) => n.id === row.t.state); if (s) add(s, row, ph(row.t.prompts)); row.cur += 3; });
+    if (hasWanted) rows.forEach((row) => { if (row.t.wanted) { add(want, row, WB); want.cur += 1; } });
+    const on = (k) => !lit || lit === k;
+    const right = (t) => {
+      if (lit === 's') return `${fmt(t.visits)} visits`;
+      if (lit === 'a') return `${fmt(t.prompts)} prompts a month`;
+      if (lit === 'w') return t.wanted ? `named by ${SHORT}` : '';
+      return [`${fmt(t.visits)} visits`, `${fmt(t.prompts)} prompts`, ...(hasFetch ? [`${num(t.attempts)} fetches`] : [])].join(' · ');
+    };
+    const lightRow = (t) => !lit || (lit === 'w' ? !!t.wanted : true);
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="${NS}" font-family="Adobe Clean, sans-serif">
+      ${links.map((l) => `<path d="${l.d}" fill="${l.c}" opacity="${on(l.k) ? 0.62 : 0.07}"/>`).join('')}
+      ${groups.map((g) => `<g opacity="${on(g.k) ? 1 : 0.3}"><text x="0" y="${g.y + 10}" font-size="8.2" font-weight="700" letter-spacing="0.6" fill="#6e6e6e">${esc(g.hd.toUpperCase())}</text>
+        ${g.nodes.map((n) => `<rect x="${x0}" y="${n.y}" width="${nw}" height="${Math.max(n.h, 1.5)}" rx="1.5" fill="${n.c}"/>
+        <text x="${x0 - 7}" y="${n.y + n.h / 2 + 3.5}" text-anchor="end" font-size="10" fill="#1b1b1b">${esc(n.label)} <tspan font-weight="700">${esc(n.val)}</tspan></text>`).join('')}</g>`).join('')}
+      ${rows.map(({ t, y }) => `<g opacity="${lightRow(t) ? 1 : 0.35}"><rect x="${x2}" y="${y + 2}" width="${nw}" height="${rh - 6}" rx="1.5" fill="#cfcfcf"/>
+        <text x="${x2 + nw + 9}" y="${y + rh / 2 + 3.5}" font-size="10.5" font-weight="700" fill="#1b1b1b">${esc(t.label)}</text>
+        <text x="${W}" y="${y + rh / 2 + 3.5}" text-anchor="end" font-size="9.4" fill="#4b4b4b">${esc(right(t))}</text></g>`).join('')}
+    </svg>`;
+  }
+
+  /* ---------- the cohort sankey: entry source → device → first rule that matches ---------- */
+  function flow(el, K, opts = {}) {
+    const W = el.clientWidth; const H = el.clientHeight; const NS = 'http://www.w3.org/2000/svg';
+    const total = K.meta.views;
+    const cols = [
+      K.entry.map((n) => ({ ...n, short: n.label })),
+      K.device.map((n) => ({ ...n, short: n.label })),
+      K.rules.map((r) => ({ id: `r:${r.id}`, views: r.views, short: `${r.label}${r.modelled ? '*' : ''}`, signal: r.signal })),
+    ];
+    const keep = new Set(cols.flat().map((n) => n.id));
+    const L = K.links.filter((l) => keep.has(l.s) && keep.has(l.t));
+    const HD = 16; const PAD = 2; const MIN = 9.5; const nw = 8;
+    const avail = H - HD - 2;
+    const need = (k, c) => sum(c, (n) => Math.max(n.views * k, MIN)) + PAD * (c.length - 1);
+    let lo = 0; let hi = avail / total;
+    for (let i = 0; i < 30; i += 1) { const m = (lo + hi) / 2; if (Math.max(...cols.map((c) => need(m, c))) <= avail) lo = m; else hi = m; }
+    const k = lo;
+    const xs = [opts.x0 || 140, W * (opts.mid || 0.36), W - (opts.rw || 290)];
+    const nodeOf = {};
+    cols.forEach((c, ci) => {
+      const g = PAD + ((avail - need(k, c)) / Math.max(1, c.length - 1)) * (ci === 2 ? 0.5 : 0.8);
+      let y = HD;
+      c.forEach((n) => { n.h = Math.max(n.views * k, MIN); n.y = y; n.x = xs[ci]; n.out = y; n.in = y; n.ci = ci; nodeOf[n.id] = n; y += n.h + g; });
+    });
+    const order = { link: 0, memory: 1, none: 2 };
+    const th = (l) => Math.max(l.v * k, 0.4);
+    Object.values(nodeOf).forEach((n) => {
+      L.filter((l) => l.s === n.id).sort((a, b) => nodeOf[a.t].y - nodeOf[b.t].y || order[a.g] - order[b.g]).forEach((l) => { l.sy = n.out; n.out += th(l); });
+      L.filter((l) => l.t === n.id).sort((a, b) => nodeOf[a.s].y - nodeOf[b.s].y || order[a.g] - order[b.g]).forEach((l) => { l.ty = n.in; n.in += th(l); });
+    });
+    const band = (sx, sy, tx, ty, h) => { const m = (sx + tx) / 2; return `M${sx},${sy}C${m},${sy} ${m},${ty} ${tx},${ty}L${tx},${ty + h}C${m},${ty + h} ${m},${sy + h} ${sx},${sy + h}Z`; };
+    const C3 = { link: 'var(--k-link)', memory: 'var(--k-memory)', none: 'var(--k-none)' };
+    const heads = ['Entry source', 'Device', 'Cohort · first rule that matches'];
+    const share = (v) => { const x = v / total; return x < 0.001 ? '<0.1%' : pct(x, 1); };
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" xmlns="${NS}" font-family="Adobe Clean, sans-serif">
+      ${L.map((l) => `<path d="${band(nodeOf[l.s].x + nw, l.sy, nodeOf[l.t].x, l.ty, th(l))}" fill="${C3[l.g] || C3.none}" opacity="0.5"/>`).join('')}
+      ${heads.map((h, ci) => `<text x="${ci === 0 ? xs[0] + nw : xs[ci]}" y="9" ${ci === 0 ? 'text-anchor="end"' : ''} font-size="7.8" font-weight="700" letter-spacing="0.6" fill="#6e6e6e">${h.toUpperCase()}</text>`).join('')}
+      ${Object.values(nodeOf).map((n) => `<rect x="${n.x}" y="${n.y}" width="${nw}" height="${n.h}" rx="1.2" fill="${n.ci === 2 ? (C3[n.signal] || C3.none) : '#8a8a8a'}"/>
+        <text x="${n.ci === 0 ? n.x - 6 : n.x + nw + 6}" y="${n.y + n.h / 2 + 3.2}" ${n.ci === 0 ? 'text-anchor="end"' : ''} font-size="${n.ci === 2 ? 8.8 : 9}" fill="#1b1b1b">${esc(n.short)} <tspan font-weight="700">${share(n.views)}</tspan></text>`).join('')}
+    </svg>`;
+  }
+
+  /* ---------- cover ---------- */
+  document.title = `${C.customer}: ${C.title.toLowerCase()}`;
+  $('c-title').textContent = C.title; $('c-sub').textContent = C.subtitle; $('c-lede').textContent = C.lede;
+  if (C.logo) { const img = $('logo'); img.src = C.logo; img.hidden = false; }
+  const sources = ['AEM Operational Telemetry', 'Adobe Brand Visibility', 'Semrush'];
+  $('c-meta').innerHTML = [['Prepared for', C.preparedFor], ['Sites read', list(siteNames)], ['Sources', sources.join(', ')], ...(C.period ? [['Period', C.period]] : [])]
+    .map(([b, t]) => `<div><b>${esc(b)}</b>${esc(t)}</div>`).join('');
+
+  /* ---------- coverage ---------- */
+  const STAGE = {
+    topics: ['Addressable topics', '<span class="chip c-semrush">Semrush panel</span>'],
+    mentions: ['Mentions', '<span class="chip c-semrush">Semrush</span>'],
+    attempts: ['Citation attempts', '<span class="chip c-cdn">CDN logs</span>'],
+    citations: ['Citations', '<span class="chip c-synth">Synthetic</span> <span class="chip c-semrush">Semrush</span>'],
+    transactions: ['Transaction attempts', '<span class="chip c-cdn">CDN logs</span>'],
+    trackable: ['Site referrals · trackable', '<span class="chip c-cdn">CDN logs</span> <span class="chip c-optel">Optel</span>'],
+    claimable: ['Site referrals · claimable', '<span class="chip c-optel">Optel</span>'],
+    influenced: ['Site referrals · AI-influenced', '<span class="chip c-semrush">Semrush panel</span>'],
+    agents: ['Agent visits', '<span class="chip c-cdn">CDN logs</span> <span class="chip c-optel">Optel</span>'],
+    conversions: ['Conversions', '<span class="chip c-aa">AA + CJA</span>'],
+  };
+  const SL = { collected: 'Collected', directional: 'Directional', partial: 'Partial', none: 'Not in this read' };
+  $('h-cov').textContent = `What we could measure for ${SHORT}, stage by stage`;
+  $('cov').innerHTML = D.coverage.map((r) => `<tr><td>${STAGE[r.id][0]}</td><td>${STAGE[r.id][1]}</td><td><span class="st st-${r.status}">${SL[r.status]}</span></td><td>${r.text}</td></tr>`).join('');
+  $('s-cov').textContent = 'Optel: AEM Operational Telemetry, a sampled measurement of real page views (bots and prerenders excluded). Adobe Brand Visibility: prompt research built on Semrush topic data, and agentic traffic read from CDN logs.';
+
+  /* ---------- frame ---------- */
+  const nReads = 2 + (hasFetch ? 1 : 0) + (hasWanted ? 1 : 0);
+  $('h-all').textContent = `${words(nReads).replace(/^./, (c) => c.toUpperCase())} reads, merged by the same ${words(N)} themes`;
+  sankey($('sk-all'), null);
+  $('m-all').innerHTML = [
+    ['var(--k-site0)', 'Who arrives', `Optel visits on ${list(siteNames)}. Each landing page is assigned to a theme by its path and title.`, `${num(R.meta.visits)} visits, ${vPeriod}`],
+    ['var(--k-comp)', 'What people ask AI', 'Semrush topics for each theme\'s queries, counted once, off-theme topics removed; who is named in the answers.', R.scope],
+    ...(hasFetch ? [['var(--src-cdn)', 'What assistants fetch', 'Citation attempts: pages an assistant loads to answer a person, from Brand Visibility\'s agentic traffic.', fPeriod]] : []),
+    ...(hasWanted ? [['var(--k-want)', `What ${SHORT} has said`, 'Themes named in public statements and, where marked, documents the customer shared.', C.wantedSources]] : []),
+  ].map(([c, h, p, s], i) => `<div style="--c:${c}"><h3>${i + 1} · ${esc(h)}</h3><p>${esc(p)}</p><small>${esc(s)}</small></div>`).join('');
+
+  /* ---------- read 1 ---------- */
+  const byVisits = [...T].sort((a, b) => b.visits - a.visits); const big = byVisits[0]; const small = byVisits[byVisits.length - 1];
+  $('h-arrive').textContent = `${fmt(themed)} visits land on a page about one of the ${words(N)} themes. ${pct(big.visits / themed)} of them are about ${big.label.toLowerCase()}.`;
+  sankey($('sk-arrive'), 's');
+  const multi = R.sites.length > 1;
+  $('t-arrive').innerHTML = `<thead><tr><th>Theme</th><th class="n">Visits</th><th>Share of themed visits</th><th class="n">From search</th><th class="n">From AI assistants</th>${multi ? '<th>Mostly on</th>' : ''}</tr></thead>
+    <tbody>${byVisits.map((t) => { const w = where(t); return `<tr><th>${esc(t.label)}</th><td class="n">${num(t.visits)}</td><td><div style="display:flex;gap:8px;align-items:center">${bar(t.visits / big.visits, w ? w.c : 'var(--k-comp)')}<span class="n" style="width:34px">${pct(t.visits / themed, 1)}</span></div></td><td class="n">${num(t.search)}</td><td class="n">${num(t.ai)}</td>${multi ? `<td class="dim">${w ? esc(w.name) : 'split'}</td>` : ''}</tr>`; }).join('')}</tbody>`;
+  const bw = where(big);
+  $('f-arrive').innerHTML = [
+    [num(R.meta.visits), `visits in the period${multi ? `: ${R.sites.map((s) => `${num(s.visits)} on ${s.name}`).join(', ')}` : ''}`],
+    [pct(themed / R.meta.visits), 'land on a page about one of the themes; the rest are sign-in, service, company and other audiences\' pages'],
+    bw && multi ? [pct((big.sites[top(big)[0]]) / big.visits, 1), `of ${big.label.toLowerCase()} visits arrive on ${bw.name}`] : [num(big.visits), `visits about ${big.label.toLowerCase()}, the largest theme`],
+    [num(small.visits), `visits about ${small.label.toLowerCase()}, the smallest theme`],
+    [num(aiThemes), `themed visits came from AI assistants (${pct(aiThemes / themed, 1)}); ${num(sum(T, (t) => t.search))} came from search`],
+  ].map(([b, s], i) => `<div class="fact${i > 2 ? ' sm' : ''}"><b>${b}</b><span>${esc(s)}</span></div>`).join('');
+  $('s-arrive').textContent = `Source: AEM Operational Telemetry (Optel), ${list(siteNames)}, ${vPeriod}. Sampled page views, bots and prerenders excluded. Themes are assigned from the landing page's path and title. "From AI assistants" counts referrers and campaign tags from AI assistants such as ChatGPT, Perplexity, Claude, Copilot and Gemini.`;
+
+  /* ---------- read 2 ---------- */
+  $('h-ask').textContent = `${fmt(prompts)} AI prompts a month touch the ${words(N)} themes. ${SHORT} is named most among its peers in ${words(lead.length)} of ${words(N)}.`;
+  sankey($('sk-ask'), 'a');
+  const byP = [...T].sort((a, b) => b.prompts - a.prompts); const maxP = byP[0].prompts || 1;
+  $('t-ask').innerHTML = `<thead><tr><th>Theme</th><th class="n">Prompts a month</th><th></th><th>Who is named in AI answers (mentions)</th></tr></thead>
+    <tbody>${byP.map((t) => `<tr><th>${esc(t.label)}</th><td class="n">${fmt(t.prompts)}</td><td style="width:1.1in">${bar(t.prompts / maxP, t.state === 'lead' ? 'var(--k-lead)' : 'var(--k-comp)')}</td><td class="note" style="font-size:8.3pt">${esc(t.asked)}</td></tr>`).join('')}</tbody>`;
+  const restP = prompts - leadP - wantCompP; const bigP = byP[0];
+  const wantBig = [...wanted].sort((a, b) => b.prompts - a.prompts)[0];
+  $('f-ask').innerHTML = `<div class="fact"><b>${fmt(prompts)}</b><span>prompts a month across the ${N} themes; ${esc(bigP.label.toLowerCase())} alone is ${fmt(bigP.prompts)}</span></div>
+    <div><h3>Who is named most, by share of prompts</h3>
+      <div class="space"><i style="flex:${leadP};background:var(--k-lead)"></i>${hasWanted ? `<i style="flex:${wantCompP};background:var(--k-want)"></i>` : ''}<i style="flex:${restP};background:var(--k-comp)"></i></div>
+      <div class="key"><i style="background:var(--k-lead)"></i><span>${esc(SHORT)} named most among its peers${lead.length ? `: ${esc(lead.map((t) => t.label.toLowerCase()).join(', '))}` : ''}</span><b>${pct(leadP / prompts)}</b>
+      ${hasWanted ? `<i style="background:var(--k-want)"></i><span>Another brand named more, in a theme ${esc(SHORT)} has named</span><b>${pct(wantCompP / prompts)}</b>` : ''}
+      <i style="background:var(--k-comp)"></i><span>Another brand named more, or open${hasWanted ? ', other themes' : ''}</span><b>${pct(restP / prompts)}</b></div></div>
+    ${wantBig ? `<div class="fact sm"><b>${fmt(wantBig.prompts)}</b><span>prompts a month for ${esc(wantBig.label.toLowerCase())}, the most asked of the themes ${esc(SHORT)} has named</span></div>` : ''}
+    ${C.askNote ? `<p class="note">${esc(C.askNote)}</p>` : ''}`;
+  $('s-ask').textContent = `Source: Adobe Brand Visibility prompt research on Semrush topic data, ${R.scope}${C.pulled ? `, pulled ${C.pulled}` : ''}. Prompts: the topics for each theme's queries, each counted once, off-theme topics removed. Mentions: counts inside the answers to one query set per theme; directional, not a share of voice.`;
+
+  /* ---------- read 3 ---------- */
+  if (F) {
+    const secs = Object.entries(F.bySec).sort((a, b) => b[1].attempts - a[1].attempts);
+    const label = (k) => k.charAt(0).toUpperCase() + k.slice(1);
+    const [topSec, topS] = secs[0];
+    $('h-fetch').textContent = `Assistants loaded ${SHORT}'s pages ${num(F.attempts)} times in ${words(weeks(...F.window.split('..')) || 1)} weeks to answer someone.${topS.attempts / F.attempts >= 0.3 ? ` ${pct(topS.attempts / F.attempts)} of those were ${topSec === 'home' ? 'the homepage' : `${topSec} pages`}.` : ''}`;
+    if (hasFetch) {
+      const byA = [...T].sort((a, b) => b.attempts - a.attempts); const maxA = byA[0].attempts || 1;
+      $('t-fetch').innerHTML = `<thead><tr><th>Theme</th><th class="n">Attempts</th><th></th><th class="n">Visits</th><th class="n">AI visits</th></tr></thead>
+        <tbody>${byA.map((t) => `<tr><th>${esc(t.label)}</th><td class="n">${num(t.attempts)}</td><td style="width:1.1in">${bar(t.attempts / maxA, 'var(--src-cdn)')}</td><td class="n dim">${fmt(t.visits)}</td><td class="n dim">${num(t.ai)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><th>All themes</th><td class="n">${num(attempts)}</td><td></td><td class="n">${fmt(themed)}</td><td class="n">${num(aiThemes)}</td></tr></tfoot>`;
+    } else $('fetch-themes').innerHTML = '<p class="note">Citation attempts per theme were not added to reads.json.</p>';
+    const grey = ['#1b1b1b', '#4b4b4b', '#7a7a7a', '#8f8f8f', '#a6a6a6', '#bdbdbd', '#cfcfcf'];
+    $('h-secs').textContent = `Where the attempts go${F.scope ? ` (${F.scope.replace(/^\^/, '')})` : ''}`;
+    $('secs').innerHTML = secs.map(([k, s], i) => `<i style="flex:${s.attempts};background:${grey[Math.min(i, grey.length - 1)]}">${s.attempts / F.attempts > 0.095 ? `${esc(label(k))} ${pct(s.attempts / F.attempts)}` : ''}</i>`).join('');
+    const ag = F.agents[0] || ['', 0]; const agTotal = sum(F.agents, (a) => a[1]);
+    $('secs-note').innerHTML = `${secs.map(([k, s]) => `${esc(label(k))} <b>${num(s.attempts)}</b>`).join(' · ')}. ${esc(ag[0])} made <b>${pct(ag[1] / agTotal)}</b> of the fetches.${F.aiVisits ? ` For every <b>${Math.round(F.attempts / F.aiVisits)}</b> pages assistants loaded, they sent about one visit (${num(F.aiVisits)} AI-referred visits in the same weeks).` : ''}`;
+    const sel = C.fetchPages; const pages = F.rows.filter((r) => !sel || r.sec === sel).slice(0, 7);
+    const pre = C.pathPrefix; /* report.json "pathPrefix": shown as … in the table */
+    const short = (p) => (pre && p.startsWith(pre) && p.length > pre.length + 1 ? `…${p.slice(pre.length)}` : p);
+    $('h-pages').textContent = `${sel ? `${label(sel)} pages` : 'Pages'} assistants load most`;
+    $('t-pages').innerHTML = `<thead><tr><th>Page${pre ? ` <small>… is ${esc(pre)}</small>` : ''}</th><th class="n">Attempts</th><th class="n">Visits</th></tr></thead>
+      <tbody>${pages.map((p) => `<tr><td class="path">${esc(short(p.p))}</td><td class="n">${num(p.attempts)}</td><td class="n dim">${num(p.views)}</td></tr>`).join('')}</tbody>`;
+    $('t-agents').innerHTML = `<thead><tr><th>User agent</th><th class="n">Share of fetches</th></tr></thead><tbody>${F.agents.slice(0, 5).map(([a, n]) => `<tr><td class="path">${esc(a)}</td><td class="n">${pct(n / agTotal, 1)}</td></tr>`).join('')}</tbody>`;
+    $('s-fetch').textContent = `Source: Adobe Brand Visibility agentic traffic (CDN logs), ${fPeriod}. A citation attempt is a page load by an assistant answering a person (agents ending in -User, such as ChatGPT-User). Visits on the same pages and days from Optel. Read the counts as a ranking inside one period, not as a trend.`;
+  }
+
+  /* ---------- read 4 ---------- */
+  if (hasWanted) {
+    $('h-want').textContent = `${SHORT} has named ${words(wanted.length)} of the ${words(N)} themes.`;
+    sankey($('sk-want'), 'w');
+    $('f-want').innerHTML = wanted.map((t) => `<div class="quote"><b>${esc(t.label)}</b><br>${esc(t.wanted)}<small>${fmt(t.visits)} visits · ${fmt(t.prompts)} prompts a month${hasFetch ? ` · ${num(t.attempts)} citation attempts` : ''}</small></div>`).join('')
+      + `<p class="note">Together these themes draw ${pct(sum(wanted, (t) => t.visits) / themed)} of themed visits and ${pct(sum(wanted, (t) => t.prompts) / prompts)} of the prompts.</p>`;
+    $('s-want').textContent = C.wantedSources ? `Sources: ${C.wantedSources}.` : 'Sources: the firm\'s public statements, as listed in reads.json.';
+  }
+
+  /* ---------- all reads ---------- */
+  const NAMES = C.names.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const named = (t) => { const m = t.asked.match(new RegExp(`(?:${NAMES})\\D{0,12}?(\\d[\\d,]*\\d|\\d)`)); return m ? m[1] : '–'; };
+  const sub = (h, s) => `${h}<small>${s}</small>`;
+  $('t-line').innerHTML = `<thead><tr><th>Theme</th><th class="n">${sub('Asked', 'prompts a month')}</th><th class="n">${sub('Named', `${esc(SHORT)} mentions`)}</th><th>Named most among peers</th>${hasFetch ? `<th class="n">${sub('Fetched', 'citation attempts')}</th>` : ''}<th class="n">${sub('Visits', 'in the period')}</th><th class="n">${sub('AI visits', 'in the period')}</th>${hasWanted ? `<th>Named by ${esc(SHORT)}</th>` : ''}</tr></thead>
+    <tbody>${byP.map((t) => `<tr><th>${esc(t.label)}</th><td class="n">${fmt(t.prompts)}</td><td class="n">${named(t)}</td><td>${t.state === 'lead' ? `<b>${esc(SHORT)}</b>` : `<span class="dim">${esc((R.states[t.state] || t.state).toLowerCase())}</span>`}</td>${hasFetch ? `<td class="n">${num(t.attempts)}</td>` : ''}<td class="n">${num(t.visits)}</td><td class="n">${num(t.ai)}</td>${hasWanted ? `<td>${t.wanted ? 'Yes' : '<span class="dim">–</span>'}</td>` : ''}</tr>`).join('')}</tbody>
+    <tfoot><tr><th>All themes</th><td class="n">${fmt(prompts)}</td><td></td><td>${lead.length} of ${N}</td>${hasFetch ? `<td class="n">${num(attempts)}</td>` : ''}<td class="n">${num(themed)}</td><td class="n">${num(aiThemes)}</td>${hasWanted ? `<td>${wanted.length} of ${N}</td>` : ''}</tr></tfoot>`;
+  const hiA = hasFetch ? [...T].sort((a, b) => b.attempts - a.attempts)[0] : null;
+  const ask = wantBig || bigP;
+  $('f-line').innerHTML = [
+    ...(hiA ? [['var(--src-cdn)', `${hiA.label}: most fetched`, `${num(hiA.attempts)} citation attempts, ${pct(hiA.attempts / attempts)} of all themes, on ${fmt(hiA.visits)} visits.`]] : []),
+    ['var(--k-site0)', `${big.label}: most visited`, `${pct(big.visits / themed)} of themed visits${bw && multi ? `, mostly on ${bw.name}` : ''}${hasFetch ? `; ${num(big.attempts)} citation attempts` : ''}.`],
+    [wantBig ? 'var(--k-want)' : 'var(--k-comp)', `${ask.label}: ${wantBig ? `most asked of the themes ${SHORT} has named` : 'most asked'}`, `${fmt(ask.prompts)} prompts a month and ${num(ask.visits)} visits in the period.`],
+  ].map(([c, h, t]) => `<div style="--c:${c}"><h3>${esc(h)}</h3><p>${esc(t)}</p></div>`).join('');
+  $('s-line').textContent = 'Mentions count the brand names listed in report.json "names". Sources and periods as on the pages before.'.replace('the brand names listed in report.json "names"', list(C.names));
+
+  /* ---------- cohorts ---------- */
+  const tpl = $('cohort-page'); const notes = $('notes');
+  const SIG = { link: 'Where they came from', memory: 'Earlier visit (modelled)', none: 'No signal' };
+  D.cohorts.forEach((K, i) => {
+    const page = tpl.content.firstElementChild.cloneNode(true);
+    notes.before(page);
+    const q = (s) => page.querySelector(s);
+    const w = weeks(K.meta.start, K.meta.end); const t = K.today;
+    const mob = (t.devices.find((d) => d.key === 'mobile') || { share: 0 }).share;
+    q('[data-k]').textContent = `Visitor cohorts · ${K.title}`;
+    q('[data-h]').textContent = `${num(K.meta.views)} views in ${words(w)} weeks. ${pct(t.nothing)} of them click nothing.`;
+    q('[data-l]').textContent = i === 0
+      ? `Each view is sorted into the first cohort whose rule it matches, from the signals a site can read: where it came from (referrer and campaign tags), the device, and what the browser remembers from an earlier visit. ${pct(mob)} of views are on a phone.`
+      : `The same cohort rules, on ${K.meta.domain}${K.meta.path}. ${pct(mob)} of views are on a phone.`;
+    const goal = !!K.conversion && K.rules.some((r) => r.goal != null && !r.modelled); /* only with a named conversion in report.json */
+    const rules = [...K.rules].sort((a, b) => b.views - a.views);
+    const wide = rules.length > 9 || !t.clicks.length;
+    const rate = (r, v) => (v == null || r.modelled || r.low ? '<span class="dim">–</span>' : pct(v));
+    const table = `<table class="tight" style="margin-top:6px"><thead><tr><th>Cohort</th>${wide ? '<th>Signal</th>' : ''}<th class="n">Share of views</th><th class="n">Sampled views</th>${goal ? `<th class="n">${esc(K.conversion || 'Goal')}</th>` : ''}<th class="n">Click nothing</th></tr></thead>
+      <tbody>${rules.map((r) => `<tr><th>${esc(r.label)}${r.modelled ? '*' : ''} ${r.low ? '<span class="lowflag">small sample</span>' : ''}</th>${wide ? `<td class="dim">${SIG[r.signal] || r.signal}</td>` : ''}<td class="n">${pct(r.share, 1)}</td><td class="n dim">${num(r.bundles)}</td>${goal ? `<td class="n">${rate(r, r.goal)}</td>` : ''}<td class="n">${rate(r, r.nothing)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><th>All views</th>${wide ? '<td></td>' : ''}<td class="n">100%</td><td class="n">${num(K.meta.bundles)}</td>${goal ? '<td></td>' : ''}<td class="n">${pct(t.nothing)}</td></tr></tfoot></table>`;
+    const body = q('[data-body]');
+    if (wide) {
+      body.innerHTML = `<div class="sankey" style="height:2.6in; margin-top:6px"></div>${table}`;
+      flow(body.querySelector('.sankey'), K, { x0: 150, mid: 0.36, rw: 290 });
+    } else {
+      body.className = 'two'; body.style.gridTemplateColumns = '1fr 2.6in';
+      const lab = (c) => C.clickLabels[c.click] || c.click;
+      body.innerHTML = `<div style="display:flex;flex-direction:column;min-height:0"><div class="sankey" style="height:2.7in"></div>${table}</div>
+        <div class="facts"><div class="fact"><b>${pct(t.nothing)}</b><span>of views click nothing</span></div>
+        <div><h3>What views click</h3><table class="tight" style="margin-top:4px"><tbody>${t.clicks.slice(0, 6).map((c) => `<tr><td class="${C.clickLabels[c.click] ? '' : 'path'}">${esc(lab(c))}</td><td class="n">${pct(c.share)}</td></tr>`).join('')}</tbody></table></div></div>`;
+      flow(body.querySelector('.sankey'), K, { x0: 132, mid: 0.36, rw: 250 });
+    }
+    q('[data-s]').textContent = `Source: Optel, ${K.meta.domain}${K.meta.path}, ${span(K.meta.start, K.meta.end)}. Optel samples about one view in a hundred; shares are estimates and small cohorts move a lot, so their rates are left out. * Modelled: the rule needs memory on the device, which Optel cannot see, so its share is estimated from what views do today and its rates are left out.${goal ? ` "${K.conversion || 'Goal'}" is the conversion click set in the cohort rules.` : ''}`;
+  });
+
+  /* ---------- notes ---------- */
+  const NOTES = [
+    ['AEM Operational Telemetry (Optel)', 'Real page views, sampled (about 1 in 100), bots and prerenders excluded. Sees referrer, campaign tags, device, clicks and whether a view did anything.', [`Visits by theme: ${vPeriod}.`, ...D.cohorts.map((K) => `${K.title}: ${span(K.meta.start, K.meta.end)}.`)].join(' '), 'Cannot see memory on a device (modelled cohorts), signed-in state or revenue.'],
+    ['Adobe Brand Visibility · prompt research', 'Semrush topic data: the topics people raise with AI assistants, with monthly prompt volume, and the brands named in the answers.', `${R.scope}${C.pulled ? `, pulled ${C.pulled}` : ''}.`, 'Prompt volumes are panel estimates. Mentions come from one query set per theme and are directional.'],
+    ...(F ? [['Adobe Brand Visibility · agentic traffic', 'CDN logs of requests from AI agents. Citation attempts are agents ending in -User, which fetch a page while answering a person.', `${fPeriod}${F.scope ? `, ${F.scope.replace(/^\^/, '')}` : ''}.`, 'Only sites connected to the Brand Visibility account are counted. Fetch behaviour changes, so read it as a ranking, not a trend.']] : []),
+    ...(hasWanted ? [['Public statements', `What ${SHORT} has said about the themes.`, C.wantedSources || '–', 'Used only to mark which themes the firm has named.']] : []),
+    ['Themes', `${N} themes, by what a client is trying to solve. A landing page belongs to the first theme its path and title match; Semrush topics are matched to themes by query.`, '–', 'Pages for other audiences (sign-in, service, company) are counted in totals but are not themed.'],
+    ['Not in this report', C.notOnPage, '–', 'Available from the account team on request.'],
+  ];
+  $('t-notes').innerHTML = `<thead><tr><th style="width:1.9in">Source</th><th>What it measures</th><th style="width:2.4in">Period and scope</th><th style="width:2.4in">Limits</th></tr></thead>
+    <tbody>${NOTES.map((r) => `<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td class="dim">${esc(r[3])}</td></tr>`).join('')}</tbody>`;
+
+  /* ---------- numbering and footers ---------- */
+  const pages = [...document.querySelectorAll('.page')];
+  pages.forEach((p, i) => {
+    const k = p.querySelector('.kick i'); if (k) k.textContent = String(i).padStart(2, '0');
+    if (i) p.insertAdjacentHTML('beforeend', `<div class="foot"><span>${esc(C.customer)} · ${esc(C.title.toLowerCase())}</span><span>${i + 1}</span></div>`);
+  });
+})();
+
+/* ?check: measure every page for build.js */
+if (location.search.includes('check')) {
+  window.addEventListener('load', async () => {
+    await document.fonts.ready;
+    const logo = document.getElementById('logo');
+    CHECK.logo = !logo.hidden && logo.complete && logo.naturalWidth > 0;
+    CHECK.font = document.fonts.check('700 12px "Adobe Clean"');
+    CHECK.pages = [...document.querySelectorAll('.page')].map((p, i) => {
+      const r = p.getBoundingClientRect(); const limit = r.bottom - (i ? 0.5 * 96 : 0.4 * 96);
+      const end = Math.max(...[...p.querySelectorAll('*')].filter((e) => e instanceof HTMLElement && !e.closest('.foot') && e.offsetParent !== null).map((e) => e.getBoundingClientRect().bottom));
+      return { page: i + 1, kick: (p.querySelector('.kick')?.textContent || 'cover').trim().slice(0, 40), room: Math.round(limit - end) };
+    });
+    const s = document.createElement('script'); s.type = 'application/json'; s.id = 'report-check';
+    s.textContent = JSON.stringify(CHECK); document.body.append(s);
+  });
+}
+</script>
+</body>
+</html>

@@ -28,6 +28,7 @@ before you move on.
 | [4. The visibility plan](#4-the-visibility-plan-three-reads) | `brand-visibility` | step 2 or 3, prompt research, public statements | `reads.json`, the three-reads picture |
 | [5. The cohort homepage](#5-the-cohort-homepage) | `homepage-cohorts`, `stardust` | an Edge Delivery site, the homepage bundles | rules, `cohorts.json`, the Sankey, the `/new` page |
 | [6. The video](#6-the-video) | `brand-visibility-video`, `homepage-cohorts-video` | the files of steps 4 and 5 | an MP4 and its storyboard |
+| [6b. The data report](#6b-the-data-report-optional) (optional) | `data-report` | the files of steps 4 and 5, Chrome | a findings-only PDF for the customer |
 | [7. Go live and review](#7-go-live-and-review) | `homepage-cohorts` | the customer's go-ahead | a 90/10 experiment, a monthly review |
 
 A first run for one customer takes two to four working days: about a day for steps 1 to 4,
@@ -333,6 +334,23 @@ How to work:
   the storyboard or a repository.
 - **Know the audience.** For an existing customer: the way of thinking and what follows from
   their data, no product pitch. For a monthly update: start from last month's storyboard.
+
+## 6b. The data report (optional)
+
+Skill: [`data-report`](../skills/data-report/SKILL.md).
+
+When the customer asks for the numbers they saw, send a PDF rather than the deck: the funnel and
+RoBV, which stages were measured, then each read and the cohorts, with sources and periods.
+Findings only; the plan and the proposed pages stay out.
+
+```bash
+R=~/Code/aem-optel-clients/skills/data-report
+cp $R/report.example.json report.json          # name the inputs of steps 4 and 5, the customer, the logo
+node $R/scripts/fetch-join.js --fetches fetches.txt --bundles data/www-site.jsonl --from 2026-10-12 --to 2026-11-09 --out fetch-join.json   # optional
+node $R/scripts/build.js --config report.json  # copies the template on the first run, prints and checks the PDF
+```
+
+Check three headline numbers against the source files, and that nothing in it proposes anything.
 
 ## 7. Go live and review
 
