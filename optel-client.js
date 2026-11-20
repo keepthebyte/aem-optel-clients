@@ -939,7 +939,7 @@ export function clickResolution(source) {
 
 const normalizeUrl = (u) => String(u || '').replace(/[?#].*$/, '').replace(/\/$/, '');
 /* one key per image across its renditions: AEM serves '…/image.png/width1280.png' and '…/width750.png' */
-const mediaKey = (u) => normalizeUrl(u).replace(/\/width\d+\.\w+$/, '');
+export const mediaKey = (u) => normalizeUrl(u).replace(/\/width\d+\.\w+$/, '');
 
 /** True when a click's target is a page URL other than the current page (the visitor left via a link). */
 export function isNavigation(e, pageUrl = '') {
