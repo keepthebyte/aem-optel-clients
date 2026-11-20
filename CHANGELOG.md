@@ -23,6 +23,8 @@ change report shapes or classification results; read **Changed** before upgradin
   size-scale setup the tokens need; no text below 12px. Focus and open sections survive live
   updates; rows and tabs work with the keyboard; headings keep the space at a `<br>`.
 - Removed the `actions.scrollTo` call: the SDK has no such action.
+- Shares under 0.1% read `<0.1%` instead of `0.0%`; the status label (now `Published`) and the
+  issue count do not wrap in a narrow panel.
 
 ### Data report
 - New skill `data-report`: the follow-up PDF after a brand visibility session, findings only. The

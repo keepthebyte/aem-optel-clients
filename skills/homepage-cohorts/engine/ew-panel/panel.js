@@ -81,7 +81,11 @@ const btn = (cls, label, onClick, key) => {
   if (onClick) b.addEventListener('click', onClick);
   return b;
 };
-const pct = (x) => (x == null ? '' : `${(x * 100).toFixed(x < 0.1 ? 1 : 0)}%`);
+const pct = (x) => {
+  if (x == null) return '';
+  if (x > 0 && x < 0.001) return '<0.1%';
+  return `${(x * 100).toFixed(x < 0.1 ? 1 : 0)}%`;
+};
 const colorOf = (id) => {
   const base = String(id).split(':')[0];
   const i = ['default', ...Object.keys(rules.experiences || {})].indexOf(base);
@@ -320,7 +324,7 @@ function dot(id, cls = '') {
 function renderHeader(root) {
   const issues = lint(state.doc, rules);
   const errors = issues.filter((x) => x.level === 'error').length;
-  let status = 'Published page';
+  let status = 'Published';
   if (state.live) status = state.editable === false ? 'Read-only' : 'Live';
   const bar = h('div', 'bar', h('h1', '', 'Homepage variations'), h('span', `status${state.live ? ' on' : ''}`, status));
   if (issues.length) {
