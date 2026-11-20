@@ -222,9 +222,13 @@ button {
   box-shadow: 0 4px 16px rgb(0 0 0 / 16%);
 }
 
-.opt, .gitem {
+.opt {
   display: grid;
+  grid-template-columns: 10px 1fr 64px 40px;
+  align-items: center;
+  gap: var(--s2);
   width: 100%;
+  padding: 6px var(--s2);
   border: 0;
   border-radius: var(--r-s);
   background: transparent;
@@ -232,20 +236,8 @@ button {
   cursor: pointer;
 }
 
-.opt {
-  grid-template-columns: 10px 1fr 64px 40px;
-  align-items: center;
-  gap: var(--s2);
-  padding: 6px var(--s2);
-}
-
-.gitem {
-  gap: 2px;
-  padding: 6px var(--s2);
-}
-
-.opt:hover, .gitem:hover { background: var(--hover); }
-.opt[aria-pressed="true"], .gitem[aria-pressed="true"] { background: var(--accent-soft); }
+.opt:hover { background: var(--hover); }
+.opt[aria-pressed="true"] { background: var(--accent-soft); }
 
 .oname {
   display: flex;
@@ -566,26 +558,6 @@ summary {
 
 /* ---------- overview ---------- */
 .body > h2:first-child { margin-top: 0; }
-
-ul.glist {
-  list-style: none;
-  margin: 0 calc(var(--s2) * -1);
-  padding: 0;
-}
-
-
-.gtop {
-  display: grid;
-  grid-template-columns: 10px 1fr 64px 40px;
-  gap: var(--s2);
-  align-items: center;
-}
-
-.gsub {
-  padding-left: 18px;
-  font-size: var(--t-s);
-  color: var(--ink-2);
-}
 
 .matrix { overflow-x: auto; }
 

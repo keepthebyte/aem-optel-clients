@@ -538,25 +538,7 @@ function renderInterest(root, exp) {
 
 function renderOverview(root) {
   const { sections } = state.doc;
-  const max = Math.max(...groups().map((e) => e.share || 0)) || 1;
-  root.append(h('h2', '', 'Who gets which page'));
-  const ul = h('ul', 'glist');
-  groups().forEach((e) => {
-    const v = viewById(e.id);
-    const made = v.order.filter((i) => list(sections[i].meta.cohorts).includes(e.id)).length;
-    const why = e.id === 'default' ? 'No rule matches: the original homepage' : e.rules.map((id) => (rules.rules || []).find((x) => x.id === id)?.label || id).join(' · ');
-    const bar = h('span', 'mbar', tint(h('span', ''), e.id));
-    bar.firstChild.style.width = `${((e.share || 0) / max) * 100}%`;
-    const b = btn('gitem', null, () => { state.tab = 'page'; choose(e.id); }, `g-${e.id}`);
-    b.append(
-      h('span', 'gtop', dot(e.id), h('span', 'oname', name(e.id)), bar, h('span', 'opct', pct(e.share))),
-      h('span', 'gsub', `${v.order.filter((i) => visible(sections[i])).length} sections${made ? `, ${made} made for ${name(e.id)}` : ''}. ${why}`),
-    );
-    b.setAttribute('aria-pressed', String(e.id === picked().experience));
-    ul.append(h('li', '', b));
-  });
-  root.append(ul);
-
+  // the group picker at the top lists every group with its share: the overview is the matrix
   const vis = sections.filter(visible);
   const shared = vis.filter((s) => !s.meta.cohorts && !s.meta.hideFor && !s.meta.slot).length;
   root.append(h('h2', '', 'Who sees what'));
