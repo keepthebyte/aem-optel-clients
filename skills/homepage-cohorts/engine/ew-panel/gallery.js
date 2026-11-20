@@ -465,8 +465,9 @@ function setDocument(html) {
 }
 
 async function showPublished() {
-  const res = await fetch(`${state.path}.plain.html`, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`${state.path}.plain.html: ${res.status}`);
+  const plain = state.path.endsWith('/') ? `${state.path}index.plain.html` : `${state.path}.plain.html`;
+  const res = await fetch(plain, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`${plain}: ${res.status}`);
   setDocument(await res.text());
 }
 
