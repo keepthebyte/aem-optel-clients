@@ -197,8 +197,8 @@ test('portal visitors are customers', () => assert.equal(matchRule(rules, s({ re
   clicking its row, opens it in place: who sees it, the `Insight` behind it, and what the author
   can do for this variation (hide, remove, move up, show, delete, draft a version for it).
   Sections the variation does not get are listed under "Not on this page".
-- **Overview**: a matrix of every section by every variation (the switcher above already lists
-  every variation with its share).
+- **Overview**: a matrix of every section by every variation, then every variation with its
+  share and the rules that lead to it.
 - **Checks**: what the canvas cannot show (a `Cohorts` value no rule produces, a slot with no
   default, a key the engine ignores, and the holdout check: the default view of the page against
   the homepage, section for section).
