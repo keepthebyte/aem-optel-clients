@@ -499,6 +499,7 @@ body {
   min-height: 0;
   overflow: hidden;
   border-top: 3px solid var(--c);
+
   /* square top: the group's colour line runs straight across */
   border-radius: 0 0 var(--r-s) var(--r-s);
   background: #fff;
