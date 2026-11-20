@@ -31,14 +31,17 @@ export function sendPick(pick) {
   try { new BroadcastChannel(CHANNEL).postMessage({ type: 'pick', id: v.id }); } catch { /* old browser */ }
 }
 
+/* an explicit ?cohort= in the URL (the gallery's columns, a shared link) beats the panel's pick */
+const explicit = () => new URLSearchParams(window.location.search).has('cohort');
+
 /** Keys the engine should apply in the Layout view, or null (everywhere else). */
 export function previewForce() {
-  return inEditorPreview() ? readPick() : null;
+  return inEditorPreview() && !explicit() ? readPick() : null;
 }
 
 /** In the Layout view: reload when the panel picks a different variation. */
 export function listenForPicks(currentId) {
-  if (!inEditorPreview() || typeof BroadcastChannel !== 'function') return;
+  if (!inEditorPreview() || explicit() || typeof BroadcastChannel !== 'function') return;
   const bc = new BroadcastChannel(CHANNEL);
   bc.onmessage = ({ data }) => {
     if (data?.type === 'pick' && data.id !== currentId) window.location.reload();

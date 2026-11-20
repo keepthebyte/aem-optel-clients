@@ -22,7 +22,7 @@ import rules from '../../scripts/cohort-rules.js';
 import { sendPick, readPick } from '../../scripts/cohort-preview.js';
 import {
   COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, audienceOf, lint, holdout,
-  previewUrl, list, shortName, intentName, interestSources, variantDiff,
+  previewUrl, list, shortName, intentName, interestSources, variantDiff, groupColor,
 } from './model.js';
 import {
   KEY_LABEL, applied, metaEdit, deleteEdit, reverse, promptFor, manualText, versionPrompt,
@@ -31,16 +31,6 @@ import {
 
 const params = new URLSearchParams(window.location.search);
 const app = document.getElementById('app');
-/* group identity colours (Spectrum 2 categorical), in rules.experiences order after default */
-const COLORS = [
-  'var(--swc-gray-visual-color, #8f8f8f)',
-  'var(--swc-blue-visual-color, #4b75ff)',
-  'var(--swc-magenta-visual-color, #e5396b)',
-  'var(--swc-seafoam-visual-color, #0f977f)',
-  'var(--swc-orange-visual-color, #e86a00)',
-  'var(--swc-purple-visual-color, #9d5ae5)',
-  'var(--swc-celery-visual-color, #3fa54a)',
-];
 const ASK_TIMEOUT = 120000;
 
 const state = {
@@ -86,11 +76,7 @@ const pct = (x) => {
   if (x > 0 && x < 0.001) return '<0.1%';
   return `${(x * 100).toFixed(x < 0.1 ? 1 : 0)}%`;
 };
-const colorOf = (id) => {
-  const base = String(id).split(':')[0];
-  const i = ['default', ...Object.keys(rules.experiences || {})].indexOf(base);
-  return COLORS[(i < 0 ? COLORS.length - 1 : i) % COLORS.length];
-};
+const colorOf = (id) => groupColor(rules, id);
 const tint = (el, id) => { el.style.setProperty('--c', colorOf(id)); return el; };
 const expById = (id) => state.exps.find((e) => e.id === id);
 const viewById = (id) => state.views.find((v) => v.id === id);

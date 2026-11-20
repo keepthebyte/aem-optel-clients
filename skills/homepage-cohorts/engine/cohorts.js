@@ -289,9 +289,13 @@ export function browserSignals(rules) {
   return signalsFor(rules, window.location.href, document.referrer, readMemory(rules));
 }
 
-/** Resolve this view's rule. ?cohort=<rule id> forces a rule (demo and screenshots). */
+/**
+ * Resolve this view's rule. ?cohort=<rule id> forces a rule (demo and screenshots);
+ * ?cohort=none forces the original sections, whatever the visit would match.
+ */
 export function resolve(rules, signals = browserSignals(rules)) {
   const forced = new URLSearchParams(window.location.search).get('cohort');
+  if (forced === 'none') return { ...matchRule({ ...rules, rules: [] }, signals), forced: true, signals };
   const r = forced && (rules.rules || []).find((x) => x.id === forced);
   const ctx = r
     ? {

@@ -212,6 +212,7 @@ imports those two files, and `*.aem.page` / `*.aem.live` send no CORS headers fo
 | From | To |
 | --- | --- |
 | `engine/ew-panel/index.html`, `panel.js`, `model.js`, `edits.js`, `cohorts.css` | `tools/cohorts/` |
+| `engine/ew-panel/gallery.html`, `gallery.js`, `gallery.css` (the gallery, §7b) | `tools/cohorts/` |
 
 Register it with a `library` row in the site's Experience Workspace config
 (`https://da.live/config#/{org}/{site}/`):
@@ -266,6 +267,54 @@ panel can be tried before it reaches `main`.
   actions then copy the change to paste.
 - Its model has tests (`test/ew-panel.test.mjs` in this repo); copy them next to the site's rule
   tests if the site changes the panel.
+
+
+## 7b. Experience Workspace gallery: every variation side by side
+
+`engine/ew-panel/gallery.html` opens as a full-size dialog in Experience Workspace (90% of the
+window, at most 1200px wide) and shows the cohort page once per variation, one column each,
+scrolling together, as desktop (1440px) or phone (390px), scaled to the column. It is the
+pre-production view: what each cohort will get, next to each other, before the experiment runs.
+
+- **Variations** come from the live document's Section Metadata, the same model as the panel
+  (`model.js`). Each column loads the previewed page with `?cohort=<rule id>`; the columns show
+  edits after Preview, and a column whose section count differs from the document says so
+  ("Preview: 9 of 10"), with one line under the header.
+- **Everyone else** loads `{cohort page}?cohort=none`: the engine's original sections, which are
+  the homepage by the holdout guarantee (`verify.js`), so this column follows edits too.
+- **Compare**: a picker with a checkbox per variation (colour, section count, share from
+  `cohorts.json`), Only per row and All; × on a column; keys 1-9 and 0. Columns are added and
+  removed in place, so the others do not reload. The choice and the device are kept in
+  `localStorage` for the next time; `?exp=a,b&device=phone` opens a given set.
+- **Explain** reloads the columns with `?demo&insights&dock=off`: the section notes without the
+  presenter dock (`cohort-panel.js`), since the gallery chooses the visitor.
+- **Scrolling together** works because the frames load from the gallery's own origin (the
+  canvas preview proxy, `{ref}--{site}--{org}.preview.da.live`), so the gallery can scroll them.
+- An explicit `?cohort=` beats the panel's pick (`cohort-preview.js`): picking a variation in the
+  Cohorts panel does not change or reload the gallery's columns.
+
+Register it as a second extension with `experience: fullsize-dialog`:
+
+| title | path | experience |
+| --- | --- | --- |
+| Cohort gallery | `/tools/cohorts/gallery.html` | `fullsize-dialog` |
+
+- **DA sites**: a row in the `library` sheet of the site config (`https://da.live/config#/{org}/{site}/`,
+  stored at `admin.da.live/config/{org}/{site}/`), with an `experience` column.
+- **Source Bus sites**: the editor config is `https://api.aem.live/{org}/sites/{site}/config/editor/da.json`,
+  plain JSON `{ "library": [{ "title", "path", "experience" }] }` (GET, then POST the whole object
+  with `content-type: application/json`; an IMS token with access to the site).
+- **Before it is on `main`**: a relative path loads from the branch the canvas is on. To try a
+  branch from the main canvas, give an absolute branch URL
+  (`https://{branch}--{site}--{org}.aem.live/tools/cohorts/gallery.html`): the canvas serves it
+  through the preview proxy of that branch. A `ref` column instead hides the row unless the
+  canvas is opened with that `?ref=`.
+- **Opening**: from its row in the Panels list (the popout button). The Cohorts panel cannot
+  open it: the SDK's `showPanel` takes a panel id and opens it in the side panel, not as a modal.
+- Experience Workspace forces a light canvas for now (its dark mode is unfinished); the gallery
+  and the panel follow the OS setting (`color-scheme: light dark`), with S2 tokens and fallbacks.
+- Standalone: `/tools/cohorts/gallery.html?path=/new` outside Experience Workspace reads the
+  published page.
 
 ## 8. Personal AI agents (only for a rule with `when.agent`)
 

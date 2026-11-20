@@ -10,6 +10,23 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: gallery in Experience Workspace
+- New `engine/ew-panel/gallery.html` (`gallery.js`, `gallery.css`): a full-size dialog extension
+  (`experience: fullsize-dialog`) that shows the cohort page once per variation, side by side,
+  scrolling together, as desktop or phone. Variations come from the live document; a column says
+  when the preview lacks edits. A Compare picker (checkboxes, Only, All), × per column and keys
+  1-9 / 0 choose the columns without reloading the others; the choice and device are kept.
+  Explain shows the section notes. Spectrum 2 tokens, light and dark. `install.md` §7b: files
+  and registration for DA and Source Bus sites, and how to try a branch.
+- Engine: `?cohort=none` forces the original sections (the gallery's Everyone else);
+  an explicit `?cohort=` beats the Cohorts panel's pick in the canvas preview
+  (`cohort-preview.js`); `?dock=off` shows the section notes without the presenter dock
+  (`cohort-panel.js`).
+- Cohorts panel: preview links for an interest variation now carry a campaign value the engine
+  reads as that intent (`campaignFor`): the intent id is not always one (BMW's `used` intent
+  matches `gebraucht`, not `used`), so those links showed the variation without its intent.
+  Group colours move to `model.js` (`groupColor`), shared with the gallery. Tests for both.
+
 ### Homepage cohorts: picture stories
 - New facet: the pictures per cohort. `references/picture-stories.md` describes the method first
   used on bmw.de: the large pictures down the page follow each cohort's question, one step per
