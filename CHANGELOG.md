@@ -10,6 +10,22 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: picture stories
+- New facet: the pictures per cohort. `references/picture-stories.md` describes the method first
+  used on bmw.de: the large pictures down the page follow each cohort's question, one step per
+  picture, taken from the site's own pages and checked on them (AI label, legal lines such as
+  WLTP consumption). They are laid out with the existing `Slot` mechanism, with no engine change.
+- New `scripts/pictures.js`: on the same rules as `size.js`, which pictures each rule's views have
+  in view on the homepage (`share`, `vsAll`, `position`, `leansTo`), how many pictures down the
+  page each cohort gets (`depth`: on bmw.de 69% of views reached a second picture, 22% a third),
+  and with `--site` the pictures where the same group lands elsewhere (`landing`, with each
+  picture's page) and on the pages opened right after the homepage (`afterHome`). `--match`
+  keeps the site's pictures, `--kinds` groups them. Smart-crop suffixes and renditions are one
+  picture.
+- `optel-client.js` exports `mediaKey` (one key per image across its renditions).
+- SKILL.md: step 3.6 (picture stories), a monthly-review check that each cohort reaches its own
+  closing picture; `content-model.md` points to the new reference.
+
 ## [0.7.0] - 2026-11-20
 
 ### Homepage cohorts: Experience Workspace panel

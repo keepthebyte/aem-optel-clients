@@ -103,6 +103,13 @@ original never changes, e.g. a visible "Log in" button for `mobile` where the or
 account icon. Check the holdout with `verify.js` afterwards: the header is not in its section
 comparison.
 
+## Pictures per cohort
+
+The same `Slot` mechanism carries a picture story: one section per cohort for each large
+picture down the page (hero, feature section, brand moment, closing band), the original in the
+slot with `Cohorts: default`. How to choose the pictures from Optel and the site's own pages,
+check them, and lay out the slots: `references/picture-stories.md`.
+
 ## Designs from Stardust
 
 To have Stardust propose the cohort designs (`stardust:direct` + `stardust:prototype`, one

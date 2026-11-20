@@ -270,6 +270,25 @@ the site itself was rebuilt with Stardust:
 For a demo copy of a site you do not have the code of, `stardust:replica` rebuilds its pages
 in Edge Delivery keeping the current design.
 
+### 5b+. Picture stories (optional)
+
+Once the versions stand, the pictures in them can follow each cohort too: the large pictures
+down the page tell one story per cohort ("Will it fit my life?": an electric car in the city,
+a wallbox at home, far from home with it), taken from the site's own pages where that group
+lands. First done on bmw.de.
+
+```bash
+node $H/scripts/pictures.js --rules ../site/scripts/cohort-rules.js --bundles data/home.jsonl --site data/site.jsonl --match 'media_' --out out/pictures.json
+```
+
+> Use the homepage-cohorts skill, references/picture-stories.md. From out/pictures.json, say
+> how many pictures each cohort reaches and where its pictures can come from, then propose one
+> picture story per cohort as a storyboard. Check every picture on its source page.
+
+`viewmedia` is exposure, not preference: the report says what each group has in front of it
+and how far down it gets, not what it likes. Agree the storyboard with the page owner;
+the pictures go into `/new` as one section per cohort in a `Slot` per picture.
+
 ### 5c. Build the page
 
 The agent follows [`references/install.md`](../skills/homepage-cohorts/references/install.md)

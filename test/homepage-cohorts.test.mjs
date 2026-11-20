@@ -425,3 +425,45 @@ test('engine: a tie between interests goes to the one viewed last; partner is a 
   assert.equal(matches({ partner: true }, sig(), rules), false);
   assert.equal(matches({ partner: false }, sig(), rules), true);
 });
+
+test('pictures.js: pictures per rule, beats reached, landing pages and the page after', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'pictures-'));
+  const pic = (name, sel = '.hero picture', q = '?width=750') => ({ checkpoint: 'viewmedia', source: sel, target: `https://www.example.com/media_${name}.jpg${q}` });
+  const home = [
+    // portal visitors scroll: hero, the electric picture, the closing band
+    ...Array.from({ length: 12 }, () => B([{ checkpoint: 'enter', source: 'https://portal.example.com/' }, pic('aa01'), pic('bb02', '.cards picture'), pic('cc03', '.teaser picture', '?width=2000')])),
+    // AI arrivals see the hero only; a logo is not a picture (--match drops it)
+    ...Array.from({ length: 8 }, () => B([{ checkpoint: 'enter', source: 'https://chatgpt.com/' }, pic('aa01', '.hero picture', '?width=1200'), { checkpoint: 'viewmedia', source: 'header img', target: 'https://www.example.com/icons/logo.svg' }])),
+  ];
+  const site = [
+    ...home,
+    ...Array.from({ length: 5 }, () => B([{ checkpoint: 'enter', source: 'https://chatgpt.com/' }, pic('dd04')], { url: 'https://www.example.com/support' })),
+    ...Array.from({ length: 4 }, () => B([{ checkpoint: 'navigate', source: 'https://www.example.com/' }, pic('ee05')], { url: 'https://www.example.com/products' })),
+  ];
+  fs.writeFileSync(path.join(tmp, 'h.jsonl'), home.map((b) => JSON.stringify(b)).join('\n'));
+  fs.writeFileSync(path.join(tmp, 's.jsonl'), site.map((b) => JSON.stringify(b)).join('\n'));
+  fs.writeFileSync(path.join(tmp, 'k.json'), JSON.stringify([['closing', 'cc03'], ['hero', 'aa01']]));
+  run('pictures.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'h.jsonl'), '--site', path.join(tmp, 's.jsonl'), '--match', 'media_', '--kinds', path.join(tmp, 'k.json'), '--out', path.join(tmp, 'p.json')]);
+  const p = JSON.parse(fs.readFileSync(path.join(tmp, 'p.json'), 'utf8'));
+  assert.equal(p.meta.bundles, 20);
+  // renditions (?width=) are one picture; the logo is out
+  assert.deepEqual(p.pictures.map((x) => x.name), ['media_aa01.jpg', 'media_bb02.jpg', 'media_cc03.jpg']);
+  assert.equal(p.pictures[0].share, 1);
+  const portal = p.rules.find((r) => r.id === 'from-portal');
+  const ai = p.rules.find((r) => r.id === 'ai-referred');
+  assert.deepEqual(portal.depth.slice(0, 4), [1, 1, 1, 0]);
+  assert.deepEqual(ai.depth.slice(0, 2), [1, 0]);
+  assert.equal(portal.pictures.find((x) => x.name === 'media_cc03.jpg').position, 2);
+  assert.equal(portal.pictures.find((x) => x.name === 'media_bb02.jpg').vsAll, 1 / 0.6);
+  assert.deepEqual(portal.leansTo, ['media_bb02.jpg', 'media_cc03.jpg']);
+  assert.equal(portal.kinds.closing, 1);
+  assert.equal(ai.kinds.closing, undefined);
+  // the same AI group lands on /support and sees its picture there
+  const land = p.landing.find((r) => r.id === 'ai-referred');
+  assert.equal(land.bundles, 5);
+  assert.equal(land.pictures[0].page, '/support');
+  // modelled memory rules are not evaluated on landing views
+  assert.ok(!p.landing.some((r) => r.id === 'signed-in-before'));
+  assert.equal(p.afterHome.all.pages[0].path, '/products');
+  assert.equal(p.afterHome.all.pictures[0].name, 'media_ee05.jpg');
+});

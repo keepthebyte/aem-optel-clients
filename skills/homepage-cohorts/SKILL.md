@@ -1,6 +1,6 @@
 ---
 name: homepage-cohorts
-description: Optimise the homepage of an AEM Edge Delivery Services site for the cohorts in its real traffic, using AEM Operational Telemetry (Optel) data and the AEM Experimentation plugin. Sizes first-match cohort rules on Optel bundles (referrer, campaign tags, ad clicks, AI assistants, device, on-device visit memory), renders the traffic Sankey, builds a cohort page as a proof of concept (on a branch or a noindex URL), promotes it as a 90/10 experiment against the untouched homepage with an author-controlled rollback, and reviews each cohort against its holdout every month to add, fix or drop rules. Use when asked to personalise or optimise a homepage by audience, segment or cohort, to reduce homepage bounce or no-click views, to run a homepage POC or experiment on EDS, to promote or roll back a cohort homepage, or to run the monthly cohort review.
+description: Optimise the homepage of an AEM Edge Delivery Services site for the cohorts in its real traffic, using AEM Operational Telemetry (Optel) data and the AEM Experimentation plugin. Sizes first-match cohort rules on Optel bundles (referrer, campaign tags, ad clicks, AI assistants, device, on-device visit memory), renders the traffic Sankey, builds a cohort page (sections and, optionally, a picture story per cohort) as a proof of concept (on a branch or a noindex URL), promotes it as a 90/10 experiment against the untouched homepage with an author-controlled rollback, and reviews each cohort against its holdout every month to add, fix or drop rules. Use when asked to personalise or optimise a homepage by audience, segment or cohort, to reduce homepage bounce or no-click views, to run a homepage POC or experiment on EDS, to choose the pictures per cohort, to promote or roll back a cohort homepage, or to run the monthly cohort review.
 ---
 
 # Homepage cohorts
@@ -30,6 +30,7 @@ Reports and scripts:
 | `scripts/sankey.js` | `cohorts.json` → `sankey.svg` / `sankey.html` (flows tagged for the video) |
 | `scripts/verify.js` | homepage URL + cohort page URL → ok / first differing section (the holdout guarantee) |
 | `scripts/agent-check.js` | cohort page URL → findings for the page a personal AI agent gets, first-screen screenshot and accessibility tree (needs Playwright) |
+| `scripts/pictures.js` | homepage bundles + rules [+ site] → `pictures.json` (pictures each rule has in view, how many pictures down the page it gets, the pictures where the group lands elsewhere) |
 | `scripts/review.js` | a month of bundles + rules → `review.json` / `review.md` (lift per rule vs holdout, A/A check, unmatched traffic) |
 
 The explainer video for leadership, and the monthly video update, are made with the
@@ -120,7 +121,13 @@ which cohorts, what each gets first, what goes away for it.
    Give every cohort section an `Insight` (Section Metadata: the Optel finding behind it) and,
    where the owner agrees, publish `cohorts.json` at `/cohorts/cohorts.json`: Insights mode then
    explains each section and each visitor with the data (`references/content-model.md`).
-6. Lint, the site's tests (add rule tests, `references/install.md` §5), and a PR with the
+6. Optional, once the sections stand: **picture stories** (`references/picture-stories.md`).
+   The large pictures down the page follow each cohort's question, one step per picture, taken
+   from the site's own pages where that group lands. `scripts/pictures.js` says how many
+   pictures each cohort actually reaches and which pages the pictures can come from. Agree a
+   storyboard first, check every picture on its source page (AI label, legal lines), and add one
+   section per cohort in a `Slot` per picture.
+7. Lint, the site's tests (add rule tests, `references/install.md` §5), and a PR with the
    preview link to `/new?demo`.
 
 Automated browsers report `navigator.webdriver` and are treated as bots (original page).
@@ -160,6 +167,9 @@ Read the review:
   needs months pooled (`--start` three months back) before it can be judged. Check
   `control.bundles` per rule before reading anything into a lift.
 - **Shares**: measured shares replace the modelled estimates from step 2.
+- **Picture stories** (if the page has them): `pictures.js --path /new` (or `/` once promoted),
+  `depth` per rule. A cohort that stops short of its own closing picture gets its key picture
+  moved up or a shorter story (`references/picture-stories.md` §5).
 - **Unmatched traffic** (`unmatched.bySource`, `byFirstClick`): large groups no rule catches
   are candidate new rules (a new campaign, a new referrer, a new AI assistant).
 
