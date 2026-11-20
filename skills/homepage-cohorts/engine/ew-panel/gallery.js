@@ -492,7 +492,8 @@ async function boot() {
   const sdk = await DA_SDK;
   clearTimeout(timer);
   const ctx = sdk.context || {};
-  state.path = ctx.path || rules.pocPath || '/new';
+  // the homepage's document is /index; its pages are served at /
+  state.path = (ctx.path || rules.pocPath || '/new').replace(/\/index$/, '/');
   check('handshake', true);
   if (typeof sdk.actions?.subscribeLiveDocument === 'function') {
     sdk.actions.subscribeLiveDocument(({ html }) => { state.live = true; setDocument(html); });
