@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  camelKey, sectionOfBlock, experiencesOf, lint, holdout, previewUrl, audienceOf,
+  camelKey, sectionOfBlock, experiencesOf, lint, holdout, previewUrl, audienceOf, campaignFor,
+  groupColor,
 } from '../skills/homepage-cohorts/engine/ew-panel/model.js';
 import rules from '../skills/homepage-cohorts/engine/cohort-rules.js';
 
@@ -120,4 +121,28 @@ test('edits: one metadata change, its prompt, its check and its undo', async () 
   assert.match(newSectionHtml('prospect', 'Prospect'), /<td>Cohorts<\/td><td>prospect<\/td>/);
   assert.match(versionPrompt({ ...s, meta: { slot: 'hero' } }, 'customer', 'Customer'), /"Slot: hero" and "Cohorts: customer"\.$/);
   assert.match(versionPrompt(s, 'customer', 'Customer'), /add "customer" to the original section's "Hide For" row/);
+});
+
+test('intent links use a campaign value the engine reads as that intent', () => {
+  const r = {
+    ...rules,
+    intents: [['used', 'gebraucht|used-car|premium-selection'], ['electric', 'elektro|electric|/bmw-i[x0-9]'], ['m', '/m/|bmw-m']],
+  };
+  // the id itself is not matched by the used pattern: the first plain word that is
+  assert.equal(campaignFor(r, 'used'), 'gebraucht');
+  // the id itself when the pattern reads it
+  assert.equal(campaignFor(r, 'electric'), 'electric');
+  // regex pieces are skipped: '/m/' is not a campaign value, 'bmw-m' is
+  assert.equal(campaignFor(r, 'm'), 'bmw-m');
+  // an intent the rules do not list: the id
+  assert.equal(campaignFor(r, 'other'), 'other');
+  const u = new URL(previewUrl('https://x.example', '/new', { id: 'prospect:used', experience: 'prospect', intent: 'used' }, r));
+  assert.equal(u.searchParams.get('utm_campaign'), 'gebraucht');
+});
+
+test('group colours: default first, intents share their group\'s colour', () => {
+  const ids = Object.keys(rules.experiences || {});
+  assert.match(groupColor(rules, 'default'), /gray/);
+  assert.equal(groupColor(rules, `${ids[0]}:anything`), groupColor(rules, ids[0]));
+  assert.notEqual(groupColor(rules, ids[0]), groupColor(rules, 'default'));
 });

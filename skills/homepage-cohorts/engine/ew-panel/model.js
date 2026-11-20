@@ -243,6 +243,39 @@ export function holdout(originalSections, defaultOrder, sections) {
 }
 
 /** Preview URL for an experience: the first rule that leads to it, forced with ?cohort= */
+/* group identity colours (Spectrum 2 categorical), in rules.experiences order after default */
+const COLORS = [
+  'var(--swc-gray-visual-color, #8f8f8f)',
+  'var(--swc-blue-visual-color, #4b75ff)',
+  'var(--swc-magenta-visual-color, #e5396b)',
+  'var(--swc-seafoam-visual-color, #0f977f)',
+  'var(--swc-orange-visual-color, #e86a00)',
+  'var(--swc-purple-visual-color, #9d5ae5)',
+  'var(--swc-celery-visual-color, #3fa54a)',
+];
+
+/** A group's colour: the same in the Cohorts panel and the gallery; intents share their group's. */
+export function groupColor(rules, id) {
+  const base = String(id).split(':')[0];
+  const i = ['default', ...Object.keys(rules.experiences || {})].indexOf(base);
+  return COLORS[(i < 0 ? COLORS.length - 1 : i) % COLORS.length];
+}
+
+/**
+ * A campaign value the engine reads as this intent. The intent id itself is not always one: BMW's
+ * `used` intent matches 'gebraucht|used-car|premium-selection', not 'used'. Tries the id, then
+ * each plain word of the pattern, and keeps the first that the intents (first match wins) map
+ * back to the intent.
+ */
+export function campaignFor(rules, intent) {
+  const intents = rules.intents || [];
+  const pattern = (intents.find(([id]) => id === intent) || [])[1] || '';
+  const words = [intent, ...pattern.split('|').map((w) => w.replace(/[\\^$/]/g, ''))]
+    .filter((w) => /^[\w-]+$/.test(w));
+  const reads = (value) => (intents.find(([, re]) => new RegExp(re, 'i').test(value)) || [])[0];
+  return words.find((w) => reads(w) === intent) || intent;
+}
+
 export function previewUrl(origin, path, exp, rules) {
   // everyone else gets the original page: that is the homepage itself, not a forced rule
   // variations on the homepage itself: ?cohort=original pins it, whatever the visit matches
@@ -253,7 +286,7 @@ export function previewUrl(origin, path, exp, rules) {
   {
     const r = (rules.rules || []).find((x) => x.experience === exp.experience && (!exp.intent || x.intent === 'utm')) || (rules.rules || []).find((x) => x.experience === exp.experience);
     if (r) u.searchParams.set('cohort', r.id);
-    if (exp.intent) u.searchParams.set('utm_campaign', exp.intent);
+    if (exp.intent) u.searchParams.set('utm_campaign', campaignFor(rules, exp.intent));
   }
   u.searchParams.set('demo', '');
   return u.toString().replace(/demo=$/, 'demo').replace(/demo=&/, 'demo&');

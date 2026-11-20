@@ -9,6 +9,10 @@
  *     the rest), how the visitor was detected, and a link to the original page.
  *   - Explain sections (or ?insights): a note on every section saying why it is there, with the
  *     data behind it (cohort-insights.js).
+ *
+ * ?dock=off: no dock, no visitor sheet; with ?insights the notes only. For views where the
+ * visitor is chosen outside the page (the cohort gallery's columns, screenshots). Nothing is
+ * written to storage, so the Explain choice of a normal ?demo page is left alone.
  */
 import {
   forgetVisitor, readMemory, matchRule, signalsFor, memoryAllowed,
@@ -189,6 +193,11 @@ function pick(rules, i) {
 /* ---------- the dock ---------- */
 
 export default function initPanel(rules) {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('dock') === 'off') {
+    if (params.has('insights')) loadInsightData(rules).then((data) => showInsights(rules, data));
+    return;
+  }
   const ctx = window.cohorts;
   const el = document.createElement('aside');
   el.className = 'cohort-panel';
