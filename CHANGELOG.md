@@ -10,6 +10,8 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-20
+
 ### Homepage cohorts: Experience Workspace panel
 - New layout for the side panel: a one-line variation switcher with a share strip replaces the
   grid of cards (365px to about 56px), Everyone else first as the baseline; Page, Overview and
@@ -492,7 +494,8 @@ First release: one dependency-free client plus an agent skill.
   `onetrust` in the selector, count as cookie-banner clicks.
 - Journeys label back/forward and reload views instead of "(unknown)".
 
-[Unreleased]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/keepthebyte/aem-optel-clients/compare/v0.3.1...v0.4.0

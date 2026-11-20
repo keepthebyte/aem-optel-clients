@@ -98,7 +98,7 @@
    §1 CONSTANTS AND THE CHECKPOINT REFERENCE
    ═══════════════════════════════════════════════════════════════════════════ */
 
-export const VERSION = '0.6.0';
+export const VERSION = '0.7.0';
 export const BUNDLER = 'https://bundles.aem.page';
 
 /**
