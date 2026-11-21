@@ -14,6 +14,10 @@
  * - Explain reloads the frames with the engine's notes and no presenter dock
  *   (?demo&insights&dock=off).
  *
+ * - Views: Experiences (the columns), Cohort data (how the cohorts came about, flow.js) and
+ *   Outcome (what works against the holdout and what needs attention, holdout.js). The last two
+ *   load when opened.
+ *
  * Spectrum 2 tokens with fallbacks, as the Cohorts panel; the controls follow the S2 picker,
  * menu, checkbox, action group, switch and close button.
  *
@@ -48,6 +52,7 @@ const state = {
   exps: [],
   cohortsJson: null,
   device: params.get('device') || saved.device || 'desktop',
+  view: params.get('view') || saved.view || 'pages',
   // variations shown as columns, in the order of the variations; null = all
   shown: (params.get('exp') && new Set(params.get('exp').split(',')))
     || (saved.shown && new Set(saved.shown)) || null,
@@ -57,6 +62,8 @@ const state = {
   problems: {},
 };
 if (!DEVICES[state.device]) state.device = 'desktop';
+const VIEWS = { pages: 'Experiences', flow: 'Cohort data', holdout: 'Outcome' };
+if (!VIEWS[state.view]) state.view = 'pages';
 
 const h = (tag, cls, ...kids) => {
   const el = document.createElement(tag);
@@ -75,7 +82,7 @@ const dot = (id) => tint(h('span', 'dot'), id);
 function save() {
   try {
     localStorage.setItem(STORE, JSON.stringify({
-      device: state.device, shown: state.shown ? [...state.shown] : null,
+      device: state.device, view: state.view, shown: state.shown ? [...state.shown] : null,
     }));
   } catch { /* no storage */ }
 }
@@ -399,17 +406,52 @@ function renderExplain() {
   return b;
 }
 
+function renderViews() {
+  const tabs = h('div', 'tabs');
+  tabs.setAttribute('role', 'tablist');
+  tabs.setAttribute('aria-label', 'View');
+  Object.entries(VIEWS).forEach(([id, label]) => {
+    const b = h('button', 'tab', label);
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', String(state.view === id));
+    b.addEventListener('click', () => setView(id));
+    tabs.append(b);
+  });
+  return tabs;
+}
+
+function setView(id) {
+  if (state.view === id) return;
+  state.view = id;
+  state.menu = false;
+  save();
+  renderStage();
+  renderTop();
+}
+
+/** From the Flow: show the page of one experience. */
+function showExperience(id) {
+  if (state.exps.some((e) => e.id === id)) state.shown = new Set([id]);
+  state.view = 'pages';
+  save();
+  render();
+}
+
 function renderTop() {
   const focusId = document.activeElement?.closest?.('.picker-wrap') ? document.activeElement.id : '';
+  const pages = state.view === 'pages';
   const top = h(
     'header',
     'top',
-    h('h1', '', 'Cohort gallery'),
-    renderPicker(),
-    renderDevices(),
-    renderExplain(),
-    state.live ? null : h('span', 'sub', 'Published page: not connected to the editor'),
-    h('span', 'scale', ''),
+    // the dialog's title already says Cohort gallery: the heading is for screen readers only
+    h('h1', 'sr-only', 'Cohort gallery'),
+    renderViews(),
+    pages && renderPicker(),
+    pages && renderDevices(),
+    pages && renderExplain(),
+    pages && !state.live ? h('span', 'sub', 'Published page: not connected to the editor') : null,
+    pages ? h('span', 'scale', '') : null,
   );
   const old = app.querySelector('.top');
   if (old) old.replaceWith(top); else app.prepend(top);
@@ -419,11 +461,32 @@ function renderTop() {
 }
 
 function renderStage() {
-  const stage = h('main', `stage ${state.device}`);
+  const pages = state.view === 'pages';
+  const stage = h('main', pages ? `stage ${state.device}` : `stage report ${state.view}`);
   const old = app.querySelector('.stage');
   if (old) old.replaceWith(stage);
   else app.append(stage);
-  syncColumns();
+  if (pages) syncColumns();
+  else renderReport(stage, state.view);
+}
+
+let review;
+async function renderReport(stage, view) {
+  stage.append(h('p', 'note', 'Loading…'));
+  try {
+    if (view === 'flow') {
+      const { default: renderFlow } = await import('./flow.js');
+      stage.replaceChildren();
+      renderFlow(stage, { data: state.cohortsJson, rules, onPick: showExperience });
+    } else {
+      const { default: renderHoldout, loadReview } = await import('./holdout.js');
+      review = review || await loadReview(state.cohortsJson, rules);
+      stage.replaceChildren();
+      renderHoldout(stage, { review, rules, onPick: showExperience });
+    }
+  } catch (e) {
+    stage.replaceChildren(h('p', 'note bad', `Could not show ${VIEWS[view]}: ${e.message}`));
+  }
 }
 
 function render() {
@@ -438,7 +501,7 @@ function render() {
 /* ---------- keys and clicks ---------- */
 
 document.addEventListener('keydown', (ev) => {
-  if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+  if (ev.metaKey || ev.ctrlKey || ev.altKey || state.view !== 'pages') return;
   if (/^[1-9]$/.test(ev.key)) {
     const e = state.exps[Number(ev.key) - 1];
     if (e) { ev.preventDefault(); toggle(e.id); }

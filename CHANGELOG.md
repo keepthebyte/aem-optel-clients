@@ -10,6 +10,13 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: gallery tabs Cohort data and Outcome
+- The gallery has three tabs: Experiences (the columns), **Cohort data** (`flow.js`, an
+  interactive Sankey of how the cohorts came about, from `cohorts.json`, with week by week and
+  what to look at again) and **Outcome** (`holdout.js`, each cohort against the holdout from
+  `review.json`, grouped as needs attention / working / optimize / waiting; labelled example data
+  until review.json exists). `install.md` §7b. In use on frescopa26, aem-marsh and aem-bmw.
+
 ### Homepage cohorts: gallery in Experience Workspace
 - New `engine/ew-panel/gallery.html` (`gallery.js`, `gallery.css`): a full-size dialog extension
   (`experience: fullsize-dialog`) that shows the cohort page once per variation, side by side,
