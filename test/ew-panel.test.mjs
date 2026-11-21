@@ -126,18 +126,18 @@ test('edits: one metadata change, its prompt, its check and its undo', async () 
 test('intent links use a campaign value the engine reads as that intent', () => {
   const r = {
     ...rules,
-    intents: [['used', 'gebraucht|used-car|premium-selection'], ['electric', 'elektro|electric|/bmw-i[x0-9]'], ['m', '/m/|bmw-m']],
+    intents: [['used', 'second-hand|used-car|certified'], ['electric', 'ev|electric|/model-e[x0-9]'], ['m', '/m/|sport-m']],
   };
   // the id itself is not matched by the used pattern: the first plain word that is
-  assert.equal(campaignFor(r, 'used'), 'gebraucht');
+  assert.equal(campaignFor(r, 'used'), 'second-hand');
   // the id itself when the pattern reads it
   assert.equal(campaignFor(r, 'electric'), 'electric');
-  // regex pieces are skipped: '/m/' is not a campaign value, 'bmw-m' is
-  assert.equal(campaignFor(r, 'm'), 'bmw-m');
+  // regex pieces are skipped: '/m/' is not a campaign value, 'sport-m' is
+  assert.equal(campaignFor(r, 'm'), 'sport-m');
   // an intent the rules do not list: the id
   assert.equal(campaignFor(r, 'other'), 'other');
   const u = new URL(previewUrl('https://x.example', '/new', { id: 'prospect:used', experience: 'prospect', intent: 'used' }, r));
-  assert.equal(u.searchParams.get('utm_campaign'), 'gebraucht');
+  assert.equal(u.searchParams.get('utm_campaign'), 'second-hand');
 });
 
 test('group colours: default first, intents share their group\'s colour', () => {

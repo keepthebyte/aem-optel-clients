@@ -37,7 +37,7 @@ change report shapes or classification results; read **Changed** before upgradin
   interactive Sankey of how the cohorts came about, from `cohorts.json`, with week by week and
   what to look at again) and **Outcome** (`holdout.js`, each cohort against the holdout from
   `review.json`, grouped as needs attention / working / optimize / waiting; labelled example data
-  until review.json exists). `install.md` §7b. In use on frescopa26, aem-marsh and aem-bmw.
+  until review.json exists). `install.md` §7b.
 
 ### Homepage cohorts: gallery in Experience Workspace
 - New `engine/ew-panel/gallery.html` (`gallery.js`, `gallery.css`): a full-size dialog extension
@@ -52,18 +52,18 @@ change report shapes or classification results; read **Changed** before upgradin
   (`cohort-preview.js`); `?dock=off` shows the section notes without the presenter dock
   (`cohort-panel.js`).
 - Cohorts panel: preview links for an interest variation now carry a campaign value the engine
-  reads as that intent (`campaignFor`): the intent id is not always one (BMW's `used` intent
-  matches `gebraucht`, not `used`), so those links showed the variation without its intent.
+  reads as that intent (`campaignFor`): the intent id is not always one (a `used` intent
+  that matches `second-hand`, not `used`), so those links showed the variation without its intent.
   Group colours move to `model.js` (`groupColor`), shared with the gallery. Tests for both.
 
 ### Homepage cohorts: picture stories
 - New facet: the pictures per cohort. `references/picture-stories.md` describes the method first
-  used on bmw.de: the large pictures down the page follow each cohort's question, one step per
+  used on a car maker's site: the large pictures down the page follow each cohort's question, one step per
   picture, taken from the site's own pages and checked on them (AI label, legal lines such as
   WLTP consumption). They are laid out with the existing `Slot` mechanism, with no engine change.
 - New `scripts/pictures.js`: on the same rules as `size.js`, which pictures each rule's views have
   in view on the homepage (`share`, `vsAll`, `position`, `leansTo`), how many pictures down the
-  page each cohort gets (`depth`: on bmw.de 69% of views reached a second picture, 22% a third),
+  page each cohort gets (`depth`: on that site 69% of views reached a second picture, 22% a third),
   and with `--site` the pictures where the same group lands elsewhere (`landing`, with each
   picture's page) and on the pages opened right after the homepage (`afterHome`). `--match`
   keeps the site's pictures, `--kinds` groups them. Smart-crop suffixes and renditions are one
