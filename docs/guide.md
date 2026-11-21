@@ -275,7 +275,7 @@ in Edge Delivery keeping the current design.
 Once the versions stand, the pictures in them can follow each cohort too: the large pictures
 down the page tell one story per cohort ("Will it fit my life?": an electric car in the city,
 a wallbox at home, far from home with it), taken from the site's own pages where that group
-lands. First done on bmw.de.
+lands. First done on a car maker's site.
 
 ```bash
 node $H/scripts/pictures.js --rules ../site/scripts/cohort-rules.js --bundles data/home.jsonl --site data/site.jsonl --match 'media_' --out out/pictures.json

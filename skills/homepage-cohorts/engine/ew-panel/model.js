@@ -267,8 +267,8 @@ export function groupColor(rules, id) {
 }
 
 /**
- * A campaign value the engine reads as this intent. The intent id itself is not always one: BMW's
- * `used` intent matches 'gebraucht|used-car|premium-selection', not 'used'. Tries the id, then
+ * A campaign value the engine reads as this intent. The intent id itself is not always one: a
+ * `used` intent can match 'second-hand|used-car|certified', not 'used'. Tries the id, then
  * each plain word of the pattern, and keeps the first that the intents (first match wins) map
  * back to the intent.
  */
