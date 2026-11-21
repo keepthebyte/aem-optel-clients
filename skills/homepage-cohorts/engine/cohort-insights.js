@@ -235,6 +235,49 @@ export function loadInsightData(rules) {
   return pending;
 }
 
+/*
+ * Insight notes by reference. Section Metadata is published with the page, so a note written
+ * there is public, numbers included. With `rules.insights.notes` (a sheet or JSON that is
+ * previewed and not published, e.g. /cohorts/insights.json), the section carries an id
+ * (`Insight: hero-proof`) and the note is looked up here: where the file cannot be read (the
+ * live site), there is no note.
+ */
+
+/** { id: note } from a sheet ({ data: [{ id, note }] }) or a plain { id: note } object. */
+export function notesFrom(json) {
+  if (!json) return null;
+  const rows = Array.isArray(json.data) ? json.data.map((r) => [r.id ?? r.Id ?? r.ID, r.note ?? r.Note ?? r.insight ?? r.Insight]) : Object.entries(json);
+  return Object.fromEntries(rows
+    .filter(([id, note]) => id && typeof note === 'string' && note.trim())
+    .map(([id, note]) => [String(id).trim().toLowerCase(), note.trim()]));
+}
+
+/** An id is one word: letters, digits, dashes, underscores. Anything else is a written note. */
+export const isNoteRef = (value) => /^[\w-]+$/.test(String(value || '').trim());
+
+/**
+ * The note for a section's `Insight` value: the note with that id, '' for an id whose note is
+ * not readable here, and the value itself when it is a note written in the page (the old way).
+ */
+export function noteFor(value, notes) {
+  const v = String(value || '').trim();
+  if (!v) return '';
+  const hit = notes && notes[v.toLowerCase()];
+  if (hit) return hit;
+  return isNoteRef(v) ? '' : insightText(v);
+}
+
+let pendingNotes;
+/** The notes file, once per page; null when the rules name none or it cannot be read. */
+export function loadInsightNotes(rules) {
+  const src = rules.insights?.notes;
+  if (!src) return Promise.resolve(null);
+  if (!pendingNotes) {
+    pendingNotes = fetch(src).then((r) => (r.ok ? r.json() : null)).then(notesFrom).catch(() => null);
+  }
+  return pendingNotes;
+}
+
 export function hideInsights(main = document.querySelector('main')) {
   main?.querySelectorAll('.cohort-insight').forEach((n) => n.remove());
   document.body.classList.remove('cohort-insights');
@@ -248,7 +291,7 @@ const ICON = '<svg class="cohort-insight-icon" viewBox="0 0 24 24" aria-hidden="
 export const statsHTML = (stats, cls) => `<ul class="${cls}">${stats.map((x) => `<li><b>${esc(x.value)}</b> <span>${esc(x.text)}</span></li>`).join('')}</ul>`;
 
 /** A note at the top of every visible section; the first one also gets the cohort's numbers. */
-export function showInsights(rules, data, ctx = window.cohorts, main = document.querySelector('main')) {
+export function showInsights(rules, data, ctx = window.cohorts, main = document.querySelector('main'), notes = null) {
   if (!main) return;
   hideInsights(main);
   document.body.classList.add('cohort-insights');
@@ -256,7 +299,7 @@ export function showInsights(rules, data, ctx = window.cohorts, main = document.
   const facts = ruleFacts(data, ctx?.rule || null, rules);
   [...main.querySelectorAll(':scope > .section')].forEach((s, i) => {
     const reasons = sectionReasons(s.dataset, ctx, rules);
-    const text = s.dataset.insight ? insightText(s.dataset.insight) : '';
+    const text = noteFor(s.dataset.insight, notes);
     const generated = s.dataset.insightPath ? pathFacts(data, s.dataset.insightPath, rules) : [];
     const first = i === 0 && facts;
     const note = document.createElement('aside');

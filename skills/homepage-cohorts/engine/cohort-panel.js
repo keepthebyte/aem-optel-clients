@@ -18,12 +18,12 @@ import {
   forgetVisitor, readMemory, matchRule, signalsFor, memoryAllowed,
 } from './cohorts.js';
 import {
-  loadInsightData, showInsights, hideInsights, ruleFacts, statsHTML,
+  loadInsightData, loadInsightNotes, showInsights, hideInsights, ruleFacts, statsHTML,
 } from './cohort-insights.js';
 
 const INSIGHTS_KEY = 'cohort-insights';
 const PICK_KEY = 'cohort-scenario';
-const PARAMS = ['cohort', 'ref', 'agent', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'experiment', 'gclid', 'fbclid'];
+const PARAMS = ['cohort', 'ref', 'agent', 'consent', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'experiment', 'gclid', 'fbclid'];
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
@@ -74,6 +74,12 @@ function visitorName(rules, ctx, i) {
 
 /* ---------- Explain sections switch ---------- */
 
+/* the section notes: the cohort's numbers (cohorts.json) and the notes the sections refer to */
+async function explain(rules) {
+  const [data, notes] = await Promise.all([loadInsightData(rules), loadInsightNotes(rules)]);
+  showInsights(rules, data, undefined, undefined, notes);
+}
+
 function insightsOn() {
   if (new URLSearchParams(window.location.search).has('insights')) return true;
   return store.get(INSIGHTS_KEY) === '1';
@@ -89,7 +95,7 @@ function explainSwitch(rules) {
   const set = async (on) => {
     b.setAttribute('aria-checked', String(on));
     store.set(INSIGHTS_KEY, on ? '1' : '0');
-    if (on) showInsights(rules, await loadInsightData(rules));
+    if (on) explain(rules);
     else hideInsights();
   };
   b.addEventListener('click', () => set(b.getAttribute('aria-checked') !== 'true'));
@@ -124,6 +130,22 @@ async function fillData(box, rules, { rule, experience }, name) {
     <p class="cohort-muted">${esc(f.source)}</p>`;
 }
 
+/* Loyalty or new: the group, how strong the evidence is and what it is; the cookie decision. */
+function relationshipRows(rules, ctx) {
+  const rel = ctx.relationship;
+  if (!rel) return [];
+  const groups = rules.relationship?.groups || {};
+  const name = (g) => groups[g]?.label || g;
+  const why = rel.evidence.map((e) => `${e.label} (${e.strength})`).join('; ');
+  const cohortGroup = ctx.group && ctx.group !== rel.group ? `. This rule is a ${name(ctx.group)} cohort` : '';
+  const consent = ctx.signals?.consent;
+  const memory = rel.remember ? '' : ': nothing more is remembered';
+  return [
+    ['Relationship', rel.group === 'loyalty' ? `${name('loyalty')}, ${rel.strength} evidence: ${why}${cohortGroup}` : `${name('new')}: no sign they know us${cohortGroup}`],
+    ['Cookie choice', consent ? `${consent}${memory}` : 'not known'],
+  ];
+}
+
 function signalsHTML(rules, ctx) {
   const s = ctx.signals || {};
   const mem = readMemory(rules);
@@ -132,6 +154,7 @@ function signalsHTML(rules, ctx) {
   const interests = Object.entries(mem.interests || {}).map(([k, v]) => `${k} ${v}`).join(', ') || 'none yet';
   const rows = [
     ['Rule', ctx.forced ? `${rule?.label || ctx.rule} (forced with ?cohort)` : (rule?.label || 'none matched')],
+    ...relationshipRows(rules, ctx),
     ['Referrer', s.refHost || 'none'],
     ['Campaign', utm],
     ['Ad click', (s.paid || []).join(', ') || 'no'],
@@ -195,7 +218,7 @@ function pick(rules, i) {
 export default function initPanel(rules) {
   const params = new URLSearchParams(window.location.search);
   if (params.get('dock') === 'off') {
-    if (params.has('insights')) loadInsightData(rules).then((data) => showInsights(rules, data));
+    if (params.has('insights')) explain(rules);
     return;
   }
   const ctx = window.cohorts;

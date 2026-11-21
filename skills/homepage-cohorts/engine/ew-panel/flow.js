@@ -1,8 +1,9 @@
 /*
  * Gallery view "Flow": how the cohorts came about, from cohorts.json (size.js output).
  *
- * - An interactive Sankey: entry source → device → rule (first match wins) → homepage
- *   experience, laid out at the width it gets. Hover anything for its numbers; click (or Enter
+ * - An interactive Sankey: entry source → device → relationship (loyalty or new, when the rules
+ *   have groups: rules.relationship) → rule (first match wins) → homepage experience, laid out at
+ *   the width it gets. Hover anything for its numbers; click (or Enter
  *   on) a node to select it: its flows stay lit and the panel beside the chart explains it (where
  *   the views go, the rule's signal and behaviour today, its weekly share, its holdout result,
  *   the experience's rules, a button to see its page). Esc or a click on the background clears.
@@ -60,13 +61,53 @@ const swatch = (color, cls = 'sw') => {
 
 /* ---------- model ---------- */
 
+const KIND = {
+  e: 'entry', d: 'device', g: 'group', r: 'rule', x: 'exp',
+};
+const expNodes = (data) => data.columns[data.columns.length - 1]?.nodes || [];
+
+/**
+ * The same data with a relationship column between device and rule, when the rules put their
+ * cohorts in groups (rules.relationship.groups, `group` on each rule). cohorts.json has no such
+ * column: a view's group is the group of the rule that fired, and views no rule matched are
+ * `new` (new or unknown). Each device → rule flow passes through its group as one band, so it
+ * keeps its colour; a rule without a group (personal agents) is `other`.
+ */
+function withGroups(data, rules) {
+  const groups = rules.relationship?.groups;
+  if (!groups || data.columns.length !== 4) return data;
+  const ruleGroup = Object.fromEntries((rules.rules || []).map((r) => [r.id, r.group || 'other']));
+  ruleGroup.none = 'new';
+  const groupOf = (ruleNode) => ruleGroup[ruleNode.slice(2)] || 'other';
+  const views = {};
+  data.columns[2].nodes.forEach((n) => { views[groupOf(n.id)] = (views[groupOf(n.id)] || 0) + n.views; });
+  const nodes = [...Object.keys(groups), 'other'].filter((g) => views[g]).map((g) => ({
+    id: `g:${g}`, label: groups[g]?.label || 'No relationship', views: views[g],
+  }));
+  const signalOf = Object.fromEntries(data.columns[2].nodes.map((n) => [n.id, n.signal]));
+  const links = data.links.flatMap((l) => (l.s.startsWith('d:') && l.t.startsWith('r:')
+    ? [{ ...l, t: `g:${groupOf(l.t)}` }]
+    : [l]));
+  data.columns[2].nodes.forEach((n) => links.push({
+    s: `g:${groupOf(n.id)}`, t: n.id, signal: signalOf[n.id] || 'none', views: n.views, rules: [n.id.slice(2)],
+  }));
+  // the rules of a group sit together (their numbers still say which is tried first)
+  const order = nodes.map((n) => n.id.slice(2));
+  const ruleNodes = [...data.columns[2].nodes]
+    .sort((x, y) => order.indexOf(groupOf(x.id)) - order.indexOf(groupOf(y.id)));
+  const columns = [...data.columns.slice(0, 2), { head: 'Relationship', nodes }, { ...data.columns[2], nodes: ruleNodes }, data.columns[3]];
+  return {
+    ...data, columns, links, ruleGroup,
+  };
+}
+
 function model(data, rules) {
   const ruleExp = Object.fromEntries((rules.rules || []).map((r) => [r.id, r.experience]));
   ruleExp.none = 'default';
   const node = {};
   data.columns.forEach((c, ci) => c.nodes.forEach((n) => {
     node[n.id] = {
-      ...n, ci, out: [], in: [], kind: ['entry', 'device', 'rule', 'exp'][ci],
+      ...n, ci, out: [], in: [], kind: KIND[n.id[0]],
     };
   }));
   const links = data.links.filter((l) => node[l.s] && node[l.t]).map((l, i) => ({ ...l, i }));
@@ -77,7 +118,7 @@ function model(data, rules) {
   const allWeeks = (data.today?.weeks || []).slice(0, full);
   const weekShare = (weeks) => allWeeks.map((v, i) => (v ? ((weeks || [])[i] || 0) / v : 0));
   return {
-    node, links, ruleExp, ruleOf, expOf, total: data.meta.views, weekShare,
+    node, links, ruleExp, ruleOf, expOf, total: data.meta.views, weekShare, ruleGroup: data.ruleGroup || {},
   };
 }
 
@@ -85,6 +126,7 @@ function model(data, rules) {
 function rulesOf(m, n) {
   if (n.kind === 'rule') return [n.id.slice(2)];
   if (n.kind === 'exp') return Object.entries(m.ruleExp).filter(([, x]) => x === n.id.slice(2)).map(([r]) => r);
+  if (n.kind === 'group') return Object.entries(m.ruleGroup).filter(([, g]) => g === n.id.slice(2)).map(([r]) => r);
   return null;
 }
 
@@ -112,7 +154,8 @@ function nodeColor(m, n) {
 function layout(m, data, width) {
   const labelR = Math.min(260, Math.max(170, width * 0.24));
   const span = width - labelR - BAR;
-  const colX = [0, span * 0.3, span * 0.6, span];
+  const last = data.columns.length - 1;
+  const colX = (last === 4 ? [0, 0.21, 0.4, 0.6, 1] : [0, 0.3, 0.6, 1]).map((f) => span * f);
   const avail = Math.min(...data.columns.map((c) => HEIGHT - TOP - (c.nodes.length - 1) * PAD));
   const k = avail / m.total;
   data.columns.forEach((c) => {
@@ -122,7 +165,7 @@ function layout(m, data, width) {
       n.x = colX[n.ci];
       n.y = y;
       n.h = Math.max(2, n.views * k);
-      n.room = n.ci < 3 ? colX[n.ci + 1] - colX[n.ci] - BAR - 14 : labelR - 8;
+      n.room = n.ci < last ? colX[n.ci + 1] - colX[n.ci] - BAR - 14 : labelR - 8;
       y += n.h + PAD;
     });
   });
@@ -292,6 +335,9 @@ function holdoutBlock(ids) {
   );
 }
 
+/* links summed per node on one side (`t` or `s`): several flows can join the same two nodes */
+const byNode = (links, side) => Object.entries(links.reduce((acc, l) => ({ ...acc, [l[side]]: (acc[l[side]] || 0) + l.views }), {}));
+
 const sumWeeks = (m, ids) => ids.reduce((acc, id) => (m.ruleOf[id]?.weeks || []).map((v, i) => (acc[i] || 0) + v), []);
 
 function panel(m, data, select, onPick) {
@@ -305,9 +351,9 @@ function panel(m, data, select, onPick) {
     el.append(
       h('p', 'eyebrow', 'Details'),
       h('h3', '', 'Pick a part of the flow'),
-      h('p', 'sub', 'Click a rule or an experience to follow its visitors and see what they do today. Sources and devices show where their views go.'),
+      h('p', 'sub', `Click a rule or an experience to follow its visitors and see what they do today. Sources and devices show where their views go${data.ruleGroup ? ', loyalty and new which cohorts they hold' : ''}.`),
       h('h4', '', 'Experiences'),
-      bars((data.columns[3]?.nodes || []).map((x) => ({
+      bars(expNodes(data).map((x) => ({
         label: plain(x.label), views: x.views, color: colorOf(x.id.slice(2)), onClick: () => select(x.id),
       })), m.total),
     );
@@ -319,21 +365,40 @@ function panel(m, data, select, onPick) {
   close.setAttribute('aria-label', 'Clear the selection');
   close.addEventListener('click', () => select(null));
   const kindLabel = {
-    entry: 'Entry source', device: 'Device', rule: `Rule ${n.label.match(/^\d+/)?.[0] || ''} · first match wins`, exp: 'Homepage experience',
+    entry: 'Entry source', device: 'Device', group: 'Relationship', rule: `Rule ${n.label.match(/^\d+/)?.[0] || ''} · first match wins`, exp: 'Homepage experience',
   }[n.kind];
   el.append(h('header', '', swatch(nodeColor(m, n), 'dot'), h('div', '', h('p', 'eyebrow', kindLabel), h('h3', '', name)), close));
 
   if (n.kind === 'entry' || n.kind === 'device') {
     el.append(
       h('dl', 'stats', h('div', 'stat', h('dt', '', 'Homepage views'), h('dd', '', pct(n.views / m.total)))),
-      h('h4', '', n.kind === 'entry' ? 'Then on' : 'Rules that fire'),
-      bars(n.out.map((l) => ({
-        label: plain(m.node[l.t].label), views: l.views, color: nodeColor(m, m.node[l.t]), onClick: () => select(l.t),
+      h('h4', '', { entry: 'Then on', device: data.ruleGroup ? 'Relationship' : 'Rules that fire' }[n.kind]),
+      bars(byNode(n.out, 't').map(([id, views]) => ({
+        label: plain(m.node[id].label), views, color: nodeColor(m, m.node[id]), onClick: () => select(id),
       })), m.total),
     );
     if (n.kind === 'device') {
       el.append(h('h4', '', 'Coming from'), bars(n.in.map((l) => ({ label: plain(m.node[l.s].label), views: l.views, onClick: () => select(l.s) })), m.total));
     }
+    return el;
+  }
+
+  if (n.kind === 'group') {
+    const g = RULES.relationship?.groups?.[n.id.slice(2)] || {};
+    el.append(
+      g.sub ? h('p', 'sub', g.sub) : null,
+      h('dl', 'stats', stat('Homepage views', pct(n.views / m.total)), stat('Cohorts', String(n.out.filter((l) => l.t !== 'r:none').length))),
+      g.goalLabel ? h('p', 'sub', `Optimised for: ${g.goalLabel}.`) : null,
+      h('h4', '', 'Cohorts in this group'),
+      bars(n.out.map((l) => ({
+        label: plain(m.node[l.t].label), views: l.views, color: nodeColor(m, m.node[l.t]), onClick: () => select(l.t),
+      })), m.total),
+      h('h4', '', 'Coming from'),
+      bars(byNode(n.in, 's').map(([id, views]) => ({ label: plain(m.node[id].label), views, onClick: () => select(id) })), m.total),
+      h('p', 'note-s', n.id === 'g:new'
+        ? 'A view counts here when its rule is a new-visitor cohort or when no rule matched. Returning visitors that only a cookie decision or visit memory would show are in here too: this data cannot see them.'
+        : 'A view counts here when the rule that fired is a loyalty cohort. Rules that depend on visit memory are estimates.'),
+    );
     return el;
   }
 
@@ -466,7 +531,7 @@ function legend(data) {
   return h(
     'ul',
     'legend',
-    (data.columns[3]?.nodes || []).map((x) => h('li', '', swatch(colorOf(x.id.slice(2))), plain(x.label).split(':')[0])),
+    expNodes(data).map((x) => h('li', '', swatch(colorOf(x.id.slice(2))), plain(x.label).split(':')[0])),
     h('li', '', swatch(NEUTRAL), 'Shared by several'),
   );
 }
@@ -477,6 +542,8 @@ export default async function renderFlow(host, { data, rules, onPick }) {
     host.append(h('p', 'note', 'No cohorts.json published at /cohorts/cohorts.json: run size.js and publish it to see how the cohorts came about.'));
     return;
   }
+  // eslint-disable-next-line no-param-reassign
+  data = withGroups(data, rules);
   const m = model(data, rules);
   const { meta } = data;
   const head = h('div', 'flow-head');

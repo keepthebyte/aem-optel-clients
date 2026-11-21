@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  pct, keyLabel, sectionReasons, ruleFacts,
+  pct, keyLabel, sectionReasons, ruleFacts, notesFrom, noteFor, isNoteRef,
 } from '../skills/homepage-cohorts/engine/cohort-insights.js';
 
 const rules = {
@@ -147,4 +147,25 @@ test('the supporting step shows next to the goal', () => {
   const f = ruleFacts(d, 'paid-social', { ...rules, rules: [{ id: 'paid-social', goalLabel: 'starts a quote', supportLabel: 'reads coverage' }] });
   assert.deepEqual(f.stats[2], { value: '21%', text: 'take the supporting step: reads coverage' });
   assert.ok(f.lines.includes('21% take the supporting step (reads coverage)'));
+});
+
+test('insight notes by id: from a sheet or a plain object', () => {
+  const sheet = notesFrom({ data: [{ id: 'Hero-Proof', note: ' 58% start a quote. ' }, { id: '', note: 'x' }, { id: 'empty', note: '' }] });
+  assert.deepEqual(sheet, { 'hero-proof': '58% start a quote.' });
+  assert.deepEqual(notesFrom({ tasks: 'Customers get their tasks first.' }), { tasks: 'Customers get their tasks first.' });
+  assert.equal(notesFrom(null), null);
+});
+
+test('a section note: looked up by id, hidden when the notes cannot be read, written notes as before', () => {
+  const notes = { 'hero-proof': '58% start a quote.' };
+  assert.equal(noteFor('hero-proof', notes), '58% start a quote.');
+  assert.equal(noteFor('Hero-Proof', notes), '58% start a quote.');
+  // the live site: the notes file is not published, so an id shows nothing
+  assert.equal(noteFor('hero-proof', null), '');
+  assert.equal(noteFor('no-such-note', notes), '');
+  // a note written in the page still shows (and has its commas repaired)
+  assert.equal(noteFor('Customers first,then the offer.', notes), 'Customers first, then the offer.');
+  assert.equal(noteFor('', notes), '');
+  assert.ok(isNoteRef('hero_proof-2'));
+  assert.ok(!isNoteRef('Two words'));
 });

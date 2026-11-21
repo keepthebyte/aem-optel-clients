@@ -10,6 +10,22 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: loyalty or new, a consent signal, notes by id
+- **Relationship split.** `rules.relationship` (groups and signals) and `group` on each rule:
+  `relationshipOf()` reads a visitor as loyalty or new from signals of strong, medium or weak
+  strength; `matchRule()` returns `group` and `relationship`. No page changes. The demo's visitor
+  sheet shows it, and the gallery's Cohort data Sankey gets a Relationship column between device
+  and rule (rules sorted by group, a details panel per group). `rules.md`.
+- **Consent signal.** `consentOf()` reads the OneTrust cookies (granted, rejected, customized,
+  undecided); `when.consent`, `when.consentBefore`, `?consent=` in the demo. **Changed:** no
+  on-device memory is read or written for a visitor who rejected or limited cookies.
+- **Insight notes by id.** Section Metadata is published with the page, so written notes leaked
+  their numbers. `rules.insights.notes` names a notes file (a sheet with `id` and `note`,
+  previewed and not published); a section's `Insight` holds the id. `noteFor()`, `notesFrom()`,
+  `loadInsightNotes()` in `cohort-insights.js`; Explain sections and the Experience Workspace
+  panel look notes up, and the panel's Checks flag a written note with numbers. Written notes
+  still show. `content-model.md`.
+
 ### Homepage cohorts: gallery tabs Cohort data and Outcome
 - The gallery has three tabs: Experiences (the columns), **Cohort data** (`flow.js`, an
   interactive Sankey of how the cohorts came about, from `cohorts.json`, with week by week and

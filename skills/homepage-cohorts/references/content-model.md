@@ -22,7 +22,7 @@ Authors keep editing it like any page; the engine removes what a visitor should 
 | `Hide For` | `customer, mobile` | Section removed for these experiences (use `default` to hide it from unmatched visitors and keep the default identical to the homepage). On a `Slot` section it leaves the slot empty for that experience when this section would be the one shown. |
 | `Promote` | `customer` | Section moved right under the first section for these experiences. |
 | `Insight Path` | `/coverage-exclusions` | Not read by the engine. The page this section stands in for; Insights mode generates its findings from `cohorts.json` `secondOrder` (next stop after the homepage, next step after a page, lift before the conversion). Comma list allowed. Prefer it to typed numbers. |
-| `Insight` | `Coverage & exclusions is the #1 next step from product pages (2.8k in 8 weeks).` | Not read by the engine. The Optel finding behind the section, shown on the page in the demo panel's Insights mode and in the Experience Workspace panel. One or two sentences with the number and the period. |
+| `Insight` | `coverage-next-step` | Not read by the engine. The id of the section's note in the notes file (see below). A note written here directly still works, but it is published with the page: keep numbers out of it. The note is the Optel finding behind the section, shown on the page in the demo panel's Insights mode and in the Experience Workspace panel. One or two sentences with the number and the period. |
 
 Keys a visitor matches, most specific first: `<experience>:<intent>`, `<experience>`, `default`.
 `<experience>` comes from the rule (`experience: 'prospect'`), `<intent>` from the campaign
@@ -50,6 +50,28 @@ the panel's "What the data shows" add the visitor's cohort from `cohorts.json`: 
 does today against the page average, goal rate, growth and caveats (modelled, low sample),
 generated from the numbers, so they follow next month's `size.js` run. Keep numbers out of the
 visible copy; they belong in `Insight` and `cohorts.json`.
+
+### Notes live in a file that is not published
+
+Section Metadata is delivered with the page (`data-insight` on the section), so a note written
+there is public, with every share and rate in it. Keep the notes in a sheet instead:
+
+| id | note |
+| --- | --- |
+| `account-tasks` | ~15% of homepage views click Log in; customers get their tasks first. |
+| `coverage-next-step` | After a product page the #1 next step is coverage & exclusions (2.8k in 8 weeks). |
+
+- Author it as a sheet at `/cohorts/insights` (columns `id`, `note`), **preview it and do not
+  publish it**: it then exists on `*.aem.page` (where Experience Workspace and the demo run) and
+  not on the live site. `rules.insights.notes` names it (`/cohorts/insights.json`); a plain
+  `{ "id": "note" }` JSON file works too.
+- The section carries the id: `Insight: coverage-next-step`. An id is one word (letters, digits,
+  dashes, underscores).
+- Explain sections, the Experience Workspace panel and the gallery look the note up. Where the
+  file cannot be read there is no note; the panel names an id it cannot find.
+- The panel's Checks flag a written note that has numbers in it.
+- With site authentication on preview, the notes and `cohorts.json` are behind the same sign-in.
+  `cohorts.json` and `review.json` follow the same rule: preview, do not publish.
 
 ## Example
 
