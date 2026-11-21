@@ -169,3 +169,23 @@ test('a section note: looked up by id, hidden when the notes cannot be read, wri
   assert.ok(isNoteRef('hero_proof-2'));
   assert.ok(!isNoteRef('Two words'));
 });
+
+test('notes.js: written notes move to the notes file, the page keeps an id', async () => {
+  const { moveNotes } = await import('../skills/homepage-cohorts/scripts/notes.js');
+  const meta = (rows) => `<div class="section-metadata">\n${rows.map(([k, v]) => `  <div><div>${k}</div><div>${v}</div></div>`).join('\n')}\n</div>`;
+  const page = `<main><div><h2>Built to pay claims</h2>${meta([['Insight', '58% start a quote, twice the average.']])}</div>
+    <div>${meta([['Slot', 'hero'], ['Cohorts', 'member:pet, express'], ['Insight', 'Customers &amp; pets.']])}</div>
+    <div>${meta([['Insight', 'kept-id']])}</div><div>${meta([['Style', 'dark']])}</div></main>`;
+  const r = moveNotes(page);
+  assert.equal(r.moved, 2);
+  assert.deepEqual(r.notes, [
+    { id: 'built-to-pay-claims', note: '58% start a quote, twice the average.' },
+    { id: 'hero-member-pet', note: 'Customers & pets.' },
+  ]);
+  assert.ok(r.html.includes('<div>Insight</div><div>built-to-pay-claims</div>'));
+  assert.ok(r.html.includes('<div>Insight</div><div>kept-id</div>'));
+  assert.ok(!r.html.includes('58%'));
+  // a second run changes nothing, and a known note keeps its id
+  assert.equal(moveNotes(r.html, r.notes).moved, 0);
+  assert.equal(moveNotes(page, [{ id: 'claims', note: '58% start a quote, twice the average.' }]).notes[0].id, 'claims');
+});

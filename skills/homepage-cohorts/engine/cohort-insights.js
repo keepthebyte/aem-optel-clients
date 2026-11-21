@@ -246,7 +246,9 @@ export function loadInsightData(rules) {
 /** { id: note } from a sheet ({ data: [{ id, note }] }) or a plain { id: note } object. */
 export function notesFrom(json) {
   if (!json) return null;
-  const rows = Array.isArray(json.data) ? json.data.map((r) => [r.id ?? r.Id ?? r.ID, r.note ?? r.Note ?? r.insight ?? r.Insight]) : Object.entries(json);
+  const rows = Array.isArray(json.data)
+    ? json.data.map((r) => [r.id ?? r.Id ?? r.ID, r.note ?? r.Note ?? r.insight ?? r.Insight])
+    : Object.entries(json);
   return Object.fromEntries(rows
     .filter(([id, note]) => id && typeof note === 'string' && note.trim())
     .map(([id, note]) => [String(id).trim().toLowerCase(), note.trim()]));
@@ -273,7 +275,8 @@ export function loadInsightNotes(rules) {
   const src = rules.insights?.notes;
   if (!src) return Promise.resolve(null);
   if (!pendingNotes) {
-    pendingNotes = fetch(src).then((r) => (r.ok ? r.json() : null)).then(notesFrom).catch(() => null);
+    pendingNotes = fetch(src).then((r) => (r.ok ? r.json() : null)).then(notesFrom)
+      .catch(() => null);
   }
   return pendingNotes;
 }

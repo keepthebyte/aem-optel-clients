@@ -70,6 +70,8 @@ there is public, with every share and rate in it. Keep the notes in a sheet inst
 - Explain sections, the Experience Workspace panel and the gallery look the note up. Where the
   file cannot be read there is no note; the panel names an id it cannot find.
 - The panel's Checks flag a written note that has numbers in it.
+- `scripts/notes.js <page.html> --out <page.html> --notes insights.json` moves the written notes
+  of a page's stored HTML into the notes file and leaves their ids in the page.
 - With site authentication on preview, the notes and `cohorts.json` are behind the same sign-in.
   `cohorts.json` and `review.json` follow the same rule: preview, do not publish.
 
