@@ -16,7 +16,10 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const strip = (html) => html.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
+const strip = (html) => html.replace(/<[^>]+>/g, ' ')
+  .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+  .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+  .replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ')
   .replace(/&#x27;|&#39;|&rsquo;|’/g, "'")
   .replace(/\s+/g, ' ')
   .trim();
