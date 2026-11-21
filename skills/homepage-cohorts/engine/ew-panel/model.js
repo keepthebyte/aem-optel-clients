@@ -135,8 +135,8 @@ export function sectionLabel(s) {
  * The switcher's sections: page variations by relationship group (rules.relationship.groups),
  * [{ id, label, exps }], in the order the groups are defined, ungrouped variations last. A
  * variation belongs to the group most of its visitors are in (its rules' shares by group), else
- * to the group of its first rule. Everyone else (no rule matched) is new or unknown, as in the Sankey.
- * Without groups: one section with no label.
+ * to the group of its first rule. Everyone else (no rule matched) is new or unknown, as in the
+ * Sankey. Without groups: one section with no label.
  */
 export function relationshipSections(rules, exps, cohortsJson) {
   const groups = rules.relationship?.groups;

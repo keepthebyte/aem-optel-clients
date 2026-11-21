@@ -22,7 +22,8 @@ import rules from '../../scripts/cohort-rules.js';
 import { sendPick, readPick } from '../../scripts/cohort-preview.js';
 import { notesFrom, noteFor, isNoteRef } from '../../scripts/cohort-insights.js';
 import {
-  COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, relationshipSections, audienceOf, lint, holdout,
+  COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, relationshipSections,
+  audienceOf, lint, holdout,
   list, shortName, intentName, interestSources, variantDiff, groupColor,
 } from './model.js';
 import {
@@ -85,8 +86,11 @@ const name = (id) => shortName(rules, id);
 const visible = (s) => s.blocks.length || s.heading;
 /** The switcher's sections: by relationship (loyalty, new or unknown) when the rules have it.
  * Within a section, Everyone else first (the baseline), then most visitors first. */
-const menuSections = () => relationshipSections(rules, state.exps.filter((e) => !e.intent), state.cohortsJson)
-  .map((s) => ({
+const menuSections = () => relationshipSections(
+  rules,
+  state.exps.filter((e) => !e.intent),
+  state.cohortsJson,
+).map((s) => ({
     ...s,
     exps: [...s.exps].sort((a, b) => (a.id === 'default' ? -1 : 0) - (b.id === 'default' ? -1 : 0)
       || (b.share ?? -1) - (a.share ?? -1)),
