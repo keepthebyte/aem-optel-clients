@@ -212,7 +212,7 @@ imports those two files, and `*.aem.page` / `*.aem.live` send no CORS headers fo
 | From | To |
 | --- | --- |
 | `engine/ew-panel/index.html`, `panel.js`, `model.js`, `edits.js`, `cohorts.css` | `tools/cohorts/` |
-| `engine/ew-panel/gallery.html`, `gallery.js`, `gallery.css` (the gallery, §7b) | `tools/cohorts/` |
+| `engine/ew-panel/gallery.html`, `gallery.js`, `gallery.css`, `flow.js`, `holdout.js` (the gallery, §7b) | `tools/cohorts/` |
 
 Register it with a `library` row in the site's Experience Workspace config
 (`https://da.live/config#/{org}/{site}/`):
@@ -292,6 +292,24 @@ pre-production view: what each cohort will get, next to each other, before the e
   canvas preview proxy, `{ref}--{site}--{org}.preview.da.live`), so the gallery can scroll them.
 - An explicit `?cohort=` beats the panel's pick (`cohort-preview.js`): picking a variation in the
   Cohorts panel does not change or reload the gallery's columns.
+
+Three tabs, kept for the next time:
+
+- **Experiences**: the columns above.
+- **Cohort data** (`flow.js`): how the cohorts came about, from `/cohorts/cohorts.json` (size.js
+  output, §7): an interactive Sankey of entry source → device → rule that fires → homepage
+  experience, coloured by experience or by signal. Clicking a node opens its details (who gets
+  there, share by week, the holdout result) with a button to show that experience's page. Under
+  it: week by week per experience, and "Look at again" (a small rule that stands out, a rule that
+  grew, rules with too few views to judge, the share no rule matches, memory rules that are
+  estimates). Without `cohorts.json` the tab says so.
+- **Outcome** (`holdout.js`): each cohort against the visitors held back on the original page,
+  from `/cohorts/review.json` (review.js output). Rules are grouped as Needs attention (worse
+  than the holdout), Working (better), Optimize (enough visitors, no clear difference) and
+  Waiting for data, each with its lift, a 95% interval and what to do next. A `weeks` series per
+  rule (cumulative bundles and goal conversions) adds the goal-rate chart and "after N weeks";
+  without it the rest works. **Until review.json exists the tab shows example data built from
+  cohorts.json, labelled as such**: real shares and goal rates, invented effects.
 
 Register it as a second extension with `experience: fullsize-dialog`:
 
