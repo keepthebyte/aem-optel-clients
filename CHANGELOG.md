@@ -10,6 +10,12 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: data files stay off the live site
+- `install.md`, `SKILL.md`: `cohorts.json`, `review.json` and `insights.json` are files in the
+  content store, previewed and not published (200 on `*.aem.page`, 404 on `*.aem.live`). A copy
+  committed to the repository is served on the live host: keep one only with `/cohorts/*` in
+  `.hlxignore`.
+
 ### Homepage cohorts: loyalty or new, a consent signal, notes by id
 - **Relationship split.** `rules.relationship` (groups and signals) and `group` on each rule:
   `relationshipOf()` reads a visitor as loyalty or new from signals of strong, medium or weak

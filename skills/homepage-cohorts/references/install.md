@@ -49,10 +49,10 @@ Copy from this skill's `engine/`:
 `cohort-panel.js` imports `./cohorts.js` and `./cohort-insights.js`; keep them side by side.
 
 "Explain sections" (the dock switch, or `?demo&insights`) reads `insights.src` from the
-rules (default `/cohorts/cohorts.json`): copy `size.js` output there (run with `--site` so
-`Insight Path` notes have the second order to generate from) (`cohorts/cohorts.json` in
-the repo; Code Sync serves it). It is aggregated Optel data on a public host: publish it only
-where that is fine (a demo or POC branch, never without the site owner's OK). Without it the
+rules (default `/cohorts/cohorts.json`): put `size.js` output there (run with `--site` so
+`Insight Path` notes have the second order to generate from) as a file in the content store
+that is **previewed and not published** (see "Data files stay off the live site" below).
+Without it the
 section notes still show their reasons and `Insight` text; only the numbers are left out. Theme
 the notes with `--cohort-insight-max`, `--cohort-insight-gutter`, `--cohort-insight-gap`,
 `--cohort-font`, `--cohort-accent`, `--cohort-tint`, `--cohort-ink`, `--cohort-ink-2`, `--cohort-rule`
@@ -227,9 +227,18 @@ panel can be tried before it reaches `main`.
 - **Live while editing**: it subscribes to the editor's document (SDK `subscribeLiveDocument`)
   and maps `selection.blockIndex` to its section. Without that action it reads the published
   page (`{path}.plain.html`, page metadata from the page head) and says "published".
-- **Shares** per experience come from `cohorts.json` when it is published at
-  `/cohorts/cohorts.json` (size.js output). That file is aggregated Optel data on a public
-  host: publish it only where that is fine, otherwise the panel just leaves shares out.
+- **Shares** per experience come from `cohorts.json` at `/cohorts/cohorts.json` (size.js
+  output), previewed and not published; without it the panel leaves shares out.
+- **Data files stay off the live site.** `cohorts.json`, `review.json` and the notes file
+  (`insights.json`, `content-model.md`) hold the site's shares, rates and findings. Nothing a
+  visitor gets needs them: only Explain sections, this panel and the gallery read them, on
+  `*.aem.page`. So they live in the content store, previewed and never published:
+  `PUT {api}/source/cohorts/cohorts.json` (`Content-Type: application/json`), then
+  `POST {api}/preview/cohorts/cohorts.json`, with `{api}` = `https://api.aem.live/{org}/sites/{site}`
+  on a Source Bus site. They are then 200 on `*.aem.page` and 404 on `*.aem.live`. A file
+  committed to the repository is served on both hosts by Code Sync: keep a copy there only with
+  `/cohorts/*` in `.hlxignore`. After each sizing run, upload and preview again. With site
+  authentication on preview, the files are behind the sign-in too.
 - **Layout view follows the panel**: picking a variation (or an interest) reloads the canvas
   Layout view as that variation; Content view keeps showing every section. The canvas serves the
   panel and the Layout page from the same `{ref}--{site}--{org}.preview.da.live` origin, so

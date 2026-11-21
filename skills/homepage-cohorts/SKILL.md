@@ -122,7 +122,8 @@ which cohorts, what each gets first, what goes away for it.
    Give every cohort section an `Insight` (Section Metadata: the id of its note in the notes
    file, which is previewed and not published, so the numbers stay off the live site;
    `content-model.md`) and,
-   where the owner agrees, publish `cohorts.json` at `/cohorts/cohorts.json`: Insights mode then
+   where the owner agrees, put `cohorts.json` at `/cohorts/cohorts.json` as a previewed, not
+   published, file (`install.md`, "Data files stay off the live site"): Insights mode then
    explains each section and each visitor with the data (`references/content-model.md`).
 6. Optional, once the sections stand: **picture stories** (`references/picture-stories.md`).
    The large pictures down the page follow each cohort's question, one step per picture, taken
