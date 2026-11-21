@@ -113,6 +113,30 @@ export function agentOf(ua = '', hint = '') {
 }
 
 /**
+ * The visitor's stored cookie decision, from the consent manager's own cookies (OneTrust:
+ * OptanonConsent holds the groups, OptanonAlertBoxClosed the time of the decision):
+ * { state: 'granted' | 'rejected' | 'customized' | 'undecided', at: ms | null }, or null when
+ * the page has no consent manager the engine can read. Strictly necessary groups do not count.
+ * A default the visitor never confirmed is 'undecided', not a rejection.
+ */
+export function consentOf(cookie = '') {
+  const raw = (name) => (new RegExp(`(?:^|;\\s*)${name}=([^;]*)`).exec(cookie) || [])[1];
+  const groupsRaw = raw('OptanonConsent');
+  if (groupsRaw == null) return null;
+  const closed = raw('OptanonAlertBoxClosed');
+  if (!closed) return { state: 'undecided', at: null };
+  let at = null;
+  try { at = Date.parse(decodeURIComponent(closed)) || null; } catch (e) { /* malformed */ }
+  const groups = (new URLSearchParams(groupsRaw).get('groups') || '').split(',')
+    .map((g) => g.split(':'))
+    .filter(([id, v]) => id && v != null && !/^(C0001|1)$/.test(id));
+  const on = groups.filter(([, v]) => v === '1').length;
+  if (!groups.length) return { state: 'undecided', at };
+  if (on === groups.length) return { state: 'granted', at };
+  return { state: on ? 'customized' : 'rejected', at };
+}
+
+/**
  * The intent named by a text (campaign tags, a path),
  * from rules.intents: [[id, regex], ...] in priority order.
  */
@@ -144,6 +168,10 @@ export function topInterest(memory = {}) {
  *   visits: { min, max }              on-device memory: visits including this one
  *   interest: true | ['pricing', ...] on-device memory: top interest exists / is one of
  *   intent: ['pricing', ...]          intent named by the campaign tags (or the top interest)
+ *   consent: true | 'granted' | [...] the stored cookie decision (true: any decision;
+ *                                     granted | rejected | customized | undecided)
+ *   consentBefore: true | false       the decision was made on an earlier visit: this visitor
+ *                                     has been here before, whatever they decided
  *   any: [when, when, ...]            at least one nested clause holds
  */
 function paidMatches(v, s) {
@@ -168,6 +196,11 @@ export function matches(when, s, rules = {}) {
       case 'visits': return (s.memory.visits || 0) >= (v.min ?? 0) && (s.memory.visits || 0) <= (v.max ?? Infinity);
       case 'interest': { const t = topInterest(s.memory); return v === true ? !!t : arr(v).includes(t); }
       case 'intent': return arr(v).includes(intentFrom(rules, `${s.utm.campaign} ${s.utm.content} ${s.utm.term}`) || topInterest(s.memory));
+      case 'consent': {
+        if (v === true) return !!s.consent && s.consent !== 'undecided';
+        return v === false ? !s.consent || s.consent === 'undecided' : arr(v).includes(s.consent);
+      }
+      case 'consentBefore': return !!s.consentBefore === v;
       case 'any': return arr(v).some((w) => matches(w, s, rules));
       default: return false; // unknown condition: never match silently
     }
@@ -183,35 +216,95 @@ function intentOf(rules, r, s) {
   return fromUtm || topInterest(s.memory);
 }
 
+const STRENGTH = ['weak', 'medium', 'strong'];
+
+/**
+ * The visitor's relationship with the site, the first split of the optimisation: `loyalty`
+ * (some evidence that they know us: a customer, a known prospect, someone who came back) or
+ * `new` (new or unknown: nothing says so). From rules.relationship.signals, each
+ * { id, label, strength: 'strong' | 'medium' | 'weak', when }: every signal that holds is
+ * evidence, and the strongest one is the strength of the claim. One weak signal is enough.
+ * `remember`: false when the visitor rejected or limited cookies. They can still be loyal (the
+ * consent manager's own cookie shows they came back), but nothing more is remembered about them.
+ * Bots and personal agents have no relationship (null).
+ */
+export function relationshipOf(rules, s) {
+  if (!rules.relationship || s.bot || s.agent) return null;
+  const evidence = (rules.relationship.signals || [])
+    .filter((x) => matches(x.when, s, rules))
+    .map(({ id, label, strength }) => ({ id, label: label || id, strength: strength || 'weak' }));
+  const top = Math.max(-1, ...evidence.map((e) => STRENGTH.indexOf(e.strength)));
+  return {
+    group: evidence.length ? 'loyalty' : 'new',
+    strength: STRENGTH[top] || null,
+    evidence,
+    remember: !['rejected', 'customized'].includes(s.consent),
+  };
+}
+
 /**
  * First rule that matches wins. Bots never match (they always get the original sections).
  * A personal AI agent only matches rules that ask for one (`when.agent`): the rules written
  * for people never fire for an agent, so their numbers stay human.
+ * `group` is the matched rule's group (the set of cohorts it is optimised in), `relationship`
+ * what the signals say about this visitor (relationshipOf): the two can differ, e.g. a customer
+ * who clicks an acquisition ad.
  * @returns {{ rule: string|null, experience: string, intent: string|null,
- *   keys: string[], label: string }}
+ *   keys: string[], label: string, group: string|null, relationship: object|null }}
  */
 export function matchRule(rules, s) {
   const pool = (rules.rules || []).filter((x) => !s.agent || (x.when && x.when.agent));
   const r = s.bot && !s.agent ? null : pool.find((x) => matches(x.when, s, rules));
+  const relationship = relationshipOf(rules, s);
   if (!r) {
     return {
-      rule: null, experience: 'default', intent: null, keys: ['default'], label: 'no rule matched',
+      rule: null,
+      experience: 'default',
+      intent: null,
+      keys: ['default'],
+      label: 'no rule matched',
+      group: relationship?.group || null,
+      relationship,
     };
   }
   const intent = intentOf(rules, r, s);
   const keys = [...new Set([intent && `${r.experience}:${intent}`, r.experience, 'default'].filter(Boolean))];
   return {
-    rule: r.id, experience: r.experience, intent, keys, label: r.label || r.id,
+    rule: r.id,
+    experience: r.experience,
+    intent,
+    keys,
+    label: r.label || r.id,
+    group: r.group || relationship?.group || null,
+    relationship,
   };
 }
 
 /* ---------- browser: signals, memory, apply ---------- */
 
+const CONSENT_STATES = ['granted', 'rejected', 'customized', 'undecided'];
+
 /**
- * With `memory.requireConsent`, memory is read and written only after the experimentation
+ * This page's stored cookie decision: { state, at } or null (consentOf). Demo/simulation:
+ * ?consent=<state> in `search` stands in for a decision made on an earlier visit.
+ */
+function consentHere(search) {
+  try {
+    const forced = new URLSearchParams(search ?? window.location.search).get('consent');
+    if (CONSENT_STATES.includes(forced)) return { state: forced, at: 0 };
+    return search == null || search === window.location.search ? consentOf(document.cookie) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Nothing is remembered about a visitor who rejected or limited cookies. With
+ * `memory.requireConsent`, memory is also read and written only after the experimentation
  * plugin recorded consent (localStorage `experimentation-consented`).
  */
 export function memoryAllowed(rules) {
+  if (['rejected', 'customized'].includes(consentHere()?.state)) return false;
   if (!rules.memory?.requireConsent) return true;
   try {
     return localStorage.getItem('experimentation-consented') === 'true';
@@ -250,7 +343,8 @@ function agentHint() {
 /**
  * Signals for a URL, a referrer and a memory: the engine's whole view of a visitor.
  * Demo/simulation overrides in the URL: `ref` stands in for the referrer (a host or a full
- * referrer), `agent=<name>` for a personal AI agent.
+ * referrer), `agent=<name>` for a personal AI agent, `consent=<state>` for a cookie decision
+ * made on an earlier visit.
  */
 export function signalsFor(rules, href, referrer = '', memory = {}) {
   const u = new URL(href);
@@ -268,6 +362,8 @@ export function signalsFor(rules, href, referrer = '', memory = {}) {
   // the CDN's hint describes this page's request, not a URL previewed in the demo panel
   const here = typeof window !== 'undefined' && href === window.location.href;
   const agent = agentOf(ua, q.get('agent') || (here ? agentHint() : ''));
+  const consent = consentHere(u.search);
+  const gap = rules.memory?.sessionGapMs || 30 * 60 * 1000;
   const mobile = (navigator.userAgentData && navigator.userAgentData.mobile)
     || SIGNALS.mobileUa.test(ua) || window.matchMedia('(max-width: 599px)').matches;
   return {
@@ -280,6 +376,10 @@ export function signalsFor(rules, href, referrer = '', memory = {}) {
     // an agent's browser is automated too; it is an agent first
     bot: !agent && (SIGNALS.bot.test(ua) || navigator.webdriver === true),
     memory,
+    // the stored cookie decision, and whether it is older than this visit
+    consent: consent?.state || null,
+    consentBefore: !!consent && consent.state !== 'undecided' && consent.at != null
+      && Date.now() - consent.at > gap,
     path: u.pathname,
   };
 }

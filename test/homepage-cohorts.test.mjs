@@ -8,7 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import * as optel from '../optel-client.js';
 import {
-  matchRule, matches, sourceOf, intentFrom, refHostOf, SIGNALS, agentOf,
+  matchRule, matches, sourceOf, intentFrom, refHostOf, SIGNALS, agentOf, consentOf, relationshipOf,
 } from '../skills/homepage-cohorts/engine/cohorts.js';
 import {
   signalsFromBundle, goalHit, entryOf, ruleOf, assumesFirstVisit,
@@ -466,4 +466,62 @@ test('pictures.js: pictures per rule, beats reached, landing pages and the page 
   assert.ok(!p.landing.some((r) => r.id === 'signed-in-before'));
   assert.equal(p.afterHome.all.pages[0].path, '/products');
   assert.equal(p.afterHome.all.pictures[0].name, 'media_ee05.jpg');
+});
+
+/* ---------- loyalty or new: the relationship split, the consent signal ---------- */
+
+test('every rule for people is in a group', () => {
+  rules.rules.filter((r) => !r.when.agent).forEach((r) => assert.ok(['loyalty', 'new'].includes(r.group), r.id));
+});
+
+test('no signal is new or unknown; one weak signal is loyalty', () => {
+  assert.deepEqual(relationshipOf(rules, sig()), {
+    group: 'new', strength: null, evidence: [], remember: true,
+  });
+  assert.equal(matchRule(rules, sig()).group, 'new');
+  const weak = relationshipOf(rules, sig({ memory: { visits: 2 } }));
+  assert.equal(weak.group, 'loyalty');
+  assert.equal(weak.strength, 'weak');
+  const strong = relationshipOf(rules, sig({ memory: { signedIn: true, visits: 3 } }));
+  assert.equal(strong.strength, 'strong');
+  assert.deepEqual(strong.evidence.map((e) => e.id), ['signed-in', 'repeat-visit']);
+});
+
+test('came back after rejecting cookies: loyalty, and nothing more is remembered', () => {
+  const r = relationshipOf(rules, sig({ consent: 'rejected', consentBefore: true }));
+  assert.equal(r.group, 'loyalty');
+  assert.equal(r.strength, 'medium');
+  assert.equal(r.remember, false);
+  // a decision made during this visit is not a return
+  assert.equal(relationshipOf(rules, sig({ consent: 'granted' })).group, 'new');
+});
+
+test('the rule group and the visitor can differ; bots and agents have no relationship', () => {
+  const r = matchRule(rules, sig({ source: 'ai', memory: { visits: 2 } }));
+  assert.equal(r.rule, 'ai-referred');
+  assert.equal(r.group, 'new');
+  assert.equal(r.relationship.group, 'loyalty');
+  assert.equal(relationshipOf(rules, sig({ bot: true })), null);
+  assert.equal(relationshipOf(rules, sig({ agent: 'chatgpt-agent' })), null);
+  assert.equal(relationshipOf({ ...rules, relationship: undefined }, sig()), null);
+});
+
+test('when.consent and when.consentBefore', () => {
+  assert.ok(matches({ consent: true }, sig({ consent: 'rejected' })));
+  assert.ok(!matches({ consent: true }, sig({ consent: 'undecided' })));
+  assert.ok(matches({ consent: ['granted', 'customized'] }, sig({ consent: 'customized' })));
+  assert.ok(matches({ consent: false }, sig()));
+  assert.ok(matches({ consentBefore: true }, sig({ consentBefore: true })));
+  assert.ok(!matches({ consentBefore: true }, sig()));
+});
+
+test('OneTrust cookies: granted, rejected, customized, undecided, none', () => {
+  const c = (groups, closed = 'OptanonAlertBoxClosed=2026-11-01T10:00:00.000Z; ') => `${closed}OptanonConsent=isGpcEnabled=0&groups=${encodeURIComponent(groups)}&version=1`;
+  assert.equal(consentOf(c('C0001:1,C0002:1,C0004:1')).state, 'granted');
+  assert.equal(consentOf(c('C0001:1,C0002:0,C0004:0')).state, 'rejected');
+  assert.equal(consentOf(c('C0001:1,C0002:1,C0004:0')).state, 'customized');
+  assert.equal(consentOf(c('C0001:1,C0002:1')).at, Date.parse('2026-11-01T10:00:00.000Z'));
+  // a default the visitor never confirmed is not a decision
+  assert.equal(consentOf(c('C0001:1,C0002:0', '')).state, 'undecided');
+  assert.equal(consentOf('other=1'), null);
 });

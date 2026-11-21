@@ -45,9 +45,35 @@ A rule:
 | `visits` | `{ min: 2 }`, `{ max: 1 }` | memory: visits including this one |
 | `interest` | `true`, `['pricing']` | memory: top interest from pages visited |
 | `intent` | `['pricing']` | intent from campaign tags, else top interest |
+| `consent` | `true`, `'granted'`, `['rejected', 'customized']` | the stored cookie decision, read from the consent manager's cookies (OneTrust): `granted rejected customized undecided`; `true` = any decision. Not in size.js yet |
+| `consentBefore` | `true` | that decision is older than this visit: the visitor has been here before, whatever they decided |
 | `any` | `[{ paid: true }, { utm: { medium: 'email' } }]` | at least one nested clause |
 
 Unknown conditions never match (a typo turns a rule off; the tests catch it).
+
+## Loyalty or new: the relationship split
+
+`relationship` (optional) is the first split of the optimisation, on top of the cohorts. It
+changes no page: cohorts still decide what a visitor gets. It says how to think about them.
+
+- **Loyalty**: some evidence that the visitor knows us (a customer, a known prospect, someone
+  who came back). **New or unknown**: nothing says so, and the request is all there is.
+- Every rule names its `group` (`loyalty` or `new`). The cohorts of a group are optimised against
+  each other, on the group's goal (`relationship.groups.<id>.goalLabel`).
+- `relationship.signals` say which group a *visitor* is in: `{ id, label, strength, when }` with
+  the same `when` as a rule and `strength` `strong`, `medium` or `weak`. Every signal that holds
+  is evidence; the strongest sets the strength; one weak signal is enough.
+- `matchRule()` returns `group` (the rule's) and `relationship` (`{ group, strength, evidence,
+  remember }`, the visitor's). They can differ: a customer who clicks an acquisition ad is a
+  loyal visitor in a new-visitor cohort.
+- **Consent**: a cookie decision made on an earlier visit (`consentBefore`) is evidence of a
+  return, also when the decision was a rejection. Such a visitor is loyalty and `remember` is
+  false: the engine reads and writes no on-device memory for a visitor who rejected or limited
+  cookies. Only OneTrust is read today; on other consent managers the signal is absent and the
+  split rests on the other signals (weaker). `?consent=<state>` simulates it in the demo.
+- The gallery's Cohort data Sankey shows the split as a column between device and rule. It
+  takes a view's group from the rule that fired (cohorts.json has no visitor-level signal), so
+  its loyalty share is a floor.
 
 `goal`: `{ click: regex }` on click selector + target, `{ path: regex }` (arrived on a page:
 for a site-wide goal), `{ navigate: true }` (clicked through to another page), or

@@ -20,6 +20,7 @@
 import { apply } from '../../scripts/cohorts.js';
 import rules from '../../scripts/cohort-rules.js';
 import { sendPick, readPick } from '../../scripts/cohort-preview.js';
+import { notesFrom, noteFor, isNoteRef } from '../../scripts/cohort-insights.js';
 import {
   COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, audienceOf, lint, holdout,
   previewUrl, list, shortName, intentName, interestSources, variantDiff, groupColor,
@@ -441,7 +442,12 @@ function detail(s, onPage) {
   if (who.hidden.length) box.append(line('Not shown', who.hidden, true));
   if (who.promoted.length) box.append(line('Moved up for', who.promoted));
   if (s.meta.insight) {
-    box.append(h('p', 'insight', h('span', 'lbl', 'Why it is here'), String(s.meta.insight).replace(/,(?=[^\s\d])|(?<=\D),(?=\d)/g, ', ')));
+    // a note id (looked up in the notes file, rules.insights.notes) or a note written in the page
+    const note = noteFor(s.meta.insight, state.notes);
+    const missing = !note && isNoteRef(s.meta.insight);
+    box.append(h('p', 'insight', h('span', 'lbl', 'Why it is here'), missing
+      ? `No note "${s.meta.insight}" in ${rules.insights?.notes || 'a notes file (rules.insights.notes is not set)'}.`
+      : note));
   }
   if (s.meta.slot) {
     const rivals = state.doc.sections.filter((x) => x !== s && (x.meta.slot || '').toLowerCase() === s.meta.slot.toLowerCase());
@@ -741,11 +747,13 @@ async function readPublished(path) {
 }
 
 async function loadSide() {
-  const [cj, orig] = await Promise.allSettled([
+  const [cj, orig, notes] = await Promise.allSettled([
     fetch('/cohorts/cohorts.json').then((r) => (r.ok ? r.json() : null)),
     readPublished('/'),
+    rules.insights?.notes ? fetch(rules.insights.notes, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)) : null,
   ]);
   state.cohortsJson = cj.value || null;
+  state.notes = notesFrom(notes.value);
   if (orig.value) {
     const d = new DOMParser().parseFromString(`<main>${orig.value}</main>`, 'text/html');
     state.original = parsePage(d).sections;

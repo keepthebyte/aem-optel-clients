@@ -146,3 +146,10 @@ test('group colours: default first, intents share their group\'s colour', () => 
   assert.equal(groupColor(rules, `${ids[0]}:anything`), groupColor(rules, ids[0]));
   assert.notEqual(groupColor(rules, ids[0]), groupColor(rules, 'default'));
 });
+
+test('a written Insight note with numbers is flagged, a note id is not', () => {
+  const warns = (insight) => lint({ page: { cohorts: 'on' }, sections: [S(0, { insight })] }, rules).filter((x) => /published with the page/.test(x.text));
+  assert.equal(warns('58% of comparison visitors start a quote.').length, 1);
+  assert.equal(warns('Customers get their tasks first.').length, 0);
+  assert.equal(warns('hero-proof-2').length, 0);
+});

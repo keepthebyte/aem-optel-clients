@@ -119,7 +119,9 @@ which cohorts, what each gets first, what goes away for it.
    `/new?demo`: the presenter dock (bottom centre) has **Visitor** (opens a sheet: switch visitor,
    what Optel shows for the group, how it was detected, compare with the original page) and
    **Explain sections**. It is sized for a shared screen.
-   Give every cohort section an `Insight` (Section Metadata: the Optel finding behind it) and,
+   Give every cohort section an `Insight` (Section Metadata: the id of its note in the notes
+   file, which is previewed and not published, so the numbers stay off the live site;
+   `content-model.md`) and,
    where the owner agrees, publish `cohorts.json` at `/cohorts/cohorts.json`: Insights mode then
    explains each section and each visitor with the data (`references/content-model.md`).
 6. Optional, once the sections stand: **picture stories** (`references/picture-stories.md`).

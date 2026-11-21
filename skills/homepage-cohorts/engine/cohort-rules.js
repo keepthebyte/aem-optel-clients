@@ -25,7 +25,32 @@ export default {
   // demo panel Insights mode (cohort-insights.js): where size.js output is published, and the
   // tag on each section note. A rule's optional `goalLabel` / `supportLabel` name its goal and
   // supporting step in plain words; `pages` names paths in generated notes.
-  insights: { src: '/cohorts/cohorts.json', label: 'Optel', pages: { '/pricing': 'Pricing' } },
+  // `notes`: the section notes by id ({ data: [{ id, note }] } or { id: note }). A section's
+  // `Insight` then holds an id, not the text: Section Metadata is published with the page, the
+  // notes file is previewed and not published, so its numbers stay out of the live site.
+  insights: {
+    src: '/cohorts/cohorts.json', notes: '/cohorts/insights.json', label: 'Optel', pages: { '/pricing': 'Pricing' },
+  },
+
+  // The first split of the optimisation: loyalty (some evidence that the visitor knows us) or
+  // new / unknown (nothing says so). Every rule is in one group (`group`); the cohorts of a group
+  // are optimised against each other, on the group's goal. The signals say which group a visitor
+  // is in (strong, medium or weak; one weak signal is enough). `consentBefore`: the visitor
+  // decided about cookies on an earlier visit, whatever they decided; someone who rejected is
+  // loyalty too, and nothing more is remembered about them. Leave `relationship` out to do without.
+  relationship: {
+    groups: {
+      loyalty: { label: 'Loyalty', sub: 'Customers and visitors who came back', goalLabel: 'sign in or pick up where they left' },
+      new: { label: 'New or unknown', sub: 'Nothing says they know us: the request is all we have', goalLabel: 'take the first step' },
+    },
+    signals: [
+      { id: 'portal', label: 'Arrived from the customer portal', strength: 'strong', when: { referrer: ['portal.example.com'] } },
+      { id: 'signed-in', label: 'Signed in on this device before', strength: 'strong', when: { signedIn: true } },
+      { id: 'email', label: 'Clicked an email we sent', strength: 'strong', when: { utm: { medium: '^email$' } } },
+      { id: 'consent-before', label: 'Decided about cookies on an earlier visit', strength: 'medium', when: { consentBefore: true } },
+      { id: 'repeat-visit', label: 'Visited before (on-device)', strength: 'weak', when: { visits: { min: 2 } } },
+    ],
+  },
 
   // the site's conversion, anywhere on the site: size.js --site lists the pages viewed right
   // before it (assists: the convincing content). Any of click / path.
@@ -68,6 +93,7 @@ export default {
     },
     {
       id: 'from-portal',
+      group: 'loyalty',
       label: 'Arrived from the customer portal',
       experience: 'customer',
       when: { referrer: ['portal.example.com'] },
@@ -75,6 +101,7 @@ export default {
     },
     {
       id: 'signed-in-before',
+      group: 'loyalty',
       label: 'Has signed in before',
       experience: 'customer',
       when: { signedIn: true },
@@ -84,6 +111,7 @@ export default {
     },
     {
       id: 'ai-referred',
+      group: 'new',
       label: 'Sent by an AI assistant',
       experience: 'prospect',
       when: { source: 'ai' },
@@ -94,6 +122,7 @@ export default {
     },
     {
       id: 'campaign',
+      group: 'new',
       label: 'Clicked an ad or campaign link',
       experience: 'prospect',
       intent: 'utm',
@@ -102,6 +131,7 @@ export default {
     },
     {
       id: 'returning-interest',
+      group: 'loyalty',
       label: 'Back with a product interest',
       experience: 'prospect',
       intent: 'memory',
@@ -112,6 +142,7 @@ export default {
     },
     {
       id: 'mobile-first-visit',
+      group: 'new',
       label: 'First visit on a phone',
       experience: 'mobile',
       when: { device: 'mobile', visits: { max: 1 } },
@@ -128,5 +159,6 @@ export default {
     ['Paid ad: pricing', { utm_source: 'google', utm_medium: 'cpc', utm_campaign: 'pricing-q1' }],
     ['Returning, read about product A', {}, { visits: 2, interests: { 'product-a': 3 } }],
     ['First visit on a phone', { cohort: 'mobile-first-visit' }],
+    ['Came back, rejected cookies', { consent: 'rejected' }],
   ],
 };

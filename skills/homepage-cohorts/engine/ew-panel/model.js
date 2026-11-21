@@ -201,6 +201,11 @@ export function lint({ page, sections }, rules) {
       }
     }));
     if (s.meta.promote && s.meta.slot) add('warn', s.i, 'Promote has no effect on a section in a slot: the slot decides its place.');
+    // Section Metadata is published with the page: a written note with figures is public
+    const note = String(s.meta.insight || '').trim();
+    if (note && !/^[\w-]+$/.test(note) && /\d/.test(note)) {
+      add('warn', s.i, 'This Insight note has numbers and is published with the page, so anyone can read them. Move the note to the notes file and put its id here.');
+    }
   });
   const slots = {};
   sections.forEach((s) => {
