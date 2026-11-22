@@ -64,7 +64,8 @@ there is public, with every share and rate in it. Keep the notes in a sheet inst
 - Author it as a sheet at `/cohorts/insights` (columns `id`, `note`), **preview it and do not
   publish it**: it then exists on `*.aem.page` (where Experience Workspace and the demo run) and
   not on the live site. `rules.insights.notes` names it (`/cohorts/insights.json`); a plain
-  `{ "id": "note" }` JSON file works too.
+  `{ "id": "note" }` JSON file works too on a Source Bus site. A DA site previews only the sheet
+  shape (`install.md`, "Data files stay off the live site").
 - The section carries the id: `Insight: coverage-next-step`. An id is one word (letters, digits,
   dashes, underscores).
 - Explain sections, the Experience Workspace panel and the gallery look the note up. Where the
@@ -73,7 +74,8 @@ there is public, with every share and rate in it. Keep the notes in a sheet inst
 - `scripts/notes.js <page.html> --out <page.html> --notes insights.json` moves the written notes
   of a page's stored HTML into the notes file and leaves their ids in the page.
 - With site authentication on preview, the notes and `cohorts.json` are behind the same sign-in.
-  `cohorts.json` and `review.json` follow the same rule: preview, do not publish.
+  `cohorts.json` and `review.json` follow the same rule: preview, do not publish. DA cannot
+  preview them (`install.md`).
 
 ## Example
 

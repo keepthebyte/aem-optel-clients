@@ -10,6 +10,12 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: data files on a DA site
+- `install.md`: how to upload and preview the data files per content store. DA previews a JSON
+  file only in sheet shape: `insights.json` works, `cohorts.json` and `review.json` do not (400).
+  On a DA site those stay in the repository (public on the live host) or are left out.
+- `content-model.md` to match.
+
 ### Homepage cohorts: data files stay off the live site
 - `install.md`, `SKILL.md`: `cohorts.json`, `review.json` and `insights.json` are files in the
   content store, previewed and not published (200 on `*.aem.page`, 404 on `*.aem.live`). A copy
