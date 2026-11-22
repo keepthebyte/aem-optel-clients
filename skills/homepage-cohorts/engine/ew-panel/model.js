@@ -131,6 +131,34 @@ export function sectionLabel(s) {
  *    rules: [ids], share }]
  * `keys` is what the engine's apply() is called with for that visitor.
  */
+/**
+ * The switcher's sections: page variations by relationship group (rules.relationship.groups),
+ * [{ id, label, exps }], in the order the groups are defined, ungrouped variations last. A
+ * variation belongs to the group most of its visitors are in (its rules' shares by group), else
+ * to the group of its first rule. Everyone else (no rule matched) is new or unknown, as in the
+ * Sankey. Without groups: one section with no label.
+ */
+export function relationshipSections(rules, exps, cohortsJson) {
+  const groups = rules.relationship?.groups;
+  if (!groups) return [{ id: null, label: '', exps }];
+  const ruleGroup = Object.fromEntries((rules.rules || []).map((r) => [r.id, r.group]));
+  ruleGroup.none = 'new';
+  const shareOf = Object.fromEntries((cohortsJson?.rules || []).map((r) => [r.id, r.share || 0]));
+  const groupOf = (e) => {
+    const weight = {};
+    // shares decide; without them, the rule tried first (a tiny weight by rule order)
+    e.rules.forEach((id, k) => {
+      const g = groups[ruleGroup[id]] ? ruleGroup[id] : 'other';
+      weight[g] = (weight[g] || 0) + (shareOf[id] ?? 0) + (e.rules.length - k) * 1e-9;
+    });
+    return Object.entries(weight).sort((a, b) => b[1] - a[1])[0]?.[0] || 'other';
+  };
+  const ids = [...Object.keys(groups), 'other'];
+  return ids.map((id) => ({
+    id, label: groups[id]?.label || 'No relationship', exps: exps.filter((e) => groupOf(e) === id),
+  })).filter((s) => s.exps.length);
+}
+
 export function experiencesOf(rules, sections, cohortsJson) {
   const exps = rules.experiences || {};
   const used = new Set();

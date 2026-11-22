@@ -22,8 +22,9 @@ import rules from '../../scripts/cohort-rules.js';
 import { sendPick, readPick } from '../../scripts/cohort-preview.js';
 import { notesFrom, noteFor, isNoteRef } from '../../scripts/cohort-insights.js';
 import {
-  COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, audienceOf, lint, holdout,
-  previewUrl, list, shortName, intentName, interestSources, variantDiff, groupColor,
+  COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, relationshipSections,
+  audienceOf, lint, holdout,
+  list, shortName, intentName, interestSources, variantDiff, groupColor,
 } from './model.js';
 import {
   KEY_LABEL, applied, metaEdit, deleteEdit, reverse, promptFor, manualText, versionPrompt,
@@ -83,12 +84,19 @@ const expById = (id) => state.exps.find((e) => e.id === id);
 const viewById = (id) => state.views.find((v) => v.id === id);
 const name = (id) => shortName(rules, id);
 const visible = (s) => s.blocks.length || s.heading;
-/** The groups: Everyone else first (the baseline), then most visitors first. */
-const groups = () => {
-  const all = state.exps.filter((e) => !e.intent);
-  const rest = all.filter((e) => e.id !== 'default').sort((a, b) => (b.share ?? -1) - (a.share ?? -1));
-  return [...all.filter((e) => e.id === 'default'), ...rest];
-};
+/** The switcher's sections: by relationship (loyalty, new or unknown) when the rules have it.
+ * Within a section, Everyone else first (the baseline), then most visitors first. */
+const menuSections = () => relationshipSections(
+  rules,
+  state.exps.filter((e) => !e.intent),
+  state.cohortsJson,
+).map((s) => ({
+    ...s,
+    exps: [...s.exps].sort((a, b) => (a.id === 'default' ? -1 : 0) - (b.id === 'default' ? -1 : 0)
+      || (b.share ?? -1) - (a.share ?? -1)),
+  }));
+/** The groups in switcher order. */
+const groups = () => menuSections().flatMap((s) => s.exps);
 /** Every variation in display order, interest variants after their group. */
 const ordered = () => groups()
   .flatMap((p) => [p, ...state.exps.filter((e) => e.intent && e.experience === p.id)]);
@@ -313,7 +321,7 @@ function renderHeader(root) {
   const errors = issues.filter((x) => x.level === 'error').length;
   let status = 'Published';
   if (state.live) status = state.editable === false ? 'Read-only' : 'Live';
-  const bar = h('div', 'bar', h('h1', '', 'Homepage variations'), h('span', `status${state.live ? ' on' : ''}`, status));
+  const bar = h('div', 'bar', h('span', `status${state.live ? ' on' : ''}`, status));
   if (issues.length) {
     const b = btn(`issues${errors ? ' error' : ''}`, `${issues.length} ${issues.length === 1 ? 'issue' : 'issues'}`, () => { state.tab = 'checks'; render(); }, 'issues');
     bar.append(b);
@@ -321,6 +329,18 @@ function renderHeader(root) {
   root.append(bar);
   renderSwitcher(root);
   renderTabs(root, issues.length);
+}
+
+/** One page variation in the switcher menu. */
+function option(e, max, base) {
+  const count = viewById(e.id).order.filter((i) => visible(state.doc.sections[i])).length;
+  const bar = h('span', 'mbar', tint(h('span', ''), e.id));
+  bar.firstChild.style.width = `${((e.share || 0) / max) * 100}%`;
+  const o = btn('opt', null, () => choose(e.id), `opt-${e.id}`);
+  o.append(dot(e.id), h('span', 'oname', name(e.id), h('span', 'osub', `${count} sections`)), bar, h('span', 'opct', pct(e.share)));
+  o.setAttribute('aria-pressed', String(e.id === base.id));
+  o.title = e.label;
+  return o;
 }
 
 function renderSwitcher(root) {
@@ -346,29 +366,15 @@ function renderSwitcher(root) {
     choose(next.id, { close: false });
   });
   wrap.append(trigger);
-  // every group's share at once: the strip under the switcher
-  const strip = h('div', 'strip');
-  strip.setAttribute('aria-hidden', 'true');
-  list0.filter((e) => e.share).forEach((e) => {
-    const seg = tint(h('span', e.id === base.id ? 'on' : ''), e.id);
-    seg.style.flexGrow = String(e.share);
-    strip.append(seg);
-  });
-  wrap.append(strip);
   if (state.menu) {
     const menu = h('div', 'menu');
     menu.setAttribute('role', 'group');
     menu.setAttribute('aria-label', 'Page variations');
     const max = Math.max(...list0.map((e) => e.share || 0)) || 1;
-    list0.forEach((e) => {
-      const count = viewById(e.id).order.filter((i) => visible(state.doc.sections[i])).length;
-      const bar = h('span', 'mbar', tint(h('span', ''), e.id));
-      bar.firstChild.style.width = `${((e.share || 0) / max) * 100}%`;
-      const o = btn('opt', null, () => choose(e.id), `opt-${e.id}`);
-      o.append(dot(e.id), h('span', 'oname', name(e.id), h('span', 'osub', `${count} sections`)), bar, h('span', 'opct', pct(e.share)));
-      o.setAttribute('aria-pressed', String(e.id === base.id));
-      o.title = e.label;
-      menu.append(o);
+    const secs = menuSections();
+    secs.forEach((sec) => {
+      if (sec.label && secs.length > 1) menu.append(h('p', 'mhead', sec.label));
+      sec.exps.forEach((e) => menu.append(option(e, max, base)));
     });
     menu.addEventListener('keydown', (ev) => {
       const opts = [...menu.querySelectorAll('.opt')];
@@ -508,11 +514,6 @@ function renderPage(root) {
     d.append(ol2);
     root.append(d);
   }
-  const prev = h('a', 'link', exp.id === 'default' ? 'Open the original homepage' : `Open the page as ${name(exp.id)} visitors see it`);
-  prev.href = previewUrl(window.location.origin, state.path, exp, rules);
-  prev.target = '_blank';
-  prev.rel = 'noopener';
-  root.append(h('p', 'preview', prev));
 }
 
 /** Interest variants of the picked group (only when the page has sections for an interest). */
@@ -678,14 +679,13 @@ function render() {
   state.drags.splice(0).forEach((d) => { try { d(); } catch { /* gone */ } });
   app.replaceChildren();
   if (!state.doc) {
-    app.append(h('div', 'top', h('div', 'bar', h('h1', '', 'Homepage variations'))), h('p', 'status-line', 'Reading the page…'));
+    app.append(h('p', 'status-line', 'Reading the page…'));
     return;
   }
   const usesCohorts = state.doc.sections.some((s) => COHORT_KEYS.some((k) => s.meta[k]));
   if (!usesCohorts) {
     const home = ['/', '/index'].includes(state.path) && rules.pocPath && rules.pocPath !== '/';
     app.append(
-      h('div', 'top', h('div', 'bar', h('h1', '', 'Homepage variations'))),
       h('p', 'status-line', 'This page has no cohort sections, so every visitor sees all of it.'),
       home ? h('p', 'status-line', `The homepage's page variations live on ${rules.pocPath}: open that page to edit them.`) : null,
     );

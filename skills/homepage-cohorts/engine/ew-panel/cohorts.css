@@ -114,10 +114,7 @@ button {
   min-height: 24px;
 }
 
-.bar h1 {
-  margin-right: auto;
-  min-width: 0;
-}
+.bar .status { margin-right: auto; }
 
 .status {
   font-size: var(--t-s);
@@ -194,23 +191,6 @@ button {
 .trigger[aria-expanded="true"] .caret { transform: translateY(2px) rotate(-135deg); }
 
 /* every group's share at once */
-.strip {
-  display: flex;
-  gap: 2px;
-  height: 4px;
-  margin: 6px 2px 0;
-}
-
-.strip span {
-  flex-basis: 0;
-  min-width: 3px;
-  border-radius: 2px;
-  background: var(--c);
-  opacity: .35;
-}
-
-.strip span.on { opacity: 1; }
-
 .menu {
   position: absolute;
   inset: 40px 0 auto;
@@ -243,6 +223,15 @@ button {
   gap: 2px;
   padding: 6px var(--s2);
 }
+
+.mhead {
+  margin: var(--s2) var(--s2) 2px;
+  font-size: var(--t-s);
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.mhead:first-child { margin-top: 2px; }
 
 .opt:hover, .gitem:hover { background: var(--hover); }
 .opt[aria-pressed="true"], .gitem[aria-pressed="true"] { background: var(--accent-soft); }
@@ -530,11 +519,6 @@ summary {
   font-size: var(--t-s);
   font-weight: 600;
   padding: var(--s1) 0;
-}
-
-.preview {
-  margin-top: var(--s4);
-  font-size: var(--t-s);
 }
 
 .interest {

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  camelKey, sectionOfBlock, experiencesOf, lint, holdout, previewUrl, audienceOf, campaignFor,
+  camelKey, sectionOfBlock, experiencesOf, relationshipSections, lint, holdout, previewUrl, audienceOf, campaignFor,
   groupColor,
 } from '../skills/homepage-cohorts/engine/ew-panel/model.js';
 import rules from '../skills/homepage-cohorts/engine/cohort-rules.js';
@@ -152,4 +152,29 @@ test('a written Insight note with numbers is flagged, a note id is not', () => {
   assert.equal(warns('58% of comparison visitors start a quote.').length, 1);
   assert.equal(warns('Customers get their tasks first.').length, 0);
   assert.equal(warns('hero-proof-2').length, 0);
+});
+
+test('relationshipSections: the switcher by loyalty and new, by where most visitors are', () => {
+  const r = {
+    relationship: { groups: { loyalty: { label: 'Loyalty' }, new: { label: 'New or unknown' } } },
+    rules: [
+      { id: 'email', group: 'loyalty', experience: 'owner' },
+      { id: 'search', group: 'new', experience: 'shopper' },
+      { id: 'back', group: 'loyalty', experience: 'shopper' },
+      { id: 'agent', experience: 'agent' },
+    ],
+  };
+  const exps = [
+    { id: 'default', rules: ['none'] }, { id: 'owner', rules: ['email'] },
+    { id: 'shopper', rules: ['search', 'back'] }, { id: 'agent', rules: ['agent'] },
+  ];
+  const cj = { rules: [{ id: 'search', share: 0.3 }, { id: 'back', share: 0.05 }] };
+  const secs = relationshipSections(r, exps, cj);
+  assert.deepEqual(secs.map((s) => [s.label, s.exps.map((e) => e.id)]), [
+    ['Loyalty', ['owner']], ['New or unknown', ['default', 'shopper']], ['No relationship', ['agent']],
+  ]);
+  // without shares, the rule tried first decides
+  assert.deepEqual(relationshipSections(r, exps, null).map((s) => s.exps.map((e) => e.id).join()), ['owner', 'default,shopper', 'agent']);
+  // no groups: one unlabelled section
+  assert.deepEqual(relationshipSections({ rules: [] }, exps, null).map((s) => s.label), ['']);
 });
