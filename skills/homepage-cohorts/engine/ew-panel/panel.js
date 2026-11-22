@@ -86,15 +86,13 @@ const name = (id) => shortName(rules, id);
 const visible = (s) => s.blocks.length || s.heading;
 /** The switcher's sections: by relationship (loyalty, new or unknown) when the rules have it.
  * Within a section, Everyone else first (the baseline), then most visitors first. */
-const menuSections = () => relationshipSections(
-  rules,
-  state.exps.filter((e) => !e.intent),
-  state.cohortsJson,
-).map((s) => ({
-    ...s,
-    exps: [...s.exps].sort((a, b) => (a.id === 'default' ? -1 : 0) - (b.id === 'default' ? -1 : 0)
-      || (b.share ?? -1) - (a.share ?? -1)),
-  }));
+const byShare = (a, b) => (a.id === 'default' ? -1 : 0) - (b.id === 'default' ? -1 : 0)
+  || (b.share ?? -1) - (a.share ?? -1);
+const menuSections = () => {
+  const top = state.exps.filter((e) => !e.intent);
+  return relationshipSections(rules, top, state.cohortsJson)
+    .map((s) => ({ ...s, exps: [...s.exps].sort(byShare) }));
+};
 /** The groups in switcher order. */
 const groups = () => menuSections().flatMap((s) => s.exps);
 /** Every variation in display order, interest variants after their group. */
