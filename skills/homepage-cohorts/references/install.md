@@ -232,13 +232,29 @@ panel can be tried before it reaches `main`.
 - **Data files stay off the live site.** `cohorts.json`, `review.json` and the notes file
   (`insights.json`, `content-model.md`) hold the site's shares, rates and findings. Nothing a
   visitor gets needs them: only Explain sections, this panel and the gallery read them, on
-  `*.aem.page`. So they live in the content store, previewed and never published:
-  `PUT {api}/source/cohorts/cohorts.json` (`Content-Type: application/json`), then
-  `POST {api}/preview/cohorts/cohorts.json`, with `{api}` = `https://api.aem.live/{org}/sites/{site}`
-  on a Source Bus site. They are then 200 on `*.aem.page` and 404 on `*.aem.live`. A file
-  committed to the repository is served on both hosts by Code Sync: keep a copy there only with
-  `/cohorts/*` in `.hlxignore`. After each sizing run, upload and preview again. With site
-  authentication on preview, the files are behind the sign-in too.
+  `*.aem.page`. So they live in the content store, previewed and never published: then they are
+  200 on `*.aem.page` and 404 on `*.aem.live`. A file committed to the repository is served on
+  both hosts by Code Sync: keep a copy there only with `/cohorts/*` in `.hlxignore`. After each
+  sizing run, upload and preview again. With site authentication on preview, the files are
+  behind the sign-in too. How to upload depends on the content store (`content.source.type` in
+  the site config):
+
+  | | Source Bus (`api.aem.live`) | DA (`admin.da.live`) |
+  | --- | --- | --- |
+  | Upload | `PUT {api}/source/cohorts/<file>.json`, raw body, `Content-Type: application/json` | `PUT https://admin.da.live/source/{org}/{site}/cohorts/<file>.json`, multipart field `data` (`-F "data=@file;type=application/json"`) |
+  | Preview | `POST {api}/preview/cohorts/<file>.json` | `POST https://admin.hlx.page/preview/{org}/{site}/main/cohorts/<file>.json` |
+  | `insights.json` | any shape | **sheet shape only** (below) |
+  | `cohorts.json`, `review.json` | yes | **no**: preview answers 400 `error from content-bus` |
+
+  `{api}` is `https://api.aem.live/{org}/sites/{site}`. DA previews a JSON file only when it is a
+  sheet: `{ "total": n, "offset": 0, "limit": n, "data": [{ "id", "note" }], ":type": "sheet" }`
+  (or author `/cohorts/insights` as a sheet in Experience Workspace). The notes fit that shape;
+  `cohorts.json` and `review.json` are nested and do not. On a DA site they stay in the
+  repository and are public on `*.aem.live`, so keep them there only where that is fine (a demo
+  on synthetic data, or with the site owner's OK); otherwise leave them out, and the panel and
+  gallery show no shares, and Explain sections no numbers. Either way, a file uploaded to DA
+  that preview rejects is still stored: delete it (`DELETE` on the same source URL).
+  (Checked November 2026.)
 - **Layout view follows the panel**: picking a variation (or an interest) reloads the canvas
   Layout view as that variation; Content view keeps showing every section. The canvas serves the
   panel and the Layout page from the same `{ref}--{site}--{org}.preview.da.live` origin, so
