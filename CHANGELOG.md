@@ -10,6 +10,19 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: Osano consent
+- `consentOf(cookie, osano)` reads Osano as well as OneTrust. Osano's `osano_consentmanager`
+  cookie is encrypted and set only once the visitor chooses; the choice comes from
+  `Osano.cm.getConsent()` (all choice categories accepted: granted; none: rejected; some, or an
+  `OPT_OUT` of `ACCEPT`: customized). Checked on a live Osano banner, November 2026.
+- New state `decided`: the cookie is there but Osano has not loaded, so the choice cannot be
+  read. It counts as a decision (`when.consent: true`), and like a limited choice nothing is
+  remembered (`memoryAllowed`, `remember: false`). `install.md` §4: load Osano before the engine.
+- `consentBefore` without a stored time (Osano): a choice already stored on a page entered from
+  elsewhere (any source but `internal`). OneTrust keeps using its time.
+- `optel-client.js`: the `consent` checkpoint now also carries the decision (`granted`,
+  `rejected`); Osano is not reported in it (its banner clicks are, via `classifyConsent`).
+
 ### Homepage cohorts: data files on a DA site
 - `install.md`: how to upload and preview the data files per content store. DA previews a JSON
   file only in sheet shape: `insights.json` works, `cohorts.json` and `review.json` do not (400).

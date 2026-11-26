@@ -45,8 +45,8 @@ A rule:
 | `visits` | `{ min: 2 }`, `{ max: 1 }` | memory: visits including this one |
 | `interest` | `true`, `['pricing']` | memory: top interest from pages visited |
 | `intent` | `['pricing']` | intent from campaign tags, else top interest |
-| `consent` | `true`, `'granted'`, `['rejected', 'customized']` | the stored cookie decision, read from the consent manager's cookies (OneTrust): `granted rejected customized undecided`; `true` = any decision. Not in size.js yet |
-| `consentBefore` | `true` | that decision is older than this visit: the visitor has been here before, whatever they decided |
+| `consent` | `true`, `'granted'`, `['rejected', 'customized']` | the stored cookie decision, read from the consent manager (OneTrust cookies; Osano's cookie and `Osano.cm`): `granted rejected customized undecided`, and `decided` when a choice was made that the engine cannot read; `true` = any decision. Not in size.js yet |
+| `consentBefore` | `true` | that decision is older than this visit: the visitor has been here before, whatever they decided. OneTrust stores the time; Osano does not, so there it means a decision already stored on a page entered from elsewhere |
 | `any` | `[{ paid: true }, { utm: { medium: 'email' } }]` | at least one nested clause |
 
 Unknown conditions never match (a typo turns a rule off; the tests catch it).
@@ -69,8 +69,13 @@ changes no page: cohorts still decide what a visitor gets. It says how to think 
 - **Consent**: a cookie decision made on an earlier visit (`consentBefore`) is evidence of a
   return, also when the decision was a rejection. Such a visitor is loyalty and `remember` is
   false: the engine reads and writes no on-device memory for a visitor who rejected or limited
-  cookies. Only OneTrust is read today; on other consent managers the signal is absent and the
-  split rests on the other signals (weaker). `?consent=<state>` simulates it in the demo.
+  cookies. OneTrust and Osano are read; on other consent managers the signal is absent and the
+  split rests on the other signals (weaker). Osano's cookie is encrypted and only set once the
+  visitor chooses: the choice comes from `Osano.cm.getConsent()`, so load Osano before the
+  engine. With the cookie and no Osano yet the state is `decided` and nothing is remembered.
+  Osano keeps no time of the choice, so `consentBefore` there means the page was entered from
+  elsewhere with the choice already stored (a choice made earlier in the same visit, then a
+  new tab typed in by hand, also counts). `?consent=<state>` simulates it in the demo.
 - The gallery's Cohort data Sankey shows the split as a column between device and rule. It
   takes a view's group from the rule that fired (cohorts.json has no visitor-level signal), so
   its loyalty share is a floor.

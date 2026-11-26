@@ -112,15 +112,36 @@ export function agentOf(ua = '', hint = '') {
   return (m && m[0].toLowerCase()) || SIGNALS.agentSigned[h] || (SIGNALS.agents.includes(h) ? h : null);
 }
 
+/* Osano categories that are a choice (ESSENTIAL is always on; OPT_OUT is read inverted) */
+const OSANO_CHOICES = ['ANALYTICS', 'MARKETING', 'PERSONALIZATION', 'STORAGE'];
+// the visitor chose and the engine may not remember: limited, or a choice it cannot read
+const NO_MEMORY = ['rejected', 'customized', 'decided'];
+
 /**
- * The visitor's stored cookie decision, from the consent manager's own cookies (OneTrust:
- * OptanonConsent holds the groups, OptanonAlertBoxClosed the time of the decision):
- * { state: 'granted' | 'rejected' | 'customized' | 'undecided', at: ms | null }, or null when
- * the page has no consent manager the engine can read. Strictly necessary groups do not count.
- * A default the visitor never confirmed is 'undecided', not a rejection.
+ * The visitor's stored cookie decision, from the consent manager's own state:
+ * { state: 'granted' | 'rejected' | 'customized' | 'undecided' | 'decided', at: ms | null },
+ * or null when the page has no consent manager the engine can read. Strictly necessary groups
+ * do not count. A default the visitor never confirmed is 'undecided', not a rejection.
+ *   - OneTrust: the OptanonConsent cookie holds the groups, OptanonAlertBoxClosed the time.
+ *   - Osano: the osano_consentmanager cookie is set only once the visitor decides, but it is
+ *     encrypted. The choice comes from `osano` (window.Osano.cm.getConsent(): { ANALYTICS:
+ *     'ACCEPT' | 'DENY', ... }); an OPT_OUT of 'ACCEPT' (do not sell or share) limits it. With
+ *     the cookie and no Osano loaded yet the state is 'decided': the visitor chose, the engine
+ *     cannot tell what, so nothing is remembered (memoryAllowed). Osano keeps no readable
+ *     time: `at` is null, and signalsFor reads the entry instead.
  */
-export function consentOf(cookie = '') {
+export function consentOf(cookie = '', osano = null) {
   const raw = (name) => (new RegExp(`(?:^|;\\s*)${name}=([^;]*)`).exec(cookie) || [])[1];
+  const osanoCookie = raw('osano_consentmanager') != null;
+  if (osanoCookie || (osano && typeof osano === 'object')) {
+    if (!osanoCookie) return { state: 'undecided', at: null };
+    const v = osano && typeof osano === 'object'
+      ? OSANO_CHOICES.filter((k) => k in osano).map((k) => osano[k] === 'ACCEPT') : [];
+    if (!v.length) return { state: 'decided', at: null };
+    const on = v.filter(Boolean).length;
+    if (on === v.length && osano.OPT_OUT !== 'ACCEPT') return { state: 'granted', at: null };
+    return { state: on ? 'customized' : 'rejected', at: null };
+  }
   const groupsRaw = raw('OptanonConsent');
   if (groupsRaw == null) return null;
   const closed = raw('OptanonAlertBoxClosed');
@@ -238,7 +259,7 @@ export function relationshipOf(rules, s) {
     group: evidence.length ? 'loyalty' : 'new',
     strength: STRENGTH[top] || null,
     evidence,
-    remember: !['rejected', 'customized'].includes(s.consent),
+    remember: !NO_MEMORY.includes(s.consent),
   };
 }
 
@@ -282,7 +303,17 @@ export function matchRule(rules, s) {
 
 /* ---------- browser: signals, memory, apply ---------- */
 
-const CONSENT_STATES = ['granted', 'rejected', 'customized', 'undecided'];
+const CONSENT_STATES = ['granted', 'rejected', 'customized', 'undecided', 'decided'];
+
+/** Osano's consent when Osano is on the page and has loaded, else null. */
+function osanoHere() {
+  try {
+    const cm = window.Osano?.cm;
+    return (cm && typeof cm.getConsent === 'function' && cm.getConsent()) || null;
+  } catch (e) {
+    return null;
+  }
+}
 
 /**
  * This page's stored cookie decision: { state, at } or null (consentOf). Demo/simulation:
@@ -292,19 +323,21 @@ function consentHere(search) {
   try {
     const forced = new URLSearchParams(search ?? window.location.search).get('consent');
     if (CONSENT_STATES.includes(forced)) return { state: forced, at: 0 };
-    return search == null || search === window.location.search ? consentOf(document.cookie) : null;
+    return search == null || search === window.location.search
+      ? consentOf(document.cookie, osanoHere()) : null;
   } catch (e) {
     return null;
   }
 }
 
 /**
- * Nothing is remembered about a visitor who rejected or limited cookies. With
+ * Nothing is remembered about a visitor who rejected or limited cookies, or whose choice the
+ * engine cannot read yet ('decided': load the consent manager before the engine). With
  * `memory.requireConsent`, memory is also read and written only after the experimentation
  * plugin recorded consent (localStorage `experimentation-consented`).
  */
 export function memoryAllowed(rules) {
-  if (['rejected', 'customized'].includes(consentHere()?.state)) return false;
+  if (NO_MEMORY.includes(consentHere()?.state)) return false;
   if (!rules.memory?.requireConsent) return true;
   try {
     return localStorage.getItem('experimentation-consented') === 'true';
@@ -364,11 +397,12 @@ export function signalsFor(rules, href, referrer = '', memory = {}) {
   const agent = agentOf(ua, q.get('agent') || (here ? agentHint() : ''));
   const consent = consentHere(u.search);
   const gap = rules.memory?.sessionGapMs || 30 * 60 * 1000;
+  const source = sourceOf(refHost, siteHost, utm, paid);
   const mobile = (navigator.userAgentData && navigator.userAgentData.mobile)
     || SIGNALS.mobileUa.test(ua) || window.matchMedia('(max-width: 599px)').matches;
   return {
     refHost,
-    source: sourceOf(refHost, siteHost, utm, paid),
+    source,
     utm,
     paid,
     device: mobile ? 'mobile' : 'desktop',
@@ -376,10 +410,11 @@ export function signalsFor(rules, href, referrer = '', memory = {}) {
     // an agent's browser is automated too; it is an agent first
     bot: !agent && (SIGNALS.bot.test(ua) || navigator.webdriver === true),
     memory,
-    // the stored cookie decision, and whether it is older than this visit
+    // the stored cookie decision, and whether it is older than this visit. Without a time
+    // (Osano), a decision already stored on a page entered from elsewhere predates the visit.
     consent: consent?.state || null,
-    consentBefore: !!consent && consent.state !== 'undecided' && consent.at != null
-      && Date.now() - consent.at > gap,
+    consentBefore: !!consent && consent.state !== 'undecided' && (consent.at != null
+      ? Date.now() - consent.at > gap : source !== 'internal'),
     path: u.pathname,
   };
 }

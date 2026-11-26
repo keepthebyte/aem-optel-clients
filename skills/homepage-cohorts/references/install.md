@@ -156,6 +156,12 @@ window.Osano?.cm?.addEventListener('osano-cm-consent-saved', syncConsent);
 Pick the category with the privacy team (personalization, or analytics if that is how
 the banner is worded). OneTrust: read `OnetrustActiveGroups` in `OptanonWrapper`.
 
+The engine reads the stored decision itself for the loyalty split (`consentOf()`, `rules.md`):
+OneTrust from its cookies, Osano from `Osano.cm.getConsent()`. Osano's own cookie
+(`osano_consentmanager`) is encrypted; it only says that a choice was made. So load Osano's
+script in the head before the engine (Osano asks for that anyway): when the engine runs before
+it, a visitor who chose reads as `decided`, and nothing is remembered on that view.
+
 Consent changes what can be shown: before consent, memory rules (returning visitor,
 signed in, interests) never match, so demos and screenshots of them use `?cohort=<rule id>`,
 which forces the rule without memory. On a replica or demo site without the real CMP,
