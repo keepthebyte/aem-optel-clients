@@ -10,6 +10,12 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Cohorts panel: a long switcher menu fits the panel
+- The menu ended past the bottom of the panel, and the dock (Add section, Review) painted over
+  it: the sticky header and the dock shared a stacking level. The header now sits above the
+  dock, and the menu ends 8px above the panel's bottom and scrolls inside (`fitMenu`, refitted
+  on resize), with the chosen variation scrolled into view.
+
 ### Homepage cohorts: a short source label for many paths (#42)
 - `size.js`, `review.js` and `pictures.js` write `meta.paths` (every `--path`, trimmed) and a
   short `meta.path`: the path, or "first +N more". New `--label "..."` names the source instead

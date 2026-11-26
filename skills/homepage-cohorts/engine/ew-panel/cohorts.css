@@ -101,7 +101,9 @@ button {
 .top {
   position: sticky;
   top: 0;
-  z-index: 2;
+
+  /* above the dock: the switcher menu opens inside the header and overlaps it */
+  z-index: 3;
   padding: var(--s3) var(--s3) 0;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
@@ -195,6 +197,11 @@ button {
   position: absolute;
   inset: 40px 0 auto;
   z-index: 3;
+
+  /* a long list scrolls inside the menu; panel.js fits it to the space below the trigger */
+  max-height: var(--menu-max, 70vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--s1);
   border: 1px solid var(--line-2);
   border-radius: var(--r-m);
