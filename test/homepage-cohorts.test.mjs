@@ -525,3 +525,52 @@ test('OneTrust cookies: granted, rejected, customized, undecided, none', () => {
   assert.equal(consentOf(c('C0001:1,C0002:0', '')).state, 'undecided');
   assert.equal(consentOf('other=1'), null);
 });
+
+test('Osano: the choice from its API, the cookie says a choice was made', () => {
+  const all = (v) => ({ ESSENTIAL: 'ACCEPT', ANALYTICS: v, MARKETING: v, PERSONALIZATION: v, STORAGE: v, OPT_OUT: 'DENY' });
+  const c = 'osano_consentmanager_uuid=u; osano_consentmanager=opaque';
+  assert.deepEqual(consentOf(c, all('ACCEPT')), { state: 'granted', at: null });
+  // "Reject Non-Essential", as read from a live Osano banner (November 2026)
+  assert.equal(consentOf(c, { ...all('DENY'), OPT_OUT: 'ACCEPT' }).state, 'rejected');
+  assert.equal(consentOf(c, { ...all('ACCEPT'), MARKETING: 'DENY' }).state, 'customized');
+  // accepted everything but opted out of sale or sharing: limited
+  assert.equal(consentOf(c, { ...all('ACCEPT'), OPT_OUT: 'ACCEPT' }).state, 'customized');
+  // before a choice Osano reports its defaults and sets no cookie
+  assert.equal(consentOf('', all('DENY')).state, 'undecided');
+  // the cookie is encrypted: without the API, a choice the engine cannot read
+  assert.deepEqual(consentOf(c), { state: 'decided', at: null });
+  assert.equal(consentOf('', null), null);
+});
+
+test('a choice the engine cannot read: a decision, and nothing is remembered', () => {
+  assert.ok(matches({ consent: true }, sig({ consent: 'decided' })));
+  assert.ok(!matches({ consent: 'granted' }, sig({ consent: 'decided' })));
+  const r = relationshipOf(rules, sig({ consent: 'decided', consentBefore: true }));
+  assert.equal(r.group, 'loyalty');
+  assert.equal(r.remember, false);
+});
+
+test('Osano keeps no time: a stored choice on a page entered from elsewhere predates the visit', async () => {
+  const { signalsFor } = await import('../skills/homepage-cohorts/engine/cohorts.js');
+  const saved = { window: globalThis.window, document: globalThis.document };
+  const href = 'https://www.example.com/';
+  globalThis.window = {
+    location: { href, search: '' },
+    matchMedia: () => ({ matches: false }),
+    Osano: { cm: { getConsent: () => ({ ANALYTICS: 'ACCEPT', MARKETING: 'ACCEPT', PERSONALIZATION: 'ACCEPT', STORAGE: 'ACCEPT', OPT_OUT: 'DENY' }) } },
+  };
+  globalThis.document = { cookie: 'osano_consentmanager=opaque', querySelector: () => null };
+  try {
+    const outside = signalsFor(rules, href, 'https://www.google.com/');
+    assert.equal(outside.consent, 'granted');
+    assert.equal(outside.consentBefore, true);
+    assert.equal(signalsFor(rules, href, '').consentBefore, true);
+    // the next page of the visit in which the choice was made
+    assert.equal(signalsFor(rules, href, 'https://www.example.com/about').consentBefore, false);
+    globalThis.document.cookie = '';
+    assert.equal(signalsFor(rules, href, 'https://www.google.com/').consentBefore, false);
+  } finally {
+    globalThis.window = saved.window;
+    globalThis.document = saved.document;
+  }
+});
