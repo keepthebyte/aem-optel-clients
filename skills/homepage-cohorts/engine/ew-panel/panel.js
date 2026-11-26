@@ -341,6 +341,18 @@ function option(e, max, base) {
   return o;
 }
 
+/**
+ * The open menu ends 8px above the bottom of the panel and scrolls inside: without a bound a
+ * long list ran past the dock. `reveal` scrolls the chosen variation into view on opening.
+ */
+function fitMenu(reveal = false) {
+  const menu = app.querySelector('.menu');
+  if (!menu) return;
+  const room = window.innerHeight - menu.getBoundingClientRect().top - 8;
+  menu.style.setProperty('--menu-max', `${Math.max(160, Math.floor(room))}px`);
+  if (reveal) menu.querySelector('.opt[aria-pressed="true"]')?.scrollIntoView({ block: 'nearest' });
+}
+
 function renderSwitcher(root) {
   const list0 = groups();
   const cur = picked();
@@ -386,6 +398,7 @@ function renderSwitcher(root) {
     wrap.append(menu);
   }
   root.append(wrap);
+  if (state.menu) requestAnimationFrame(() => fitMenu(true));
 }
 
 function renderTabs(root, issueCount) {
@@ -823,6 +836,7 @@ async function boot() {
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape' && state.menu) { state.menu = false; render(); app.querySelector('.trigger')?.focus(); }
   });
+  window.addEventListener('resize', () => fitMenu());
   const inFrame = window.parent !== window;
   if (!inFrame || params.has('path')) { await startStandalone(); return; }
   const nx = params.get('nx') ? `https://${params.get('nx')}--da-nx--adobe.aem.live` : 'https://da.live';
