@@ -12,7 +12,7 @@
  * - Week by week: each experience's share per full week, and what to look at again.
  */
 /* eslint-disable max-len */
-import { groupColor } from './model.js';
+import { groupColor, pathLabel, pathsOf } from './model.js';
 
 const SIG = {
   link: { label: 'Where they came from', color: 'var(--swc-blue-visual-color, #4b75ff)' },
@@ -583,11 +583,14 @@ export default async function renderFlow(host, { data, rules, onPick }) {
     applySelection(m, svgEl);
   };
   const drawHead = () => {
+    const source = h('p', 'sub', `${meta.domain}${pathLabel(meta)} · ${String(meta.start).slice(0, 10)} to ${String(meta.end).slice(0, 10)} · ${meta.bundles.toLocaleString()} sampled views (about ${meta.views.toLocaleString()})`);
+    // the label can stand for many paths: the whole list on hover
+    if (pathsOf(meta).length > 1) source.title = pathsOf(meta).join('\n');
     head.replaceChildren(
       h(
         'div',
         'title-row',
-        h('div', '', h('h2', '', 'How the cohorts came about'), h('p', 'sub', `${meta.domain}${meta.path} · ${String(meta.start).slice(0, 10)} to ${String(meta.end).slice(0, 10)} · ${meta.bundles.toLocaleString()} sampled views (about ${meta.views.toLocaleString()})`)),
+        h('div', '', h('h2', '', 'How the cohorts came about'), source),
         actionGroup('Colour flows by', { experience: 'Experience', signal: 'Signal' }, ui.colorBy, (v) => {
           ui.colorBy = v;
           drawHead();

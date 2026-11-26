@@ -287,6 +287,31 @@ const COLORS = [
   'var(--swc-celery-visual-color, #3fa54a)',
 ];
 
+/** A short label for a list of paths: one path as it is, several as "first +N more". */
+export function labelFor(paths = []) {
+  return paths.length > 1 ? `${paths[0]} +${paths.length - 1} more` : paths[0] || '';
+}
+
+/**
+ * The paths a data file (cohorts.json, review.json) was sized on: `meta.paths`, or for a file
+ * written before it the comma list in `meta.path`.
+ */
+export function pathsOf(meta = {}) {
+  if (Array.isArray(meta.paths)) return meta.paths;
+  return String(meta.path || '').split(',').map((p) => p.trim()).filter(Boolean);
+}
+
+/**
+ * What a view prints after the domain: `meta.path` (size.js writes a short label there, or the
+ * `--label` given), and for an older file with a comma list "first +N more". One path, or a
+ * label a script set, is kept exactly as it is.
+ */
+export function pathLabel(meta = {}) {
+  if (Array.isArray(meta.paths)) return String(meta.path ?? labelFor(meta.paths));
+  const paths = pathsOf(meta);
+  return paths.length > 1 ? labelFor(paths) : String(meta.path || '');
+}
+
 /** A group's colour: the same in the Cohorts panel and the gallery; intents share their group's. */
 export function groupColor(rules, id) {
   const base = String(id).split(':')[0];

@@ -57,7 +57,9 @@ behave very differently (one sends most visitors on from other pages of the site
 gets twice the search share). Rules can cover several paths with the same audience
 (`size.js --path /en/home.html,/en-gb/home.html`); otherwise size and run them per locale,
 and leave small locales on the original page (under ~30 sampled views per rule and arm a
-month, nothing can be judged).
+month, nothing can be judged). The output keeps every path in `meta.paths` and shows a short
+`meta.path` ("/en/home.html +1 more"); `--label "..."` names the source instead, for example
+when a site is sized on the pages people enter on because its homepage sends no Optel.
 
 ```bash
 OPTEL=path/to/optel-client.js   # next to the aem-optel skill, or the aem-optel-clients repo root

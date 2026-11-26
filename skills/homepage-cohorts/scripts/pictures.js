@@ -20,13 +20,14 @@
  * more. Read differences as "this is where the group is and what is in front of it".
  */
 import fs from 'node:fs';
+import { labelFor } from '../engine/ew-panel/model.js';
 import {
   loadOptel, loadRules, readBundles, parseArgs, ruleOf, cohortViews, agentRuleIds,
 } from './lib.js';
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.rules || !args.bundles) {
-  console.error('usage: node pictures.js --rules cohort-rules.js --bundles home.jsonl [--site site.jsonl] [--path /] [--match <regex>] [--kinds kinds.json] [--top 12] [--out pictures.json]');
+  console.error('usage: node pictures.js --rules cohort-rules.js --bundles home.jsonl [--site site.jsonl] [--path /[,/b...]] [--label "..."] [--match <regex>] [--kinds kinds.json] [--top 12] [--out pictures.json]');
   process.exit(1);
 }
 const o = await loadOptel();
@@ -100,12 +101,15 @@ function kindsOf(views) {
 
 const all = readBundles(args.bundles);
 const pagePath = args.path || '/';
-const paths = new Set(String(pagePath).split(',').map((p) => o.normalizePath(p.trim())));
+const pathList = String(pagePath).split(',').map((p) => p.trim()).filter(Boolean);
+const paths = new Set(pathList.map((p) => o.normalizePath(p)));
+// what views print after the domain: --label, else the path or "first +N more"
+const pathShown = args.label || labelFor(pathList);
 const agentRules = agentRuleIds(rules);
 const views = cohortViews(o, all, (b) => agentRules.has(ruleOf(o, rules, b).rule)).filter((b) => paths.has(o.pathOf(b)));
-if (!views.length) { console.error(`no human views of ${pagePath} in ${args.bundles}`); process.exit(1); }
+if (!views.length) { console.error(`no human views of ${pathShown} in ${args.bundles}`); process.exit(1); }
 const withMedia = views.filter((b) => picturesOf(b).length).length;
-if (!withMedia) console.error(`warning: no viewmedia events${match ? ` matching ${match}` : ''} on ${pagePath}: check --match, or the site sends none`);
+if (!withMedia) console.error(`warning: no viewmedia events${match ? ` matching ${match}` : ''} on ${pathShown}: check --match, or the site sends none`);
 
 const home = reachOf(views);
 const homeBase = new Map(home.map((p) => [p.key, p.share]));
@@ -166,7 +170,8 @@ const times = views.map((b) => b.time || b.timeSlot).sort();
 const out = {
   meta: {
     domain: o.hostOf(views[0]),
-    path: pagePath,
+    path: pathShown,
+    paths: pathList,
     start: times[0],
     end: times[times.length - 1],
     bundles: views.length,
@@ -185,5 +190,5 @@ const out = {
 const json = JSON.stringify(out, null, 1);
 if (args.out) fs.writeFileSync(args.out, json); else process.stdout.write(`${json}\n`);
 const pct = (x) => `${(x * 100).toFixed(0)}%`;
-console.error(`${out.meta.domain}${pagePath}: ${views.length} bundles, ${withMedia} with pictures in view; 1/2/3/4 pictures reached by ${out.depth.slice(0, 4).map(pct).join(' / ')}`);
+console.error(`${out.meta.domain}${pathShown}: ${views.length} bundles, ${withMedia} with pictures in view; 1/2/3/4 pictures reached by ${out.depth.slice(0, 4).map(pct).join(' / ')}`);
 ruleRows.forEach((r) => console.error(`  ${r.id.padEnd(22)} ${String(r.bundles).padStart(5)} bundles  beats ${r.depth.slice(0, 4).map(pct).join('/')}${r.leansTo.length ? `  leans to ${r.leansTo.slice(0, 3).join(', ')}` : ''}${r.lowSample ? '  (low sample)' : ''}`));

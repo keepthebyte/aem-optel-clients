@@ -10,6 +10,15 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Homepage cohorts: a short source label for many paths (#42)
+- `size.js`, `review.js` and `pictures.js` write `meta.paths` (every `--path`, trimmed) and a
+  short `meta.path`: the path, or "first +N more". New `--label "..."` names the source instead
+  (e.g. entry pages, when the homepage sends no Optel).
+- The gallery's Cohort data heading, the Cohorts panel source line and the Sankey subtitle and
+  footer print `pathLabel(meta)` (`model.js`, with `pathsOf` and `labelFor`); a file written
+  before `meta.paths`, with the raw comma list, reads the same way. The gallery heading shows
+  the whole list on hover. `holdout.js` carries `paths` into the example review.
+
 ### Homepage cohorts: Osano consent
 - `consentOf(cookie, osano)` reads Osano as well as OneTrust. Osano's `osano_consentmanager`
   cookie is encrypted and set only once the visitor chooses; the choice comes from

@@ -24,7 +24,7 @@ import { notesFrom, noteFor, isNoteRef } from '../../scripts/cohort-insights.js'
 import {
   COHORT_KEYS, parsePage, sectionOfBlock, sectionLabel, experiencesOf, relationshipSections,
   audienceOf, lint, holdout,
-  list, shortName, intentName, interestSources, variantDiff, groupColor,
+  list, shortName, intentName, interestSources, variantDiff, groupColor, pathLabel,
 } from './model.js';
 import {
   KEY_LABEL, applied, metaEdit, deleteEdit, reverse, promptFor, manualText, versionPrompt,
@@ -602,7 +602,7 @@ function renderOverview(root) {
 
   const src = state.cohortsJson?.meta;
   root.append(h('p', 'foot', src
-    ? `Shares: Optel, ${src.domain}${src.path}, ${String(src.start).slice(0, 10)} to ${String(src.end).slice(0, 10)}, ${src.bundles.toLocaleString()} sampled views. Memory rules are estimates.`
+    ? `Shares: Optel, ${src.domain}${pathLabel(src)},${String(src.start).slice(0, 10)} to ${String(src.end).slice(0, 10)}, ${src.bundles.toLocaleString()} sampled views. Memory rules are estimates.`
     : 'Shares appear when cohorts.json (homepage-cohorts size.js) is published at /cohorts/cohorts.json.'));
 }
 
