@@ -13,19 +13,23 @@
  * significant difference there means the split or the tagging is broken, not a win.
  */
 import fs from 'node:fs';
+import { labelFor } from '../engine/ew-panel/model.js';
 import {
   loadOptel, loadRules, readBundles, parseArgs, goalHit, clicks, cohortViews, agentRuleIds,
 } from './lib.js';
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.rules || !args.bundles) {
-  console.error('usage: node review.js --rules cohort-rules.js --bundles month.jsonl [--path /] [--out review.json] [--md review.md]');
+  console.error('usage: node review.js --rules cohort-rules.js --bundles month.jsonl [--path /[,/b...]] [--label "..."] [--out review.json] [--md review.md]');
   process.exit(1);
 }
 const o = await loadOptel();
 const rules = await loadRules(args.rules);
 const pagePath = args.path || '/';
-const paths = new Set(String(pagePath).split(',').map((p) => o.normalizePath(p.trim())));
+const pathList = String(pagePath).split(',').map((p) => p.trim()).filter(Boolean);
+const paths = new Set(pathList.map((p) => o.normalizePath(p)));
+// what views print after the domain: --label, else the path or "first +N more"
+const pathShown = args.label || labelFor(pathList);
 // people, plus the personal AI agents the engine tagged with an agent rule
 const agentRules = agentRuleIds(rules);
 const human = cohortViews(o, readBundles(args.bundles), (b) => agentRules.has(o.firstEvent(b, 'audience')?.source)).filter((b) => paths.has(o.pathOf(b)));
@@ -97,7 +101,8 @@ const times = human.map((b) => b.time || b.timeSlot).sort();
 const out = {
   meta: {
     domain: human.length ? o.hostOf(human[0]) : null,
-    path: pagePath,
+    path: pathShown,
+    paths: pathList,
     start: times[0] || null,
     end: times[times.length - 1] || null,
     views: o.weightOf(human),
@@ -124,7 +129,7 @@ if (args.md) {
   const lines = [
     `# Homepage cohorts: review ${out.meta.start?.slice(0, 10)} to ${out.meta.end?.slice(0, 10)}`,
     '',
-    `${out.meta.domain}${pagePath} · ${out.meta.bundles.toLocaleString()} sampled views (~${Math.round(out.meta.views).toLocaleString()} views) · ${pct(1 - out.meta.untaggedShare)} tagged · holdout ${pct(controlShare)}`,
+    `${out.meta.domain}${pathShown} · ${out.meta.bundles.toLocaleString()} sampled views (~${Math.round(out.meta.views).toLocaleString()} views) · ${pct(1 - out.meta.untaggedShare)} tagged · holdout ${pct(controlShare)}`,
     '',
     '| Rule | Share | Goal | Holdout | Cohort | Lift | p | Supporting step | Verdict |',
     '| --- | --- | --- | --- | --- | --- | --- | --- | --- |',

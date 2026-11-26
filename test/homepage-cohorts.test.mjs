@@ -209,9 +209,23 @@ test('size.js → cohorts.json → sankey.js', () => {
   // Optel cannot see visit counts: a first-visit rule is an upper bound
   assert.equal(mob.firstVisitAssumed, true);
   assert.equal(c.rules.find((r) => r.id === 'ai-referred').firstVisitAssumed, false);
-  // --path takes a comma list
-  run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'b.jsonl'), '--path', '/,/other', '--out', path.join(tmp, 'c2.json')]);
-  assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'c2.json'), 'utf8')).meta.bundles, 11);
+  // --path takes a comma list: every path in meta.paths, a short label in meta.path (#42)
+  assert.equal(c.meta.path, '/');
+  assert.deepEqual(c.meta.paths, ['/']);
+  run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'b.jsonl'), '--path', '/, /other', '--out', path.join(tmp, 'c2.json')]);
+  const c2 = JSON.parse(fs.readFileSync(path.join(tmp, 'c2.json'), 'utf8'));
+  assert.equal(c2.meta.bundles, 11);
+  assert.equal(c2.meta.path, '/ +1 more');
+  assert.deepEqual(c2.meta.paths, ['/', '/other']);
+  run('size.js', ['--rules', rulesFile, '--bundles', path.join(tmp, 'b.jsonl'), '--path', '/,/other', '--label', ' entry pages', '--out', path.join(tmp, 'c3.json')]);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, 'c3.json'), 'utf8')).meta.path, ' entry pages');
+  // a file written before meta.paths, with the raw comma list: the Sankey prints the label
+  const many = Array.from({ length: 400 }, (_, i) => `/p${i}`).join(',');
+  fs.writeFileSync(path.join(tmp, 'old.json'), JSON.stringify({ ...c, meta: { ...c.meta, path: many, paths: undefined } }));
+  run('sankey.js', ['--in', path.join(tmp, 'old.json'), '--out', path.join(tmp, 'old')]);
+  const oldSvg = fs.readFileSync(path.join(tmp, 'old.svg'), 'utf8');
+  assert.match(oldSvg, /www\.example\.com\/p0 \+399 more/);
+  assert.doesNotMatch(oldSvg, /\/p1,/);
   // every flow stage sums to the total
   [0, 1, 2].forEach((col) => {
     const ids = new Set(c.columns[col].nodes.map((x) => x.id));

@@ -10,6 +10,7 @@
  */
 import fs from 'node:fs';
 import { parseArgs } from './lib.js';
+import { pathLabel } from '../engine/ew-panel/model.js';
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.in) { console.error('usage: node sankey.js --in cohorts.json [--out sankey] [--title ...]'); process.exit(1); }
@@ -79,9 +80,10 @@ const legend = ['<text class="legend" x="62" y="215">Flow colour = the signal th
 
 const days = Math.max(1, Math.round((new Date(data.meta.end) - new Date(data.meta.start)) / 864e5));
 const title = args.title || 'First match wins: how every visit picks its homepage';
-const subtitle = args.subtitle || `${data.meta.domain}${data.meta.path} traffic, run through the cohort rules in order. Each visit gets the experience of the first rule it matches.`;
+const where = `${data.meta.domain}${pathLabel(data.meta)}`;
+const subtitle = args.subtitle || `${where} traffic, run through the cohort rules in order. Each visit gets the experience of the first rule it matches.`;
 const modelled = data.rules.filter((r) => r.modelled).map((r) => r.label).join(', ');
-const foot1 = `Source: AEM Operational Telemetry, ${data.meta.domain}${data.meta.path}, ${days} days to ${data.meta.end.slice(0, 10)}, ${data.meta.bundles.toLocaleString()} sampled views (bots and prerenders excluded).`;
+const foot1 = `Source: AEM Operational Telemetry, ${where},${days} days to ${data.meta.end.slice(0, 10)}, ${data.meta.bundles.toLocaleString()} sampled views (bots and prerenders excluded).`;
 const foot2 = modelled ? `Modelled at steady state (on-device memory is not in Optel): ${modelled}. The 10% holdout sees the original page and is not shown.` : 'The 10% holdout sees the original page and is not shown.';
 
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" role="img" aria-labelledby="t d">

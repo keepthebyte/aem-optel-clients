@@ -16,13 +16,14 @@
  * audiences to call out by name: in a share-sized Sankey they are a sliver.
  */
 import fs from 'node:fs';
+import { labelFor } from '../engine/ew-panel/model.js';
 import {
   loadOptel, loadRules, readBundles, parseArgs, ruleOf, goalHit, entryOf, ENTRY_LABELS, signalOf, clicks, assumesFirstVisit, cohortViews, agentRuleIds,
 } from './lib.js';
 
 const args = parseArgs(process.argv.slice(2));
 if (!args.rules || !args.bundles) {
-  console.error('usage: node size.js --rules cohort-rules.js --bundles home.jsonl [--site site.jsonl] [--path /] [--out cohorts.json]');
+  console.error('usage: node size.js --rules cohort-rules.js --bundles home.jsonl [--site site.jsonl] [--path /[,/b...]] [--label "..."] [--out cohorts.json]');
   process.exit(1);
 }
 const o = await loadOptel();
@@ -31,11 +32,14 @@ const all = readBundles(args.bundles);
 // the homepage is not always '/' ('/' may redirect to '/en/home.html'); --path takes a comma list
 // for one rule set over several paths (e.g. two locales with the same audience)
 const pagePath = args.path || '/';
-const paths = new Set(String(pagePath).split(',').map((p) => o.normalizePath(p.trim())));
+const pathList = String(pagePath).split(',').map((p) => p.trim()).filter(Boolean);
+const paths = new Set(pathList.map((p) => o.normalizePath(p)));
+// what views print after the domain: --label, else the path or "first +N more"
+const pathShown = args.label || labelFor(pathList);
 const agentRules = agentRuleIds(rules);
 const views = cohortViews(o, all, (b) => agentRules.has(ruleOf(o, rules, b).rule)).filter((b) => paths.has(o.pathOf(b)));
 const total = o.weightOf(views);
-if (!views.length) { console.error(`no human views of ${pagePath} in ${args.bundles}`); process.exit(1); }
+if (!views.length) { console.error(`no human views of ${pathShown} in ${args.bundles}`); process.exit(1); }
 
 const rows = views.map((b) => {
   const m = ruleOf(o, rules, b);
@@ -196,7 +200,8 @@ if (args.site) {
 const out = {
   meta: {
     domain: o.hostOf(views[0]),
-    path: pagePath,
+    path: pathShown,
+    paths: pathList,
     start: times[0],
     end: times[times.length - 1],
     views: total,
@@ -226,5 +231,5 @@ if (secondOrder) {
 }
 if (args.out) fs.writeFileSync(args.out, json); else process.stdout.write(`${json}\n`);
 const pct = (x) => `${(x * 100).toFixed(1)}%`;
-console.error(`${out.meta.domain}${pagePath}: ${views.length} bundles, ~${Math.round(total).toLocaleString()} views`);
+console.error(`${out.meta.domain}${pathShown}: ${views.length} bundles, ~${Math.round(total).toLocaleString()} views`);
 ruleRows.forEach((r) => console.error(`  ${r.id.padEnd(22)} ${pct(r.share).padStart(6)}  ${String(r.bundles).padStart(5)} bundles${r.lowSample ? '  (low sample)' : ''}${r.modelled ? '  (modelled)' : ''}${r.firstVisitAssumed ? '  (upper bound: every view counted as a first visit)' : ''}${r.growth ? `  ${r.growth.toFixed(1)}x week 1 → ${fullWeeks}` : ''}${r.standsOut ? `  ← stands out: ${(r.today.vsAll.navigated ?? 0).toFixed(1)}x as likely to go on to another page, ${(r.today.vsAll.didNothing ?? 0).toFixed(2)}x the no-click rate` : ''}`));

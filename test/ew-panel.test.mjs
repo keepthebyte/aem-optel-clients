@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   camelKey, sectionOfBlock, experiencesOf, relationshipSections, lint, holdout, previewUrl, audienceOf, campaignFor,
-  groupColor,
+  groupColor, pathLabel, pathsOf, labelFor,
 } from '../skills/homepage-cohorts/engine/ew-panel/model.js';
 import rules from '../skills/homepage-cohorts/engine/cohort-rules.js';
 
@@ -177,4 +177,21 @@ test('relationshipSections: the switcher by loyalty and new, by where most visit
   assert.deepEqual(relationshipSections(r, exps, null).map((s) => s.exps.map((e) => e.id).join()), ['owner', 'default,shopper', 'agent']);
   // no groups: one unlabelled section
   assert.deepEqual(relationshipSections({ rules: [] }, exps, null).map((s) => s.label), ['']);
+});
+
+test('source label: one path as is, many as "first +N more", old comma lists too (#42)', () => {
+  assert.equal(labelFor([]), '');
+  assert.equal(labelFor(['/']), '/');
+  assert.equal(labelFor(['/en/home.html', '/en-gb/home.html', '/de/home.html']), '/en/home.html +2 more');
+  // written by size.js: the label it chose, the list beside it
+  assert.equal(pathLabel({ path: '/en/home.html +1 more', paths: ['/en/home.html', '/en-gb/home.html'] }), '/en/home.html +1 more');
+  // a label a script set is kept exactly, leading space included
+  assert.equal(pathLabel({ path: ' homepages', paths: ['/'] }), ' homepages');
+  // a file written before meta.paths: the raw comma list
+  const many = Array.from({ length: 400 }, (_, i) => `/p${i}`).join(',');
+  assert.equal(pathLabel({ path: many }), '/p0 +399 more');
+  assert.equal(pathLabel({ path: '/en/home.html,/en-gb/home.html' }), '/en/home.html +1 more');
+  assert.equal(pathsOf({ path: '/a, /b' }).join('|'), '/a|/b');
+  assert.equal(pathLabel({ path: '/' }), '/');
+  assert.equal(pathLabel({}), '');
 });

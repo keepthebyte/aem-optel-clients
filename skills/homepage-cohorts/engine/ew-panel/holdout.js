@@ -149,6 +149,7 @@ export function mockReview(cj, rules, { weeks = 8, holdout = 0.2 } = {}) {
     meta: {
       domain: cj.meta.domain,
       path: cj.meta.path,
+      paths: cj.meta.paths,
       start: out[0]?.weeks[0]?.start,
       end: last,
       experiment: rules.experiment || 'homepage-cohorts',
