@@ -1,0 +1,63 @@
+{
+  "note": "Invented, to show the shape. One plan per run, written by hand after the three reads; keep it beside reads.json, outside any served repository. references/panel.md has the rules.",
+  "brand": "Example Group",
+  "asOf": "2026-11-26",
+  "window": "Optel 14 Sep to 25 Nov 2026; Brand Visibility prompt research (US) and brands tab, 26 Nov 2026",
+  "labels": { "peer": "next competitor", "peers": "Competitors", "growth": "Growth area", "notes": "Across the sites" },
+  "study": { "title": "The findings the evidence lines quote", "url": "https://example.com/study" },
+  "pattern": {
+    "title": "Make the page do both jobs",
+    "parts": [
+      { "goal": "seen", "name": "The question as the H1", "text": "The answer, with its number, in the first sentence." },
+      { "goal": "seen", "name": "The figures as text", "text": "A table with its source, not an image or a PDF." },
+      { "goal": "chosen", "name": "A next question", "text": "Links to two or three related pages." },
+      { "goal": "chosen", "name": "A route to an expert", "text": "A short contact form that reaches the right team." }
+    ]
+  },
+  "notes": [
+    { "title": "AI visitors skip the homepage", "text": "The homepage takes 2% of AI visits and 38% of other visits. AI visitors land on deep pages." }
+  ],
+  "dataSources": [
+    { "name": "Brand Visibility prompt research", "status": "included", "used": "Prompts a month per topic", "detail": "US prompts. Other markets are not in this read." },
+    { "name": "Brand Visibility brands tab", "status": "included", "used": "Share of answers, rank and leaders", "detail": "One query per topic, read 26 Nov." },
+    { "name": "Operational telemetry (Optel)", "status": "included", "used": "Site visits, AI visits, engagement", "detail": "Two sites, 14 Sep to 25 Nov 2026." },
+    { "name": "Public strategy statements", "status": "included", "used": "Growth areas and the default Focus", "detail": "Annual report 2025." },
+    { "name": "Leads and conversions", "status": "partial", "used": "Measuring Be chosen", "detail": "Form interactions count as engagement. Completed leads are not connected." },
+    { "name": "CDN logs", "status": "missing", "used": "Agent fetches and citation attempts", "detail": "No CDN is connected to Brand Visibility." }
+  ],
+  "suggestions": {
+    "health": [
+      {
+        "goal": "seen",
+        "pattern": true,
+        "title": "Put the survey number in the headline",
+        "page": "https://www.example.com/insights/health-cost-survey",
+        "what": "State the expected increase in the H1 and the first sentence, with the survey date and sample size, so an answer can quote it.",
+        "evidence": [
+          { "kind": "Brand data", "text": "The most visited health page in the window (9,700 visits)." },
+          { "kind": "Study", "text": "Write hard facts as visible text. Numbers in images, PDFs or tabs are not read." }
+        ]
+      },
+      {
+        "goal": "chosen",
+        "title": "Give the benefits service page one next step",
+        "page": "https://www.example.com/services/benefits",
+        "what": "One sentence up top on who the service is for, and one next step: talk to the benefits team.",
+        "evidence": [
+          { "kind": "Brand Visibility", "text": "Simplify Complex Content: 3 suggestions on this page." }
+        ]
+      }
+    ],
+    "ai-data": [
+      {
+        "goal": "seen",
+        "title": "Build the data-center page around one named thing",
+        "page": "https://www.example.com/industries/data-centers",
+        "what": "The stages as a structured list, each linking to its insight page.",
+        "evidence": [
+          { "kind": "Brand data", "text": "Named growth area: digital infrastructure." }
+        ]
+      }
+    ]
+  }
+}

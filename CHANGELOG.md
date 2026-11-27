@@ -10,6 +10,22 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Brand visibility: a panel to decide the focus and plan the changes
+- `skills/brand-visibility/ew-panel/` is a full-screen Experience Workspace extension
+  (`fullsize-dialog`), site-wide. **Decide**: a map of prompts a month against share of answers,
+  zoned Claim, Defend, Win, and the topic table; the team marks each topic Focus, Watch or Skip,
+  saved to `/brand-visibility/focus.json` in the content store (previewed, never published).
+  **Plan**: the changes for the topics on Focus, grouped by job (be seen and preferred, be
+  chosen), with page, evidence and an optional page pattern; each change, or the plan, drafts a
+  prompt in the chat. The side pane lists every data source with its status (included, partial,
+  missing). Spectrum 2 tokens, light and dark.
+- `scripts/panel-data.js` builds its data file from `visits-by-theme.json`, `reads.json` (now
+  with optional `standing` per theme: share, rank, leaders, closest competitor) and a hand-written
+  `plan.json` (`plan.example.json`). The job comes from share and rank (Defend at 10% or top 2,
+  Win from 5%, else Claim), or from read 2's state when there is no share; `--check-urls`
+  stops on any suggested page that does not answer 200.
+- `references/panel.md`: the data, how to write suggestions and data sources, the install.
+
 ### Cohorts panel: a long switcher menu fits the panel
 - The menu ended past the bottom of the panel, and the dock (Add section, Review) painted over
   it: the sticky header and the dock shared a stacking level. The header now sits above the

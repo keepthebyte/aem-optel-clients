@@ -41,6 +41,9 @@ Rules that keep it honest:
   customer has them set up, are the better source.
 - The sandbox has no timers: run the calls one after another and keep each run to a few
   queries; retry a 429 in a later run.
+- For the panel, record `standing` per theme from the same brands query: the firm's mentions as a
+  share of all brand mentions in the rows read, its rank, the leaders and the closest competitor of
+  the same kind (`references/panel.md`).
 
 ## Read 2 from Semrush
 
