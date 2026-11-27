@@ -22,8 +22,11 @@ change report shapes or classification results; read **Changed** before upgradin
 - `scripts/panel-data.js` builds its data file from `visits-by-theme.json`, `reads.json` (now
   with optional `standing` per theme: share, rank, leaders, closest competitor) and a hand-written
   `plan.json` (`plan.example.json`). The job comes from share and rank (Defend at 10% or top 2,
-  Win from 5%, else Claim), or from read 2's state when there is no share; `--check-urls`
-  stops on any suggested page that does not answer 200.
+  Win from 5%, else Claim), or from read 2's state when there is no share. A brand whose own
+  name lifts its share on every topic can set `plan.jobRule` to go by rank instead
+  (`{ by: 'rank', defendRank, winRank }`); the map then drops its share bands. `--check-urls`
+  stops on any suggested page that does not answer 200; for a site that refuses scripted
+  fetches, check the pages from a browser instead, keeping the URL's case.
 - `references/panel.md`: the data, how to write suggestions and data sources, the install.
 
 ### Cohorts panel: a long switcher menu fits the panel
