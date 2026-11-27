@@ -56,7 +56,10 @@ directional, with the query and the date.
 | under 5% | Claim |
 
 `plan.jobRule` (`defendShare`, `defendRank`, `winShare`) and `plan.jobText` override the rule
-and its wording; `plan.jobs` sets a theme's job by hand. Say so in a note when you do.
+and its wording. A brand whose own name lifts its share on every topic (a carmaker in car
+questions) reads better by rank: `{ "by": "rank", "defendRank": 3, "winRank": 9 }`. The map
+then drops its share bands and the dots carry the job. `plan.jobs` sets a theme's job by hand.
+Say so in a note when you do.
 
 ### plan.json
 

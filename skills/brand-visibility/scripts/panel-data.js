@@ -40,8 +40,13 @@ export const GOALS = {
 };
 const STATUSES = ['included', 'partial', 'missing'];
 
+// rule.by 'rank' (defendRank, winRank) suits a brand whose own name lifts its share everywhere
 export function jobOf(standing, state, rule = JOB_RULE) {
   const share = standing?.share;
+  if (rule.by === 'rank' && standing?.rank) {
+    if (standing.rank <= rule.defendRank) return 'Defend';
+    return standing.rank <= rule.winRank ? 'Win' : 'Claim';
+  }
   if (share == null) return FROM_STATE[state] || 'Claim';
   if (share >= rule.defendShare || (standing.rank && standing.rank <= rule.defendRank)) return 'Defend';
   if (share >= rule.winShare) return 'Win';
@@ -131,6 +136,7 @@ export function panelData({ visits, reads, plan }, { today = new Date() } = {}) 
       asOf: plan.asOf || today.toISOString().slice(0, 10),
       window: plan.window || reads.scope || '',
       jobRule: { ...JOB_TEXT, ...(plan.jobText || {}) },
+      ...(rule.by ? { jobBy: rule.by } : {}),
       ...(plan.study ? { study: plan.study } : {}),
       goals: Object.fromEntries(Object.keys(GOALS)
         .map((g) => [g, { ...GOALS[g], ...(plan.goals?.[g] || {}) }])),

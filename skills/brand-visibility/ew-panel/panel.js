@@ -181,8 +181,9 @@ function map(themes) {
   const svg = s('svg', {
     viewBox: `0 0 ${W} ${H}`, class: 'map', role: 'img', 'aria-label': 'Topics by prompts a month and share of answers',
   });
-  // zones by the job rule
-  [[10, yMax, 'Defend'], [5, 10, 'Win'], [0, 5, 'Claim']].forEach(([a, b, job]) => {
+  // zones by the job rule; a rule by rank has no share bands, the dots carry the job
+  const zones = state.data.meta.jobBy === 'rank' ? [] : [[10, yMax, 'Defend'], [5, 10, 'Win'], [0, 5, 'Claim']];
+  zones.forEach(([a, b, job]) => {
     svg.append(s('rect', {
       x: M.l, y: y(b), width: W - M.l - M.r, height: y(a) - y(b), class: `zone zone-${job.toLowerCase()}`,
     }));
@@ -215,7 +216,7 @@ function map(themes) {
   // about 6px a character at 12px
   const pts = themes.map((t) => ({ t, px: x(t.potential.prompts), py: y(t.standing.share) }));
   const boxes = pts.map((p) => [p.px - 8, p.py - 8, p.px + 8, p.py + 8]);
-  [[10, yMax], [5, 10], [0, 5]].forEach(([, b]) => boxes.push([M.l, y(b), M.l + 60, y(b) + 20]));
+  zones.forEach(([, b]) => boxes.push([M.l, y(b), M.l + 60, y(b) + 20]));
   const hits = (b) => boxes.some((o) => b[0] < o[2] && b[2] > o[0] && b[1] < o[3] && b[3] > o[1]);
   pts.forEach((p) => {
     const w = p.t.label.length * 6;

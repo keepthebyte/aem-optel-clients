@@ -122,6 +122,8 @@ test('job from share and rank, else from the state of read 2', async () => {
   assert.equal(jobOf({}, 'open'), 'Claim');
   assert.equal(jobOf(null, 'lead'), 'Defend');
   assert.equal(jobOf({ share: 7 }, 'open', { defendShare: 6, defendRank: 1, winShare: 3 }), 'Defend');
+  const byRank = { by: 'rank', defendRank: 3, winRank: 9 };
+  assert.deepEqual([2, 3, 4, 9, 10].map((rank) => jobOf({ share: 12, rank }, 'lead', byRank)), ['Defend', 'Defend', 'Win', 'Win', 'Claim']);
 });
 
 test('the example reads and plan build the panel data', async () => {
