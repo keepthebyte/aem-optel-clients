@@ -34,6 +34,8 @@ the audiences of several sites while they are still apart. It writes no code int
 Copy `merge-rules.js` next to the project and edit it: the sites, the need patterns, the
 audiences. Keys come from the environment, one per site (`OPTEL_DOMAIN_KEY_<ID>`); treat them
 like passwords (see the `aem-optel` skill). Raw bundles stay out of the repository.
+No keys or no traffic yet: `OPTEL_FAKE_<ID>` (a profile.json from `optel-fake.js profile`, per
+site) or `OPTEL_FAKE` makes `pull.js` write synthetic bundles (`fake: true`); label the results.
 
 ```bash
 node scripts/pull.js         --rules merge-rules.js --start 2026-09-14 --end 2026-11-13 --data data/

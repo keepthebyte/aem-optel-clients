@@ -6,6 +6,8 @@
  *
  * One domain key per site, from the environment only: OPTEL_DOMAIN_KEY_<ID> (the site id in
  * upper case, e.g. OPTEL_DOMAIN_KEY_SHOP). Keys are never written, printed or passed as arguments.
+ * No data yet: OPTEL_FAKE_<ID> or OPTEL_FAKE (see optel-client.js --fake) replaces the key with
+ * synthetic bundles. Fake wins over a key; every bundle says `fake: true`.
  * Writes <data>/<id>-site.jsonl. Keep that folder out of the repository.
  */
 import fs from 'node:fs';
@@ -22,15 +24,18 @@ if (!args.rules || !args.data || !(args.last || (args.start && args.end))) {
 }
 const rules = await loadRules(args.rules);
 const client = [process.env.OPTEL_CLIENT, path.join(here, '../../aem-optel/optel-client.js'), path.join(here, '../../../optel-client.js')].filter(Boolean).find((p) => fs.existsSync(p));
-const envOf = (site) => `OPTEL_DOMAIN_KEY_${site.id.toUpperCase().replace(/[^A-Z0-9]/g, '_')}`;
-const missing = rules.sites.filter((s) => !process.env[envOf(s)]);
+const idOf = (site) => site.id.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+const envOf = (site) => `OPTEL_DOMAIN_KEY_${idOf(site)}`;
+// no data yet: OPTEL_FAKE_<ID> (a profile.json or site URL per site) or OPTEL_FAKE for all, no keys needed
+const fakeOf = (site) => process.env[`OPTEL_FAKE_${idOf(site)}`] || process.env.OPTEL_FAKE;
+const missing = rules.sites.filter((s) => !process.env[envOf(s)] && !fakeOf(s));
 if (missing.length) { console.error(`missing ${missing.map(envOf).join(', ')} (one domain key per site, in the environment)`); process.exit(1); }
 fs.mkdirSync(args.data, { recursive: true });
 const range = args.last ? ['--last', args.last] : ['--start', args.start, '--end', args.end];
 const results = await Promise.all(rules.sites.map((site) => new Promise((resolve) => {
   const out = path.join(args.data, `${site.id}-site.jsonl`);
   const p = spawn('node', [client, '--domain', site.host, ...range, '--granularity', 'hour', '--report', 'raw', '--quiet', '--out', out], {
-    env: { ...process.env, OPTEL_DOMAIN_KEY: process.env[envOf(site)] }, stdio: ['ignore', 'ignore', 'inherit'],
+    env: { ...process.env, OPTEL_DOMAIN_KEY: process.env[envOf(site)], ...(fakeOf(site) ? { OPTEL_FAKE: fakeOf(site) } : {}) }, stdio: ['ignore', 'ignore', 'inherit'],
   });
   p.on('close', (code) => { console.error(`${site.host}: ${code === 0 ? out : `failed (${code})`}`); resolve(code); });
 })));

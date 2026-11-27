@@ -32,6 +32,7 @@ Reports and scripts:
 | `scripts/agent-check.js` | cohort page URL → findings for the page a personal AI agent gets, first-screen screenshot and accessibility tree (needs Playwright) |
 | `scripts/pictures.js` | homepage bundles + rules [+ site] → `pictures.json` (pictures each rule has in view, how many pictures down the page it gets, the pictures where the group lands elsewhere) |
 | `scripts/review.js` | a month of bundles + rules → `review.json` / `review.md` (lift per rule vs holdout, A/A check, unmatched traffic) |
+| `scripts/fake-rollout.js` | **fake** homepage bundles (`optel-client.js --fake`) + rules → the same bundles with `audience` / `experiment` checkpoints, 90/10, optional `--lift`: to rehearse `review.js` before a rollout. Label everything from it as synthetic |
 
 The explainer video for leadership, and the monthly video update, are made with the
 `homepage-cohorts-video` skill from `cohorts.json`, `review.json` and the live pages.
