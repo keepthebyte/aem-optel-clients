@@ -8,6 +8,8 @@ sampling, privacy, checkpoints).
 
 New here? Start with the **[step-by-step guide](docs/guide.md)**: from a domain key to a traffic
 picture, a brand visibility plan, a cohort homepage and a narrated video, in the order to do them.
+[`docs/files.md`](docs/files.md) says what every file is, where it lives (this repository, the
+customer workspace or the site) and how to refresh it.
 
 What is here:
 

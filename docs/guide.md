@@ -410,6 +410,7 @@ measurement keys: never rename one.
 
 ## Where to read more
 
+- Every file a run reads or writes, where it lives and how to refresh it: [`files.md`](files.md).
 - The numbers and how not to misread them: [`skills/aem-optel/SKILL.md`](../skills/aem-optel/SKILL.md), section 4.
 - Writing rules: [`skills/homepage-cohorts/references/rules.md`](../skills/homepage-cohorts/references/rules.md).
 - From a merge of sites to rules on the new site: [`skills/site-merge/references/runtime.md`](../skills/site-merge/references/runtime.md).
