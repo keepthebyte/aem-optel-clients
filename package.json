@@ -11,13 +11,14 @@
   "files": [
     "CHANGELOG.md",
     "optel-client.js",
+    "optel-fake.js",
     "skills"
   ],
   "engines": {
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test test/optel-client.test.mjs test/extensions.test.mjs test/homepage-cohorts.test.mjs test/ew-panel.test.mjs test/cohort-insights.test.mjs test/agent-check.test.mjs test/site-merge.test.mjs test/brand-visibility.test.mjs test/brand-visibility-panel.test.mjs test/data-report.test.mjs",
+    "test": "node --test test/optel-client.test.mjs test/optel-fake.test.mjs test/extensions.test.mjs test/homepage-cohorts.test.mjs test/ew-panel.test.mjs test/cohort-insights.test.mjs test/agent-check.test.mjs test/site-merge.test.mjs test/brand-visibility.test.mjs test/brand-visibility-panel.test.mjs test/data-report.test.mjs",
     "test:live": "node --test test/live.test.mjs"
   },
   "license": "Apache-2.0"

@@ -72,6 +72,28 @@ In a browser, import the file with `<script type="module">`. The bundler allows
 any origin. A key in front-end code is visible to every visitor, though, so public
 apps should go through a small proxy that adds the key (pass its URL as `endpoint`).
 
+## No data yet? Fake it
+
+For a demo, a pitch or building a skill before a site has a key or any traffic,
+`optel-fake.js` generates bundles that look like the bundler's: the site's own pages,
+blocks and links, channels, devices, consent, CWV, clicks, dead taps, forms, errors,
+bots and AI agents. No key, no network, deterministic (same input, same bundles).
+
+```bash
+node optel-fake.js profile --site https://main--site--org.aem.live --out profile.json   # pages from query-index.json or sitemap.xml
+node optel-client.js --fake profile.json --last 30d --report summary
+node optel-client.js --fake profile.json --scenario ai-growth,cwv-regression --last 60d --report ai
+OPTEL_FAKE=profile.json node skills/site-merge/scripts/pull.js ...   # skills that run the CLI follow OPTEL_FAKE
+node optel-fake.js scenarios                                         # what each scenario does
+```
+
+`--fake` alone uses a generic site; `--fake <site URL>` reads the pages on the fly. In
+code: `loadBundles({ fake: profile, ... })`. Edit `profile.json` to set page shares,
+views per day, the channel and device mix, CWV and scenario dates.
+
+Every bundle carries `fake: true` and the CLI output says `meta.fake: true`. Fake
+numbers show what a report or a page would look like; never present them as measured.
+
 ## Use the skill
 
 Claude Code: clone the repository and link every skill. The skills find the client and each
@@ -87,7 +109,7 @@ To copy only the first skill instead, keep the client next to it:
 
 ```bash
 mkdir -p ~/.claude/skills/aem-optel
-cp skills/aem-optel/SKILL.md optel-client.js ~/.claude/skills/aem-optel/
+cp skills/aem-optel/SKILL.md optel-client.js optel-fake.js ~/.claude/skills/aem-optel/   # optel-fake.js only for --fake
 ```
 
 Other agents: point them at `skills/aem-optel/SKILL.md`. It is plain Markdown with

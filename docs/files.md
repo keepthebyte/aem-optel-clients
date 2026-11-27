@@ -21,6 +21,7 @@ come from the environment, or from a file under `~/.config/` with mode 600.
 | File | What it is |
 | --- | --- |
 | `optel-client.js` | The Optel client: loads bundles with a domain key, turns them into reports. Library, CLI, browser module. Every skill builds on it |
+| `optel-fake.js` | Synthetic bundles for sites with no key or no data yet: `optel-client.js --fake`, `OPTEL_FAKE`, `loadBundles({ fake })`. Also builds a profile from a site's pages |
 | `docs/guide.md` | The step-by-step guide, from a domain key to a video, in the order to do things |
 | `docs/files.md` | This page |
 | `CHANGELOG.md` | What changed, newest first. Add an entry under **Unreleased** with every change |
@@ -36,7 +37,7 @@ one topic), `scripts/` (run with Node, no packages) and examples to copy.
 | `aem-optel` | – | the CLI of `optel-client.js` | – |
 | `site-merge` | `merge-rules.js` | `pull.js` → `site-cohorts.js` → `merge.js` → `sankey.js`; `as-redirected.js` | – |
 | `brand-visibility` | `theme-rules.js`, `reads.example.json`, `plan.example.json` | `visits-by-theme.js`, `three-reads.js`, `panel-data.js` | `ew-panel/` → `tools/brand-visibility/` |
-| `homepage-cohorts` | `engine/cohort-rules.js` (also goes to the site) | `size.js`, `sankey.js`, `review.js`, `verify.js`, `notes.js`, `pictures.js`, `agent-check.js` | `engine/*.js` → `scripts/`, `engine/cohort-panel.css` → `styles/`, `engine/ew-panel/` → `tools/cohorts/` |
+| `homepage-cohorts` | `engine/cohort-rules.js` (also goes to the site) | `size.js`, `sankey.js`, `review.js`, `fake-rollout.js`, `verify.js`, `notes.js`, `pictures.js`, `agent-check.js` | `engine/*.js` → `scripts/`, `engine/cohort-panel.css` → `styles/`, `engine/ew-panel/` → `tools/cohorts/` |
 | `homepage-cohorts-video`, `brand-visibility-video` | `templates/*.storyboard.json`, `templates/captures.example.json` | `capture.js`, `tts.js`, `render.js` (in `homepage-cohorts-video`) | – |
 | `demo-guide` | `templates/guide.html`, `templates/captures.example.json` | `build.js` | – |
 | `data-report` | `report.example.json` (the build copies `templates/report.html` beside it) | `fetch-join.js`, `build.js` | – |

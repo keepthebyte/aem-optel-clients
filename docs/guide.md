@@ -68,6 +68,19 @@ site, whose key is `open`:
 OPTEL_DOMAIN_KEY=open node ~/Code/aem-optel-clients/optel-client.js --domain emigrationbrewing.com --last 30d --report summary
 ```
 
+**No key yet, or a site with no traffic?** Every step can run on fake data first: build a
+profile from the site's pages, then set `OPTEL_FAKE` and run the steps as written. Skills that
+call the CLI follow it; `site-merge/scripts/pull.js` also takes `OPTEL_FAKE_<ID>` per site.
+
+```bash
+node ~/Code/aem-optel-clients/optel-fake.js profile --site https://main--site--org.aem.live --out profile.json
+export OPTEL_FAKE=$PWD/profile.json OPTEL_FAKE_SCENARIO=ai-growth   # unset both before the real run
+```
+
+Step 7 has nothing to review before a rollout: `homepage-cohorts/scripts/fake-rollout.js` tags
+fake homepage bundles with your rules, a 90/10 split and an optional lift, so `review.js` and a
+review video can be tried. Fake data is for rehearsing; nothing from it is a finding.
+
 For the page (step 5) also add Adobe's Edge Delivery skills in Claude Code:
 `/plugin marketplace add adobe/skills`, then install `aem-edge-delivery-services` (building the
 page) and [`stardust`](https://github.com/adobe/skills/tree/main/plugins/stardust) (designing the
@@ -348,7 +361,8 @@ How to work:
   the final voice. A five-minute video is 850 to 1,050 spoken words.
 - **Every number on screen traces to a file.** Ask for the list before the final render.
 - **Look at every capture.** Cookie banners, demo dialogs and late pop-ups hide the page.
-- **Say what is measured, estimated or proposed**, and say when a page is a demo.
+- **Say what is measured, estimated or proposed**, and say when a page is a demo. Fake
+  data (`OPTEL_FAKE`) is none of these: label every scene "synthetic data" or do not show it.
 - **The ElevenLabs key** goes in `ELEVENLABS_API_KEY` or `~/.config/elevenlabs/key`, never in
   the storyboard or a repository.
 - **Know the audience.** For an existing customer: the way of thinking and what follows from
@@ -403,6 +417,7 @@ measurement keys: never rename one.
 | `N files failed` after a pull | Run it again until it is 0; failed files undercount everything. |
 | A cohort capture shows the original page | The engine took the browser for a bot. Capture with `capture.js`, or force the rule with `?cohort=<rule id>`. |
 | `verify.js` fails | `/new` without a rule differs from the homepage. Fix the content before sizing, filming or promoting. |
+| Numbers look too clean, or `meta.fake: true` | `OPTEL_FAKE` is still set: `unset OPTEL_FAKE OPTEL_FAKE_SCENARIO` and pull again. |
 | `optel-client.js not found` | The skill was copied without the repository. Link it as in step 0, or set `OPTEL_CLIENT`. |
 | `Playwright not found` | Install it in the folder you run from, or set `NODE_PATH`. |
 | Brand Visibility returns `429` | Run the calls one after another with a pause; the skill's reference says how. |

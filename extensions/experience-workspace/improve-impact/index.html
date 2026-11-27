@@ -186,6 +186,14 @@ const { log } = session;
 const state = { payload: null, derived: null, sdk: null, requested: {}, note: '', path: null };
 /* site settings (../shared/site.js): resolved at boot, once the handshake names the project */
 let S = siteSettings(params);
+
+if (S.fake) {
+  const b = document.createElement('p');
+  b.setAttribute('role', 'note');
+  b.textContent = 'Synthetic data (optel-fake.js, ?fake=): not real traffic. Never present these numbers as measured.';
+  b.style.cssText = 'margin:0;padding:6px 10px;background:#fff3cd;color:#664d03;font:600 12px/1.4 system-ui,sans-serif;border-bottom:1px solid #e6c766;position:sticky;top:0;z-index:10';
+  document.body.prepend(b);
+}
 /* Experience Workspace names a tool panel after its library row title, lowercased with
    hyphens: "Page Insights" is page-insights. ?insights-panel= when the row is named otherwise. */
 /* translation requests, remembered per host and page */
@@ -476,6 +484,8 @@ async function loadPayload(path) {
   const { bundles } = await loadWeek({
     domain: S.domain,
     domainKey: S.domainKey,
+    fake: S.fake,
+    scenario: S.scenario,
     path,
     now,
     onProgress: (done, total) => { const st = app.querySelector('.stamp'); if (st) st.textContent = `Loading the last 7 days, hour ${done} of ${total}…`; },

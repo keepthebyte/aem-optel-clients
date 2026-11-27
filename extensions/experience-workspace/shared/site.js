@@ -11,6 +11,9 @@
  *                            the client's rule (see configure() in analyze.js)
  *   ?ai=on                   AI-surface section (Brand Visibility); off by default
  *   ?site-id=...             Brand Visibility site id, read only with ai=on
+ *   ?fake=on|<profile url>   no data yet: synthetic telemetry from optel-fake.js, no key needed;
+ *                            a profile.json URL (served with CORS) makes it look like the site
+ *   ?scenario=a,b            with fake: optel-fake.js scenarios (ai-growth, cwv-regression, ...)
  *
  * Experience Workspace tells a panel the project (org and site) and the page
  * path, not the production host, so a domain typed into the panel is
@@ -55,10 +58,14 @@ export function siteSettings(params, project = '') {
   const ai = params.get('ai') === 'on';
   const siteIdStore = `bv-site-id:${domain}`;
   if (ai && params.get('site-id')) write(siteIdStore, params.get('site-id'));
+  const fakeParam = params.get('fake');
+  const fake = fakeParam && !['0', 'off', 'false', 'no'].includes(fakeParam.toLowerCase()) ? fakeParam : null;
   return {
     project,
-    domain,
-    domainKey: urlKey || (domain ? read(keyStore(domain)) : null),
+    domain: domain || (fake ? 'www.example.com' : ''),
+    domainKey: fake ? 'fake' : urlKey || (domain ? read(keyStore(domain)) : null),
+    fake,
+    scenario: fake ? params.get('scenario') || '' : '',
     paidMedium: params.get('paid-medium') || '',
     ai,
     siteId: ai ? (params.get('site-id') || read(siteIdStore)) : null,

@@ -339,7 +339,10 @@ export const redact = (url) => String(url).replace(/(domainkey=)[^&]+/i, '$1***'
  * @param {(done: number, total: number) => void} [o.onProgress]
  * @param {typeof fetch} [o.fetch]       custom fetch (tests, proxies)
  * @param {string}   [o.endpoint]        bundler base URL, e.g. your own proxy that adds the key server-side
- * @returns {Promise<{ bundles: object[], granularity: string, start: Date, end: Date, files: number, split: number, failed: {slot: Date, granularity: string, error: string}[] }>}
+ * @param {object|true} [o.fake]         no data yet? Synthetic bundles from optel-fake.js (next to this file):
+ *                                       a profile object, or true for a generic site. No key, no network.
+ *                                       Every bundle has `fake: true`; never present the numbers as measured.
+ * @returns {Promise<{ bundles: object[], granularity: string, start: Date, end: Date, files: number, split: number, failed: {slot: Date, granularity: string, error: string}[], fake: boolean }>}
  *
  * Failure model: a rejected key throws OptelError at once (it would fail for
  * every file). A file over the bundler's 6 MB response limit (413, common for
@@ -353,8 +356,21 @@ export const redact = (url) => String(url).replace(/(domainkey=)[^&]+/i, '$1***'
  */
 export async function loadBundles({
   domain, org, domainKey, start, end, last, granularity = 'auto', filter, checkpoints, keep = true, trim = true,
-  concurrency = 6, retries = 2, signal, onChunk, onProgress, fetch: fetchImpl = globalThis.fetch, endpoint = BUNDLER,
+  concurrency = 6, retries = 2, signal, onChunk, onProgress, fetch: fetchImpl = globalThis.fetch, endpoint = BUNDLER, fake,
 } = {}) {
+  if (fake) {
+    let mod;
+    try {
+      mod = await import('./optel-fake.js');
+    } catch (err) {
+      throw new Error(`fake data needs optel-fake.js next to optel-client.js (${err.message})`);
+    }
+    const profile = fake === true ? {} : fake;
+    fetchImpl = mod.fakeFetch(profile);
+    endpoint = BUNDLER;
+    domainKey = domainKey || 'fake';
+    if (!domain && !org) domain = new URL(profile.site || mod.DEFAULT_PROFILE.site).hostname;
+  }
   if (!domain && !org) throw new Error('loadBundles needs `domain` (or `org`)');
   if (!domainKey) throw new Error('loadBundles needs `domainKey`');
   if (!fetchImpl) throw new Error('No fetch available: pass `fetch` or use Node 18+');
@@ -427,7 +443,7 @@ export async function loadBundles({
   if (fatal) throw fatal;
   if (signal?.aborted) throw signal.reason || new Error('aborted');
   return {
-    bundles, granularity: plan.granularity, start: inWindow ? winStart : plan.start, end: plan.end, files: total - split, split, failed,
+    bundles, granularity: plan.granularity, start: inWindow ? winStart : plan.start, end: plan.end, files: total - split, split, failed, fake: !!fake,
   };
 }
 
@@ -1902,6 +1918,11 @@ Reports
   --by for activity / segments: channel | source | type | device | ua | os | path | week
 
 Other
+  --fake [profile]     no data yet: synthetic bundles from optel-fake.js, no key, no network. profile is a
+                       profile.json (node optel-fake.js profile --site …), a site URL to read pages from, or
+                       nothing for a generic site. Env: OPTEL_FAKE=<same>. Output says fake everywhere.
+  --scenario a,b       with --fake: ai-growth, cwv-regression, dead-click-hotspot, broken-link, campaign,
+                       agent-surge, experiment (node optel-fake.js scenarios). Env: OPTEL_FAKE_SCENARIO
   --key <key>          domain key (prefer the OPTEL_DOMAIN_KEY env var: keeps it out of shell history)
   --org <org>          use an org-level key instead of --domain
   --top <n>            rows per table (default 10-25 depending on report)
@@ -1929,7 +1950,15 @@ function parseArgs(argv) {
 async function cli(argv) {
   const args = parseArgs(argv);
   if (args.help || args.h) { process.stdout.write(`${HELP}\n`); return; }
-  const domainKey = args.key || process.env.OPTEL_DOMAIN_KEY;
+  const fakeArg = args.fake ?? process.env.OPTEL_FAKE;
+  let fake;
+  if (fakeArg && !['0', 'false', 'no'].includes(String(fakeArg).toLowerCase())) {
+    const { resolveProfile } = await import('./optel-fake.js');
+    fake = await resolveProfile(fakeArg, { scenarios: args.scenario || process.env.OPTEL_FAKE_SCENARIO });
+    if (!args.domain && !args.org) args.domain = new URL(fake.site || 'https://www.example.com').hostname;
+    if (!args.quiet) process.stderr.write(`fake data: synthetic bundles from optel-fake.js${fake.scenarios?.length ? ` (scenarios: ${fake.scenarios.map((s) => s.name || s).join(', ')})` : ''}, not real traffic\n`);
+  } else if (args.scenario) throw new Error('--scenario needs --fake');
+  const domainKey = args.key || process.env.OPTEL_DOMAIN_KEY || (fake ? 'fake' : undefined);
   if (!args.domain && !args.org) throw new Error('--domain is required (see --help)');
   if (!domainKey) throw new Error('Set OPTEL_DOMAIN_KEY (or pass --key)');
   const report = String(args.report || 'summary');
@@ -1991,6 +2020,7 @@ async function cli(argv) {
       .concat(KEEP_ALWAYS, KEEP_FOR[report.split(':')[0]] || []))] : undefined,
     concurrency: Number(args.concurrency || 8),
     onProgress: quiet ? undefined : progress,
+    fake,
   };
   const res = await loadBundles(loadOpts);
   if (!quiet) process.stderr.write(`${tty ? '\r' : ''}loaded ${res.files} ${res.granularity} files${res.split ? ` (${res.split} too large, loaded as smaller files)` : ''}, kept ${res.bundles.length} bundles in ${((Date.now() - t0) / 1000).toFixed(1)}s${res.failed.length ? `, ${res.failed.length} files failed` : ''}\n`);
@@ -2079,6 +2109,7 @@ async function cli(argv) {
   const out = {
     meta: {
       domain: args.domain || null, org: args.org || null, report, filter: { path: args.path || null, prefix: args.prefix || null, match: args.match || null, device: args.device || null }, granularity: res.granularity, start: res.start.toISOString(), end: res.end.toISOString(), files: res.files, failedFiles: res.failed.length, bundles: bundles.length, note: 'views are estimates: sampled bundles x weight; bots and un-activated prerenders excluded; window is [start, end) UTC',
+      ...(fake ? { fake: true, fakeNote: (await import('./optel-fake.js')).FAKE_NOTE, scenarios: (fake.scenarios || []).map((s) => s.name || s) } : {}),
     },
     data,
   };

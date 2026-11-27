@@ -27,6 +27,9 @@ Node 18+ + CLI) and tells you how to read it without fooling yourself.
      can generate one with the key tool in the Cloud Service Workspace.
    - To try things without a key, use the public demo: domain `emigrationbrewing.com`,
      key `open` (bare domain only; `www.` is rejected).
+   - No key or no traffic yet (a demo, a pitch, building a page first): `--fake`
+     generates synthetic bundles from the site's own pages (README, "No data yet? Fake
+     it"). Only when the user asks for it or agrees to it.
    - Put it in the environment: `export OPTEL_DOMAIN_KEY=...` (or have the user run
      `! export OPTEL_DOMAIN_KEY=...` so it never enters the transcript).
    - Never write it into a file in a repo, a URL you print, a commit, a report, or
@@ -357,6 +360,11 @@ and any `failedFiles`. Round (`12.4k views`, `38%`), don't print raw weights.
 For customer-facing reports call the data "AEM Operational Telemetry", as aem.live does.
 State heuristics as heuristics (scrolled, dead taps, likelyAutomated) and give the
 sample size behind every rate.
+
+**Fake data** (`meta.fake: true`, bundles with `fake: true`): say so in the first line and
+on every chart, table, slide and file built from it ("synthetic data, not measured").
+Never mix fake and real bundles, never quote a fake number as a finding, and do not
+"recommend" changes from it: it shows how a report or page would look, not what is true.
 
 ## 6. Without Node (raw HTTP)
 

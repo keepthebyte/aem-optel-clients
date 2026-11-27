@@ -10,6 +10,24 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Fake data when there is none
+- `optel-fake.js`: synthetic bundles in the bundler's shape, from a profile of the site
+  (`node optel-fake.js profile --site <url>` reads query-index.json or sitemap.xml and each
+  page's blocks and links). Channels, devices, consent, CWV, clicks, dead taps, forms, errors,
+  404s, bots, AI referrals and personal agents; seeded, so the same input gives the same
+  bundles. Scenarios: `ai-growth`, `cwv-regression`, `dead-click-hotspot`, `broken-link`,
+  `campaign`, `agent-surge`, `experiment`.
+- `loadBundles({ fake })`, CLI `--fake [profile|url]`, `--scenario`, env `OPTEL_FAKE` and
+  `OPTEL_FAKE_SCENARIO`: no key, no network. Bundles carry `fake: true`; CLI output has
+  `meta.fake`, `meta.fakeNote` and `meta.scenarios`.
+- `site-merge/scripts/pull.js` takes `OPTEL_FAKE` or `OPTEL_FAKE_<ID>` instead of a key.
+- `homepage-cohorts/scripts/fake-rollout.js`: tags fake homepage bundles with the cohort rules,
+  a 90/10 split and an optional lift, so `review.js` can be tried before a rollout. Refuses
+  bundles that are not fake.
+- Page Insights and Improve Impact take `?fake=on` or `?fake=<profile.json URL>` and
+  `?scenario=`: synthetic telemetry in the Experience Workspace canvas without a domain key,
+  with a banner, a fake-labelled summary and export, and no explorer link.
+
 ### Docs: what every file is
 - `docs/files.md`: the files of this repository, of a customer workspace and of the site
   (code and content store), with what writes and reads each one, why it lives where it does, and
