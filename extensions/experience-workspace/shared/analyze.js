@@ -46,13 +46,14 @@ export function hourList(now = new Date()) {
  * OptelError with status 401 or 403; other failed files are counted in `failed`.
  */
 export async function loadWeek({
-  domain, domainKey, path, now = new Date(), onProgress = () => {},
+  domain, domainKey, path, now = new Date(), onProgress = () => {}, fake, scenario,
 }) {
   const hours = hourList(now);
   const got = [];
   const { bundles, failed } = await loadBundles({
     domain,
     domainKey,
+    fake: fake ? await fakeProfile({ fake, scenario, path }) : undefined,
     start: hours[0],
     end: now,
     granularity: 'hour',
@@ -63,6 +64,25 @@ export async function loadWeek({
     },
   });
   return { bundles, failed: failed.length, hours };
+}
+
+/**
+ * The optel-fake.js profile for a panel with ?fake=: `on` (a generic site) or the URL of a
+ * profile.json (node optel-fake.js profile --site ...), which must be served with CORS. The
+ * open page is added when the profile does not have it, so every page has telemetry.
+ */
+export async function fakeProfile({ fake, scenario, path = '/' }) {
+  let profile = {};
+  if (/^https?:\/\//i.test(fake)) {
+    const res = await fetch(fake);
+    if (!res.ok) throw new Error(`fake profile ${fake}: HTTP ${res.status}`);
+    profile = await res.json();
+  }
+  const { resolveProfile, genericPages } = await import('../../../optel-fake.js');
+  const pages = profile.pages?.length ? profile.pages : genericPages();
+  const open = normalizePath(path);
+  if (!pages.some((pg) => normalizePath(pg.path) === open)) pages.push({ path: open, share: 0.5, blocks: pages[0]?.blocks || [] });
+  return resolveProfile({ ...profile, pages }, { scenarios: scenario });
 }
 
 /**

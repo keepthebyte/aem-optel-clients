@@ -154,7 +154,7 @@ const GENERIC = [
   ['/free-trial', ['hero', 'form']],
 ];
 
-function genericPages() {
+export function genericPages() {
   const paths = GENERIC.map(([p]) => p);
   return GENERIC.map(([path, blocks], i) => ({
     path,

@@ -24,6 +24,9 @@ change report shapes or classification results; read **Changed** before upgradin
 - `homepage-cohorts/scripts/fake-rollout.js`: tags fake homepage bundles with the cohort rules,
   a 90/10 split and an optional lift, so `review.js` can be tried before a rollout. Refuses
   bundles that are not fake.
+- Page Insights and Improve Impact take `?fake=on` or `?fake=<profile.json URL>` and
+  `?scenario=`: synthetic telemetry in the Experience Workspace canvas without a domain key,
+  with a banner, a fake-labelled summary and export, and no explorer link.
 
 ### Docs: what every file is
 - `docs/files.md`: the files of this repository, of a customer workspace and of the site

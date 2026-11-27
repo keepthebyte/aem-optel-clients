@@ -43,6 +43,8 @@ link switches to.
 | `insights-panel` | Optional, Improve Impact only. The Page Insights panel name when its row has another title. |
 | `autosend` | Optional, Improve Impact only. `0` leaves the chat prompt for review instead of sending it. |
 | `cohorts-panel` | Optional. The name of the site's cohort panel (default `cohorts`, a row titled "Cohorts"), opened from a cohort page with no traffic and from Page Insights' cohort chapter. |
+| `fake` | Optional. No data yet: `on` shows synthetic telemetry from [`optel-fake.js`](../../optel-fake.js) for a generic site, or the URL of a `profile.json` (`node optel-fake.js profile --site …`, served with CORS, e.g. a raw gist) to make it look like the site. No domain key is needed and every panel says the numbers are synthetic. |
+| `scenario` | Optional, with `fake`. Comma-separated optel-fake.js scenarios: `ai-growth`, `cwv-regression`, `dead-click-hotspot`, `broken-link`, `campaign`, `agent-surge`, `experiment`. |
 
 Whatever the URL leaves out the panel asks for once: the domain is remembered
 per project, the key per host, both in this browser. A key in the row URL is
