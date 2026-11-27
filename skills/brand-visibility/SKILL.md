@@ -116,6 +116,23 @@ and name the ones you cannot.
 - The picture draws visits to volume, prompts on a scale of their own, and the firm's
   statements as links. The footnote says so; keep it.
 
+## Decide and plan in Experience Workspace
+
+`ew-panel/` puts the plan where the site is edited: a full-screen extension where the team
+marks each theme Focus, Watch or Skip on a map of demand against share of answers, then sees
+the changes suggested for the themes on Focus, grouped by the job each does (be seen and
+preferred, be chosen), each with its page and its evidence, ready to draft in the chat. Add
+`standing` per theme to `reads.json`, write `plan.json` (suggestions, notes, data sources),
+then build and install:
+
+```bash
+node scripts/panel-data.js --visits out/visits-by-theme.json --reads reads.json \
+  --plan plan.json --out out/brand-visibility.json --check-urls
+```
+
+`references/panel.md` has the data, the rules for writing suggestions and the install. The data
+file and the team's choices stay in the site's content store, previewed and never published.
+
 ## Present it
 
 `three-reads.html?show=arrive|ask|want|plan` reveals one read at a time, with marks
