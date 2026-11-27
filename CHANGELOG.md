@@ -10,6 +10,11 @@ change report shapes or classification results; read **Changed** before upgradin
 
 ## [Unreleased]
 
+### Docs: what every file is
+- `docs/files.md`: the files of this repository, of a customer workspace and of the site
+  (code and content store), with what writes and reads each one, why it lives where it does, and
+  how to refresh a customer end to end. Linked from the README and the guide.
+
 ### Brand visibility: a panel to decide the focus and plan the changes
 - `skills/brand-visibility/ew-panel/` is a full-screen Experience Workspace extension
   (`fullsize-dialog`), site-wide. **Decide**: a map of prompts a month against share of answers,
